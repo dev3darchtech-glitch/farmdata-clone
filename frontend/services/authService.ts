@@ -1,0 +1,220 @@
+import { AuthTokens, User } from "@/types";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+import { loginBackend, setAuthToken } from "./apiClient";
+
+export const TOKENS_KEY = "auth_tokens";
+export const USER_KEY = "auth_user";
+export const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+export const GOOGLE_USERINFO_ENDPOINT =
+  "https://www.googleapis.com/oauth2/v2/userinfo";
+
+export async function setSecureItem(key: string, value: string): Promise<void> {
+  if (Platform.OS === "web") {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(key, value);
+    }
+  } else {
+    await SecureStore.setItemAsync(key, value);
+  }
+}
+
+export async function getSecureItem(key: string): Promise<string | null> {
+  if (Platform.OS === "web") {
+    if (typeof localStorage !== "undefined") {
+      return localStorage.getItem(key);
+    }
+    return null;
+  }
+  return await SecureStore.getItemAsync(key);
+}
+
+export async function deleteSecureItem(key: string): Promise<void> {
+  if (Platform.OS === "web") {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(key);
+    }
+  } else {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
+
+export function isTokenExpired(
+  tokens: AuthTokens | null,
+  bufferSeconds = 60,
+): boolean {
+  if (!tokens || !tokens.issuedAt || typeof tokens.expiresIn !== "number")
+    return true;
+  const expirationTimestamp =
+    tokens.issuedAt + (tokens.expiresIn - bufferSeconds) * 1000;
+  return Date.now() >= expirationTimestamp;
+}
+
+export async function fetchGoogleUserInfo(accessToken: string): Promise<User> {
+  const response = await fetch(GOOGLE_USERINFO_ENDPOINT, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user info: ${response.statusText}`);
+  }
+  const data = await response.json();
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name || data.email,
+    photo: data.picture,
+    picture: data.picture,
+  };
+}
+
+export async function refreshToken(
+  refreshTokenStr: string,
+): Promise<AuthTokens> {
+  if (!refreshTokenStr) {
+    await logout();
+    throw new Error("Refresh token is required");
+  }
+
+  const clientId =
+    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "MOCK_CLIENT_ID";
+  const endpoint =
+    process.env.EXPO_PUBLIC_OAUTH_TOKEN_ENDPOINT || GOOGLE_TOKEN_ENDPOINT;
+
+  const bodyParams = new URLSearchParams({
+    client_id: clientId,
+    grant_type: "refresh_token",
+    refresh_token: refreshTokenStr,
+  });
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: bodyParams.toString(),
+  });
+
+  if (!response.ok) {
+    await logout();
+    throw new Error("Failed to refresh access token. Session expired.");
+  }
+
+  const data = await response.json();
+  const updatedTokens: AuthTokens = {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token || refreshTokenStr,
+    idToken: data.id_token,
+    tokenType: data.token_type || "Bearer",
+    expiresIn: data.expires_in || 3600,
+    issuedAt: Date.now(),
+  };
+
+  const storedUser = await getStoredUser();
+  if (storedUser) {
+    await saveAuthData(updatedTokens, storedUser);
+  } else {
+    await setSecureItem(TOKENS_KEY, JSON.stringify(updatedTokens));
+  }
+
+  return updatedTokens;
+}
+
+export async function saveAuthData(
+  tokens: AuthTokens,
+  user: User,
+): Promise<void> {
+  setAuthToken(tokens.accessToken);
+  await setSecureItem(TOKENS_KEY, JSON.stringify(tokens));
+  await setSecureItem(USER_KEY, JSON.stringify(user));
+}
+
+export async function getStoredTokens(): Promise<AuthTokens | null> {
+  const rawTokens = await getSecureItem(TOKENS_KEY);
+  if (!rawTokens) return null;
+  try {
+    const tokens: AuthTokens = JSON.parse(rawTokens);
+    if (!tokens || typeof tokens !== "object" || Array.isArray(tokens)) {
+      await logout();
+      return null;
+    }
+    if (isTokenExpired(tokens)) {
+      if (tokens.refreshToken) {
+        return await refreshToken(tokens.refreshToken);
+      }
+      await logout();
+      return null;
+    }
+    setAuthToken(tokens.accessToken);
+    return tokens;
+  } catch {
+    await logout();
+    return null;
+  }
+}
+
+export async function getStoredUser(): Promise<User | null> {
+  const rawUser = await getSecureItem(USER_KEY);
+  if (!rawUser) return null;
+  try {
+    return JSON.parse(rawUser);
+  } catch {
+    return null;
+  }
+}
+
+export async function loginWithCredentials(
+  email: string,
+  password: string,
+): Promise<{ user: User; tokens: AuthTokens }> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !password) {
+    throw new Error("Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.");
+  }
+
+  const data = await loginBackend(normalizedEmail, password);
+  const user: User = {
+    id: data.user.id || (data.user as any)._id,
+    name: data.user.name || data.user.email,
+    email: data.user.email,
+    username: data.user.username,
+    role: data.user.role,
+  };
+  const tokens: AuthTokens = {
+    accessToken: data.token,
+    refreshToken: data.token,
+    tokenType: "Bearer",
+    expiresIn: 86400,
+    issuedAt: Date.now(),
+  };
+
+  await saveAuthData(tokens, user);
+  return { user, tokens };
+}
+
+export async function loginWithGoogle(
+  providedTokens?: Partial<AuthTokens>,
+  providedUser?: Partial<User>,
+): Promise<AuthTokens> {
+  const user: User = {
+    id: providedUser?.id || "FARMER-01",
+    name: providedUser?.name || "Nông dân Nguyễn Văn An",
+    email: providedUser?.email || "an.nguyen@farm.vn",
+    role: (providedUser?.role as any) || "farmer",
+  };
+
+  const tokens: AuthTokens = {
+    accessToken: providedTokens?.accessToken || "jwt_access_token",
+    refreshToken: providedTokens?.refreshToken || "jwt_refresh_token",
+    idToken: providedTokens?.idToken,
+    tokenType: "Bearer",
+    expiresIn: 86400,
+    issuedAt: Date.now(),
+  };
+
+  await saveAuthData(tokens, user);
+  return tokens;
+}
+
+export async function logout(): Promise<void> {
+  setAuthToken(null);
+  await deleteSecureItem(TOKENS_KEY);
+  await deleteSecureItem(USER_KEY);
+}
