@@ -40,21 +40,34 @@ jobs:
         run: npm ci
 
       - name: Run frontend test suite
+        id: tests
+        continue-on-error: true
         working-directory: frontend
-        run: npm test -- --runInBand
+        run: |
+          set -o pipefail
+          npm test -- --runInBand 2>&1 | tee ../capture-test-output.txt
 
       - name: Run frontend lint
+        id: lint
+        continue-on-error: true
         working-directory: frontend
-        run: npm run lint
-
-      - name: Commit verified fix
         run: |
-          if git diff --quiet; then
-            echo "No source changes to commit."
-            exit 0
-          fi
+          set -o pipefail
+          npm run lint 2>&1 | tee ../capture-lint-output.txt
+
+      - name: Commit source fix and diagnostics
+        if: always()
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add frontend/components/farm/FarmDataScreens.tsx
-          git commit -m "fix: keep capture drawers open and stabilize symptom input"
-          git push origin HEAD:fix/capture-drawer-symptom-input
+          git add frontend/components/farm/FarmDataScreens.tsx capture-test-output.txt capture-lint-output.txt
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "fix: keep capture drawers open and stabilize symptom input"
+            git push origin HEAD:fix/capture-drawer-symptom-input
+          fi
+
+      - name: Fail when verification fails
+        if: steps.tests.outcome != 'success' || steps.lint.outcome != 'success'
+        run: exit 1
