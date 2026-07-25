@@ -3,344 +3,8 @@
 > jest --runInBand
 
 PASS __tests__/e2e_integration.test.ts
-FAIL __tests__/m4_challenger_stress.test.tsx
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › renders component tree and displays severity badge according to percentageArea
-
-    No instances found with props: {"testID":"symptom-severity-badge"}
-
-    [0m [90m 322 |[39m
-     [90m 323 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 324 |[39m       [36mconst[39m severityBadge [33m=[39m root[33m.[39mfindByProps({
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 325 |[39m         testID[33m:[39m [32m"symptom-severity-badge"[39m[33m,[39m
-     [90m 326 |[39m       })[33m;[39m
-     [90m 327 |[39m       expect(severityBadge)[33m.[39mtoBeDefined()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:324:34)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › triggers onChangeDescription when TextInput text changes
-
-    No instances found with props: {"testID":"symptom-description-input"}
-
-    [0m [90m 347 |[39m       })[33m;[39m
-     [90m 348 |[39m
-    [31m[1m>[22m[39m[90m 349 |[39m       [36mconst[39m descInput [33m=[39m component[33m![39m[33m.[39mroot[33m.[39mfindByProps({
-     [90m     |[39m                                         [31m[1m^[22m[39m
-     [90m 350 |[39m         testID[33m:[39m [32m"symptom-description-input"[39m[33m,[39m
-     [90m 351 |[39m       })[33m;[39m
-     [90m 352 |[39m       act(() [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:349:41)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › triggers preset buttons (5, 15, 35, 75) with exact percentage values
-
-    No instances found with props: {"testID":"symptom-preset-5"}
-
-    [0m [90m 374 |[39m
-     [90m 375 |[39m       [[35m5[39m[33m,[39m [35m15[39m[33m,[39m [35m35[39m[33m,[39m [35m75[39m][33m.[39mforEach((preset) [33m=>[39m {
-    [31m[1m>[22m[39m[90m 376 |[39m         [36mconst[39m chip [33m=[39m component[33m![39m[33m.[39mroot[33m.[39mfindByProps({
-     [90m     |[39m                                      [31m[1m^[22m[39m
-     [90m 377 |[39m           testID[33m:[39m [32m`symptom-preset-${preset}`[39m[33m,[39m
-     [90m 378 |[39m         })[33m;[39m
-     [90m 379 |[39m         act(() [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at findByProps (__tests__/m4_challenger_stress.test.tsx:376:38)
-          at Array.forEach (<anonymous>)
-      at Object.forEach (__tests__/m4_challenger_stress.test.tsx:375:23)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › handles stepper buttons (+5%, +1%, -1%, -5%) with boundary clamping [0, 100]
-
-    No instances found with props: {"testID":"symptom-step-plus"}
-
-    [0m [90m 405 |[39m       [90m// +5% button -> 15[39m
-     [90m 406 |[39m       act(() [33m=>[39m {
-    [31m[1m>[22m[39m[90m 407 |[39m         root[33m.[39mfindByProps({ testID[33m:[39m [32m"symptom-step-plus"[39m })[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m     |[39m              [31m[1m^[22m[39m
-     [90m 408 |[39m       })[33m;[39m
-     [90m 409 |[39m       expect(mockOnChangePct)[33m.[39mtoHaveBeenCalledWith([35m15[39m)[33m;[39m
-     [90m 410 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at findByProps (__tests__/m4_challenger_stress.test.tsx:407:14)
-      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:789:22)
-      at Object.<anonymous> (__tests__/m4_challenger_stress.test.tsx:406:10)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › clamps stepper calculations at lower (0%) and upper (100%) limits
-
-    No instances found with props: {"testID":"symptom-step-minus"}
-
-    [0m [90m 445 |[39m       act(() [33m=>[39m {
-     [90m 446 |[39m         compAt2[33m.[39mroot
-    [31m[1m>[22m[39m[90m 447 |[39m           [33m.[39mfindByProps({ testID[33m:[39m [32m"symptom-step-minus"[39m })
-     [90m     |[39m            [31m[1m^[22m[39m
-     [90m 448 |[39m           [33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 449 |[39m       })[33m;[39m
-     [90m 450 |[39m       expect(mockOnChangePct)[33m.[39mtoHaveBeenCalledWith([35m0[39m)[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at findByProps (__tests__/m4_challenger_stress.test.tsx:447:12)
-      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:789:22)
-      at Object.<anonymous> (__tests__/m4_challenger_stress.test.tsx:445:10)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › renders error messages when errors prop is populated
-
-    No instances found with props: {"testID":"symptom-description-error"}
-
-    [0m [90m 488 |[39m
-     [90m 489 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 490 |[39m       [36mconst[39m descError [33m=[39m root[33m.[39mfindByProps({
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 491 |[39m         testID[33m:[39m [32m"symptom-description-error"[39m[33m,[39m
-     [90m 492 |[39m       })[33m;[39m
-     [90m 493 |[39m       [36mconst[39m pctError [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"symptom-percentage-error"[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:490:30)
-
-  ● Milestone 4 Challenger Stress Test Suite › 4. StorageDestinationPicker Component Tests › renders local and gdrive options with active selection state for local
-
-    No instances found with props: {"testID":"destination-local-btn"}
-
-    [0m [90m 516 |[39m
-     [90m 517 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 518 |[39m       [36mconst[39m localBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-local-btn"[39m })[33m;[39m
-     [90m     |[39m                             [31m[1m^[22m[39m
-     [90m 519 |[39m       [36mconst[39m gdriveBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-gdrive-btn"[39m })[33m;[39m
-     [90m 520 |[39m
-     [90m 521 |[39m       expect(localBtn[33m.[39mprops[33m.[39maccessibilityState)[33m.[39mtoEqual({ selected[33m:[39m [36mtrue[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:518:29)
-
-  ● Milestone 4 Challenger Stress Test Suite › 4. StorageDestinationPicker Component Tests › renders gdrive active selection state when destination="gdrive"
-
-    No instances found with props: {"testID":"destination-local-btn"}
-
-    [0m [90m 543 |[39m
-     [90m 544 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 545 |[39m       [36mconst[39m localBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-local-btn"[39m })[33m;[39m
-     [90m     |[39m                             [31m[1m^[22m[39m
-     [90m 546 |[39m       [36mconst[39m gdriveBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-gdrive-btn"[39m })[33m;[39m
-     [90m 547 |[39m
-     [90m 548 |[39m       expect(localBtn[33m.[39mprops[33m.[39maccessibilityState)[33m.[39mtoEqual({ selected[33m:[39m [36mfalse[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:545:29)
-
-FAIL __tests__/m3_challenger_stress.test.tsx (11.552 s)
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 1. AdminSidebarDrawer Slide Animations & Rapid Open/Close Toggles › handles rapid menu item clicks and triggers onClose and onSelectTab/onLogout callbacks
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 125 |[39m
-     [90m 126 |[39m       [90m// Rapid click on plots menu item[39m
-    [31m[1m>[22m[39m[90m 127 |[39m       [36mconst[39m plotsBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 128 |[39m       [36mconst[39m cropsBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m
-     [90m 129 |[39m       [36mconst[39m logoutBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-logout"[39m })[33m;[39m
-     [90m 130 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:127:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 1. AdminSidebarDrawer Slide Animations & Rapid Open/Close Toggles › triggers onClose when clicking scrim background pressable
-
-    Expected 1 but found 4 instances with node type: "Pressable"
-
-    [0m [90m 192 |[39m       })[33m;[39m
-     [90m 193 |[39m
-    [31m[1m>[22m[39m[90m 194 |[39m       [36mconst[39m scrim [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByType([32m"Pressable"[39m [36mas[39m any)[33m;[39m
-     [90m     |[39m                                [31m[1m^[22m[39m
-     [90m 195 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 196 |[39m         scrim[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 197 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByType (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14473:18)
-      at Object.findByType (__tests__/m3_challenger_stress.test.tsx:194:32)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › executes full import lifecycle from select -> progress bar animation -> completion callback
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 222 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-select"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 223 |[39m
-    [31m[1m>[22m[39m[90m 224 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 225 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 226 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 227 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:224:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › prevents duplicate upload triggers when dropZone / start-button is clicked rapidly multiple times
-
-    No instances found with props: {"testID":"select-csv-file-button"}
-
-    [0m [90m 259 |[39m       })[33m;[39m
-     [90m 260 |[39m
-    [31m[1m>[22m[39m[90m 261 |[39m       [36mconst[39m dropZone [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"select-csv-file-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 262 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m 263 |[39m
-     [90m 264 |[39m       [90m// Rapidly trigger clicks 30 times[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:261:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › blocks modal dismissal via handleClose while import uploading is active
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 299 |[39m
-     [90m 300 |[39m       [90m// Start import[39m
-    [31m[1m>[22m[39m[90m 301 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 302 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 303 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 304 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:301:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › EMPIRICAL TEST: checks unmounting during active progress animation (500ms into 1400ms)
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 338 |[39m       })[33m;[39m
-     [90m 339 |[39m
-    [31m[1m>[22m[39m[90m 340 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 341 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 342 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 343 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:340:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › handles importCSV service exception gracefully without crashing component
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 388 |[39m       })[33m;[39m
-     [90m 389 |[39m
-    [31m[1m>[22m[39m[90m 390 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 391 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 392 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 393 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:390:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › handles null or undefined return value from importCSV gracefully
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 423 |[39m       })[33m;[39m
-     [90m 424 |[39m
-    [31m[1m>[22m[39m[90m 425 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 426 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 427 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 428 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:425:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › renders CsvImportResultModal with zero data counts (0 success, 0 skipped, 0 errors)
-
-    No instances found matching custom predicate: function (node) {
-            return node.props && node.props.children && Array.isArray(node.props.children) && node.props.children[0] === "Đã xử lý " && node.props.children[1] === 0;
-          }
-
-    [0m [90m 454 |[39m       })[33m;[39m
-     [90m 455 |[39m
-    [31m[1m>[22m[39m[90m 456 |[39m       [36mconst[39m descNode [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 457 |[39m         (node[33m:[39m any) [33m=>[39m
-     [90m 458 |[39m           node[33m.[39mprops [33m&&[39m
-     [90m 459 |[39m           node[33m.[39mprops[33m.[39mchildren [33m&&[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
-      at Object.find (__tests__/m3_challenger_stress.test.tsx:456:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › renders CsvImportResultModal with missing/undefined counts prop using fallback values
-
-    No instances found matching custom predicate: function (node) {
-            return node.props && node.props.children && Array.isArray(node.props.children) && node.props.children[0] === "Đã xử lý " && node.props.children[1] === 128;
-          }
-
-    [0m [90m 478 |[39m
-     [90m 479 |[39m       [90m// Total = 124 + 3 + 1 = 128[39m
-    [31m[1m>[22m[39m[90m 480 |[39m       [36mconst[39m descNode [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 481 |[39m         (node[33m:[39m any) [33m=>[39m
-     [90m 482 |[39m           node[33m.[39mprops [33m&&[39m
-     [90m 483 |[39m           node[33m.[39mprops[33m.[39mchildren [33m&&[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
-      at Object.find (__tests__/m3_challenger_stress.test.tsx:480:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › triggers onClose and onDone when clicking Hoàn tất button in CsvImportResultModal
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 505 |[39m       })[33m;[39m
-     [90m 506 |[39m
-    [31m[1m>[22m[39m[90m 507 |[39m       [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 508 |[39m
-     [90m 509 |[39m       [90m// Rapidly click 10 times[39m
-     [90m 510 |[39m       [36mfor[39m ([36mlet[39m i [33m=[39m [35m0[39m[33m;[39m i [33m<[39m [35m10[39m[33m;[39m i[33m++[39m) {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:507:34)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
+PASS __tests__/m4_challenger_stress.test.tsx
+FAIL __tests__/m3_challenger_stress.test.tsx (13.297 s)
   ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 4. ManagementScreen E2E Stress & Integration › handles rapid sub-tab toggles (plots -> crops -> accounts) while performing live search
 
     No instances found with props: {"testID":"search-input"}
@@ -396,96 +60,6 @@ FAIL __tests__/m3_challenger_stress.test.tsx (11.552 s)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m2_challenger2_empirical.test.tsx
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 1. AddPlotModal & Plot Schema Edge Cases › renders AddPlotModal bottom sheet when visible and triggers onClose on close button press
-
-    No instances found with props: {"testID":"add-plot-code-input"}
-
-    [0m [90m 110 |[39m
-     [90m 111 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 112 |[39m       [36mconst[39m codeInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-code-input"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 113 |[39m       [36mconst[39m nameInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-name-input"[39m })[33m;[39m
-     [90m 114 |[39m       [36mconst[39m submitBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"submit-add-plot-button"[39m })[33m;[39m
-     [90m 115 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:112:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 1. AddPlotModal & Plot Schema Edge Cases › handles form submission lifecycle in AddPlotModal
-
-    No instances found with props: {"testID":"add-plot-code-input"}
-
-    [0m [90m 142 |[39m
-     [90m 143 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 144 |[39m       [36mconst[39m codeInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-code-input"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 145 |[39m       [36mconst[39m nameInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-name-input"[39m })[33m;[39m
-     [90m 146 |[39m       [36mconst[39m submitBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"submit-add-plot-button"[39m })[33m;[39m
-     [90m 147 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:144:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 2. AddCropModal & Crop Schema Edge Cases › renders AddCropModal and submits valid form data
-
-    No instances found with props: {"testID":"add-crop-name-input"}
-
-    [0m [90m 192 |[39m
-     [90m 193 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 194 |[39m       [36mconst[39m nameInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-crop-name-input"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 195 |[39m       [36mconst[39m categoryInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-crop-category-input"[39m })[33m;[39m
-     [90m 196 |[39m       [36mconst[39m submitBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"submit-add-crop-button"[39m })[33m;[39m
-     [90m 197 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:194:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 3. ActionMenuModal & ConfirmModal Actions › triggers callbacks when menu options are clicked in ActionMenuModal
-
-    expect(received).toBeDefined()
-
-    Received: undefined
-
-    [0m [90m 242 |[39m       [36mconst[39m disableBtn [33m=[39m findTouchableByText(menuCard[33m,[39m [32m"Ngừng sử dụng"[39m)[33m;[39m
-     [90m 243 |[39m
-    [31m[1m>[22m[39m[90m 244 |[39m       expect(editBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                       [31m[1m^[22m[39m
-     [90m 245 |[39m       expect(detailBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 246 |[39m       expect(disableBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 247 |[39m[0m
-
-      at Object.toBeDefined (__tests__/m2_challenger2_empirical.test.tsx:244:23)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 3. ActionMenuModal & ConfirmModal Actions › handles ConfirmModal confirms, cancels, and scrim presses
-
-    No instances found with props: {"testID":"admin-confirm-modal"}
-
-    [0m [90m 288 |[39m
-     [90m 289 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 290 |[39m       [36mconst[39m confirmCard [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-confirm-modal"[39m })[33m;[39m
-     [90m     |[39m                                [31m[1m^[22m[39m
-     [90m 291 |[39m       [36mconst[39m confirmBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"confirm-action-button"[39m })[33m;[39m
-     [90m 292 |[39m
-     [90m 293 |[39m       [90m// Confirm button click[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:290:32)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
   ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 4. AdminSidebarDrawer Navigation & Tab Switching › renders drawer items and calls onSelectTab / onLogout appropriately
 
     expect(received).toBeDefined()
@@ -501,61 +75,6 @@ FAIL __tests__/m2_challenger2_empirical.test.tsx
      [90m 339 |[39m       [90m// Click 'Quản lý mã số luống'[39m[0m
 
       at Object.toBeDefined (__tests__/m2_challenger2_empirical.test.tsx:336:24)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 5. CsvImport Card & Result Modal Workflow › animates progress in CsvImportCard and completes import after duration
-
-    No instances found with props: {"testID":"select-csv-file-button"}
-
-    [0m [90m 388 |[39m
-     [90m 389 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 390 |[39m       [36mconst[39m selectBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"select-csv-file-button"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 391 |[39m
-     [90m 392 |[39m       [90m// Start import animation[39m
-     [90m 393 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:390:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 5. CsvImport Card & Result Modal Workflow › renders custom count summary in CsvImportResultModal and triggers onDone
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 427 |[39m
-     [90m 428 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 429 |[39m       [36mconst[39m doneBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                            [31m[1m^[22m[39m
-     [90m 430 |[39m
-     [90m 431 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 432 |[39m         doneBtn[33m.[39mprops[33m.[39monPress()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:429:28)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 6. SnackbarNotification Auto-Hide Behavior › calls onHide after specified durationMs
-
-    expect(jest.fn()).toHaveBeenCalled()
-
-    Expected number of calls: >= 1
-    Received number of calls:    0
-
-    [0m [90m 466 |[39m       })[33m;[39m
-     [90m 467 |[39m
-    [31m[1m>[22m[39m[90m 468 |[39m       expect(onHide)[33m.[39mtoHaveBeenCalled()[33m;[39m
-     [90m     |[39m                      [31m[1m^[22m[39m
-     [90m 469 |[39m       jest[33m.[39museRealTimers()[33m;[39m
-     [90m 470 |[39m     })[33m;[39m
-     [90m 471 |[39m   })[33m;[39m[0m
-
-      at Object.toHaveBeenCalled (__tests__/m2_challenger2_empirical.test.tsx:468:22)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
@@ -596,78 +115,6 @@ FAIL __tests__/m2_challenger2_empirical.test.tsx
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m3_challenger2_adversarial.test.tsx
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 2. AdminSidebarDrawer State & Rapid Tab Switching Verification › verifies testID retention ('admin-sidebar') and sub-tab item testIDs
-
-    No instances found with props: {"testID":"admin-sidebar-posts"}
-
-    [0m [90m 195 |[39m       expect(sidebarRoot)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 196 |[39m
-    [31m[1m>[22m[39m[90m 197 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-posts"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                         [31m[1m^[22m[39m
-     [90m 198 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 199 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 200 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-accounts"[39m }))[33m.[39mtoBeDefined()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:197:25)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 2. AdminSidebarDrawer State & Rapid Tab Switching Verification › handles rapid tab switching without state desynchronization or crashes
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 259 |[39m       })[33m;[39m
-     [90m 260 |[39m
-    [31m[1m>[22m[39m[90m 261 |[39m       [36mconst[39m plotsLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                    [31m[1m^[22m[39m
-     [90m 262 |[39m       [36mconst[39m cropsLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m
-     [90m 263 |[39m       [36mconst[39m accountsLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-accounts"[39m })[33m;[39m
-     [90m 264 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:261:36)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 2. AdminSidebarDrawer State & Rapid Tab Switching Verification › handles logout click triggering onClose and onLogout
-
-    No instances found with props: {"testID":"admin-sidebar-logout"}
-
-    [0m [90m 292 |[39m       })[33m;[39m
-     [90m 293 |[39m
-    [31m[1m>[22m[39m[90m 294 |[39m       [36mconst[39m logoutLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-logout"[39m })[33m;[39m
-     [90m     |[39m                                     [31m[1m^[22m[39m
-     [90m 295 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 296 |[39m         logoutLink[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 297 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:294:37)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportCard › verifies initial testID retention ('admin-import-select') and button testIDs
-
-    No instances found with props: {"testID":"select-csv-file-button"}
-
-    [0m [90m 320 |[39m
-     [90m 321 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-select"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-    [31m[1m>[22m[39m[90m 322 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"select-csv-file-button"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                           [31m[1m^[22m[39m
-     [90m 323 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 324 |[39m       })[33m;[39m
-     [90m 325 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:322:27)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
   ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportCard › allows closing via backdrop scrim press when not uploading
 
     No instances found matching custom predicate: function (node) {
@@ -690,148 +137,62 @@ FAIL __tests__/m3_challenger2_adversarial.test.tsx
 
   ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportCard › transitions testID to 'admin-import-uploading' during import and prevents dismissal
 
-    No instances found with props: {"testID":"start-import-button"}
+    No instances found matching custom predicate: function (node) {
+              return node.props && node.props.onPress && node.props.style && node.props.style.backgroundColor === "rgba(17, 24, 39, 0.45)";
+            }
 
-    [0m [90m 366 |[39m         })[33m;[39m
-     [90m 367 |[39m
-    [31m[1m>[22m[39m[90m 368 |[39m         [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                     [31m[1m^[22m[39m
-     [90m 369 |[39m
-     [90m 370 |[39m         act(() [33m=>[39m {
-     [90m 371 |[39m           startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:368:37)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportResultModal › verifies testID retention ('admin-import-result') and button testIDs
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 412 |[39m
-     [90m 413 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-result"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-    [31m[1m>[22m[39m[90m 414 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                           [31m[1m^[22m[39m
-     [90m 415 |[39m       })[33m;[39m
-     [90m 416 |[39m
-     [90m 417 |[39m       it([32m"renders provided import counts correctly"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+    [0m [90m 374 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-uploading"[39m }))[33m.[39mtoBeDefined()[33m;[39m
+     [90m 375 |[39m
+    [31m[1m>[22m[39m[90m 376 |[39m         [36mconst[39m scrimNode [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 377 |[39m           (node[33m:[39m any) [33m=>[39m node[33m.[39mprops [33m&&[39m node[33m.[39mprops[33m.[39monPress [33m&&[39m node[33m.[39mprops[33m.[39mstyle [33m&&[39m node[33m.[39mprops[33m.[39mstyle[33m.[39mbackgroundColor [33m===[39m [32m"rgba(17, 24, 39, 0.45)"[39m
+     [90m 378 |[39m         )[33m;[39m
+     [90m 379 |[39m[0m
 
       at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:414:27)
+      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
+      at Object.find (__tests__/m3_challenger2_adversarial.test.tsx:376:38)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
   ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportResultModal › renders provided import counts correctly
 
-    No instances found matching custom predicate: function (node) {
-              return node.props && node.props.children && Array.isArray(node.props.children) && node.props.children.join("").includes("264");
+    No instances found matching custom predicate: function (n) {
+              return n.props && n.props.children === "250";
             }
 
-    [0m [90m 430 |[39m
-     [90m 431 |[39m         [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 432 |[39m         [36mconst[39m totalTextNode [33m=[39m root[33m.[39mfind(
-     [90m     |[39m                                    [31m[1m^[22m[39m
-     [90m 433 |[39m           (node[33m:[39m any) [33m=>[39m
-     [90m 434 |[39m             node[33m.[39mprops [33m&&[39m
-     [90m 435 |[39m             node[33m.[39mprops[33m.[39mchildren [33m&&[39m[0m
+    [0m [90m 439 |[39m         expect(totalTextNode)[33m.[39mtoBeDefined()[33m;[39m
+     [90m 440 |[39m
+    [31m[1m>[22m[39m[90m 441 |[39m         expect(root[33m.[39mfind((n[33m:[39m any) [33m=>[39m n[33m.[39mprops [33m&&[39m n[33m.[39mprops[33m.[39mchildren [33m===[39m [32m"250"[39m))[33m.[39mtoBeDefined()[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 442 |[39m         expect(root[33m.[39mfind((n[33m:[39m any) [33m=>[39m n[33m.[39mprops [33m&&[39m n[33m.[39mprops[33m.[39mchildren [33m===[39m [32m"10"[39m))[33m.[39mtoBeDefined()[33m;[39m
+     [90m 443 |[39m         expect(root[33m.[39mfind((n[33m:[39m any) [33m=>[39m n[33m.[39mprops [33m&&[39m n[33m.[39mprops[33m.[39mchildren [33m===[39m [32m"4"[39m))[33m.[39mtoBeDefined()[33m;[39m
+     [90m 444 |[39m       })[33m;[39m[0m
 
       at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
       at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
-      at Object.find (__tests__/m3_challenger2_adversarial.test.tsx:432:36)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportResultModal › triggers onClose and onDone when done button is pressed
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 459 |[39m         })[33m;[39m
-     [90m 460 |[39m
-    [31m[1m>[22m[39m[90m 461 |[39m         [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                    [31m[1m^[22m[39m
-     [90m 462 |[39m         [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 463 |[39m           doneBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 464 |[39m         })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:461:36)
+      at Object.find (__tests__/m3_challenger2_adversarial.test.tsx:441:21)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m3_iter2_empirical_challenger.test.tsx
-  ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 2. AdminSidebarDrawer & Animation Stress › verifies item press triggers onClose and correct tab selection across all tabs
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 329 |[39m       })[33m;[39m
-     [90m 330 |[39m
-    [31m[1m>[22m[39m[90m 331 |[39m       [36mconst[39m plotsTab [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 332 |[39m       [36mconst[39m cropsTab [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m
-     [90m 333 |[39m       [36mconst[39m accountsTab [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-accounts"[39m })[33m;[39m
-     [90m 334 |[39m       [36mconst[39m logoutBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-logout"[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:331:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 3. CSV Modal State Transitions & Progress Harness › safely handles multi-click spamming on start-import-button without re-triggering import
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 368 |[39m       })[33m;[39m
-     [90m 369 |[39m
-    [31m[1m>[22m[39m[90m 370 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 371 |[39m
-     [90m 372 |[39m       [90m// Click startBtn 50 times rapidly[39m
-     [90m 373 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:370:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
   ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 3. CSV Modal State Transitions & Progress Harness › verifies scrim interaction is blocked during active upload animation
 
-    No instances found with props: {"testID":"start-import-button"}
+    No instances found matching custom predicate: function (node) {
+            return node.props && node.props.style && node.props.style.backgroundColor === "rgba(17, 24, 39, 0.45)";
+          }
 
-    [0m [90m 403 |[39m       })[33m;[39m
-     [90m 404 |[39m
-    [31m[1m>[22m[39m[90m 405 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 406 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 407 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 408 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:405:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 3. CSV Modal State Transitions & Progress Harness › verifies CsvImportResultModal renders correct metric breakdown and triggers onDone
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 449 |[39m       })[33m;[39m
-     [90m 450 |[39m
-    [31m[1m>[22m[39m[90m 451 |[39m       [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 452 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 453 |[39m         doneBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 454 |[39m       })[33m;[39m[0m
+    [0m [90m 409 |[39m
+     [90m 410 |[39m       [90m// Find scrim pressable[39m
+    [31m[1m>[22m[39m[90m 411 |[39m       [36mconst[39m scrim [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 412 |[39m         (node[33m:[39m any) [33m=>[39m
+     [90m 413 |[39m           node[33m.[39mprops [33m&&[39m
+     [90m 414 |[39m           node[33m.[39mprops[33m.[39mstyle [33m&&[39m[0m
 
       at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:451:34)
+      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
+      at Object.find (__tests__/m3_iter2_empirical_challenger.test.tsx:411:32)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
@@ -1173,59 +534,7 @@ FAIL __tests__/login_screen.test.tsx
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 PASS __tests__/m5_adversarial_challenge.test.ts
-FAIL __tests__/m3_iter2_challenger2_empirical.test.tsx
-  ● Milestone 3 Iteration 2 - Empirical Adversarial Test Suite › 3. UI TestIDs Retention & Component Verification › retains 'admin-sidebar' testID and menu item testIDs in AdminSidebarDrawer
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 190 |[39m       expect(sidebarNode)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 191 |[39m
-    [31m[1m>[22m[39m[90m 192 |[39m       [36mconst[39m plotsMenuItem [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                        [31m[1m^[22m[39m
-     [90m 193 |[39m       expect(plotsMenuItem)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 194 |[39m
-     [90m 195 |[39m       [36mconst[39m cropsMenuItem [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_challenger2_empirical.test.tsx:192:40)
-
-  ● Milestone 3 Iteration 2 - Empirical Adversarial Test Suite › 3. UI TestIDs Retention & Component Verification › retains 'admin-import-select' and 'admin-import-uploading' testIDs in CsvImportCard
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 221 |[39m
-     [90m 222 |[39m       [90m// Trigger start import button[39m
-    [31m[1m>[22m[39m[90m 223 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 224 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 225 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 226 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_challenger2_empirical.test.tsx:223:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-      at ../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
-      at Object.<anonymous> (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
-
-  ● Milestone 3 Iteration 2 - Empirical Adversarial Test Suite › 3. UI TestIDs Retention & Component Verification › retains 'admin-import-result' testID in CsvImportResultModal
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 250 |[39m       expect(resultNode)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 251 |[39m
-    [31m[1m>[22m[39m[90m 252 |[39m       [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 253 |[39m       expect(doneBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 254 |[39m
-     [90m 255 |[39m       act(() [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_challenger2_empirical.test.tsx:252:34)
-
+PASS __tests__/m3_iter2_challenger2_empirical.test.tsx
 PASS __tests__/environmental.test.ts
 PASS __tests__/auth_challenge.test.ts
 FAIL __tests__/login_challenger_stress.test.tsx
@@ -1382,58 +691,192 @@ PASS __tests__/m3_zod_schema_ui_challenger.test.tsx
 PASS __tests__/m1_challenger_empirical.test.tsx
 PASS __tests__/management_components.test.tsx
 FAIL __tests__/m4_challenger1_empirical.test.tsx
-  ● Test suite failed to run
+  ● Milestone 4 Challenger 1 Empirical Test Suite › 2. TabLayout Header & Role Switcher Render & Accessibility › renders required layout testIDs: app-header, app-title, role-selector
 
-    Configuration error:
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
 
-    Could not locate module @/components/haptic-tab mapped as:
-    /home/runner/work/farmdata/farmdata/frontend/$1.
+    Check the render method of `TabsLayout`.
 
-    Please check your configuration for these entries:
-    {
-      "moduleNameMapper": {
-        "/^@\/(.*)$/": "/home/runner/work/farmdata/farmdata/frontend/$1"
-      },
-      "resolver": /home/runner/work/farmdata/farmdata/node_modules/react-native/jest/resolver.js
-    }
+    [0m [90m 66 |[39m     it([32m"renders required layout testIDs: app-header, app-title, role-selector"[39m[33m,[39m () [33m=>[39m {
+     [90m 67 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 68 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 69 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 70 |[39m       })[33m;[39m
+     [90m 71 |[39m[0m
 
-    [0m [90m 30 |[39m
-     [90m 31 |[39m [90m// Mock HapticTab and IconSymbol[39m
-    [31m[1m>[22m[39m[90m 32 |[39m jest[33m.[39mmock([32m"@/components/haptic-tab"[39m[33m,[39m () [33m=>[39m ({
-     [90m    |[39m      [31m[1m^[22m[39m
-     [90m 33 |[39m   [33mHapticTab[39m[33m:[39m () [33m=>[39m [36mnull[39m[33m,[39m
-     [90m 34 |[39m }))[33m;[39m
-     [90m 35 |[39m jest[33m.[39mmock([32m"@/components/ui/icon-symbol"[39m[33m,[39m () [33m=>[39m ({[0m
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger1_empirical.test.tsx:68:10)
 
-      at createNoMappedModuleFoundError (node_modules/jest-resolve/build/resolver.js:759:17)
-      at Object.mock (__tests__/m4_challenger1_empirical.test.tsx:32:6)
+  ● Milestone 4 Challenger 1 Empirical Test Suite › 2. TabLayout Header & Role Switcher Render & Accessibility › verifies accessibility roles, labels, and selected states for role buttons
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 82 |[39m     it([32m"verifies accessibility roles, labels, and selected states for role buttons"[39m[33m,[39m () [33m=>[39m {
+     [90m 83 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 84 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 85 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 86 |[39m       })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger1_empirical.test.tsx:84:10)
+
+  ● Milestone 4 Challenger 1 Empirical Test Suite › 3. Role Switching Stress & Tab Routing Href Verification › handles multiple sequential role toggling without state drift
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 106 |[39m     it([32m"handles multiple sequential role toggling without state drift"[39m[33m,[39m () [33m=>[39m {
+     [90m 107 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 108 |[39m       act(() [33m=>[39m {
+     [90m     |[39m          [31m[1m^[22m[39m
+     [90m 109 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 110 |[39m       })[33m;[39m
+     [90m 111 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger1_empirical.test.tsx:108:10)
 
 FAIL __tests__/m4_challenger2_empirical.test.tsx
-  ● Test suite failed to run
+  ● Milestone 4 Challenger 2 Empirical Test Suite › 2. TabLayout Header & Role Switcher State Behavior › renders app-header, app-title, and role-selector testIDs correctly
 
-    Configuration error:
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
 
-    Could not locate module @/components/haptic-tab mapped as:
-    /home/runner/work/farmdata/farmdata/frontend/$1.
+    Check the render method of `TabsLayout`.
 
-    Please check your configuration for these entries:
-    {
-      "moduleNameMapper": {
-        "/^@\/(.*)$/": "/home/runner/work/farmdata/farmdata/frontend/$1"
-      },
-      "resolver": /home/runner/work/farmdata/farmdata/node_modules/react-native/jest/resolver.js
-    }
+    [0m [90m 66 |[39m     it([32m"renders app-header, app-title, and role-selector testIDs correctly"[39m[33m,[39m () [33m=>[39m {
+     [90m 67 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 68 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 69 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 70 |[39m       })[33m;[39m
+     [90m 71 |[39m[0m
 
-    [0m [90m 30 |[39m
-     [90m 31 |[39m [90m// Mock HapticTab and IconSymbol[39m
-    [31m[1m>[22m[39m[90m 32 |[39m jest[33m.[39mmock([32m"@/components/haptic-tab"[39m[33m,[39m () [33m=>[39m ({
-     [90m    |[39m      [31m[1m^[22m[39m
-     [90m 33 |[39m   [33mHapticTab[39m[33m:[39m () [33m=>[39m [36mnull[39m[33m,[39m
-     [90m 34 |[39m }))[33m;[39m
-     [90m 35 |[39m jest[33m.[39mmock([32m"@/components/ui/icon-symbol"[39m[33m,[39m () [33m=>[39m ({[0m
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger2_empirical.test.tsx:68:10)
 
-      at createNoMappedModuleFoundError (node_modules/jest-resolve/build/resolver.js:759:17)
-      at Object.mock (__tests__/m4_challenger2_empirical.test.tsx:32:6)
+  ● Milestone 4 Challenger 2 Empirical Test Suite › 2. TabLayout Header & Role Switcher State Behavior › defaults to Farmer role with proper accessibility state and tab href routing
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 78 |[39m     it([32m"defaults to Farmer role with proper accessibility state and tab href routing"[39m[33m,[39m () [33m=>[39m {
+     [90m 79 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 80 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 81 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 82 |[39m       })[33m;[39m
+     [90m 83 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger2_empirical.test.tsx:80:10)
+
+  ● Milestone 4 Challenger 2 Empirical Test Suite › 2. TabLayout Header & Role Switcher State Behavior › switches to Admin role on press and updates tab href routing accordingly
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 109 |[39m     it([32m"switches to Admin role on press and updates tab href routing accordingly"[39m[33m,[39m () [33m=>[39m {
+     [90m 110 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 111 |[39m       act(() [33m=>[39m {
+     [90m     |[39m          [31m[1m^[22m[39m
+     [90m 112 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 113 |[39m       })[33m;[39m
+     [90m 114 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger2_empirical.test.tsx:111:10)
 
 PASS __tests__/storage.test.ts
 PASS __tests__/m6_challenger_verification.test.tsx
@@ -1467,344 +910,7 @@ PASS __tests__/platformHelper.test.ts
 PASS __tests__/PhotoOverlayLabel.test.tsx
 
 Summary of all failing tests
-FAIL __tests__/m4_challenger_stress.test.tsx
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › renders component tree and displays severity badge according to percentageArea
-
-    No instances found with props: {"testID":"symptom-severity-badge"}
-
-    [0m [90m 322 |[39m
-     [90m 323 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 324 |[39m       [36mconst[39m severityBadge [33m=[39m root[33m.[39mfindByProps({
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 325 |[39m         testID[33m:[39m [32m"symptom-severity-badge"[39m[33m,[39m
-     [90m 326 |[39m       })[33m;[39m
-     [90m 327 |[39m       expect(severityBadge)[33m.[39mtoBeDefined()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:324:34)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › triggers onChangeDescription when TextInput text changes
-
-    No instances found with props: {"testID":"symptom-description-input"}
-
-    [0m [90m 347 |[39m       })[33m;[39m
-     [90m 348 |[39m
-    [31m[1m>[22m[39m[90m 349 |[39m       [36mconst[39m descInput [33m=[39m component[33m![39m[33m.[39mroot[33m.[39mfindByProps({
-     [90m     |[39m                                         [31m[1m^[22m[39m
-     [90m 350 |[39m         testID[33m:[39m [32m"symptom-description-input"[39m[33m,[39m
-     [90m 351 |[39m       })[33m;[39m
-     [90m 352 |[39m       act(() [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:349:41)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › triggers preset buttons (5, 15, 35, 75) with exact percentage values
-
-    No instances found with props: {"testID":"symptom-preset-5"}
-
-    [0m [90m 374 |[39m
-     [90m 375 |[39m       [[35m5[39m[33m,[39m [35m15[39m[33m,[39m [35m35[39m[33m,[39m [35m75[39m][33m.[39mforEach((preset) [33m=>[39m {
-    [31m[1m>[22m[39m[90m 376 |[39m         [36mconst[39m chip [33m=[39m component[33m![39m[33m.[39mroot[33m.[39mfindByProps({
-     [90m     |[39m                                      [31m[1m^[22m[39m
-     [90m 377 |[39m           testID[33m:[39m [32m`symptom-preset-${preset}`[39m[33m,[39m
-     [90m 378 |[39m         })[33m;[39m
-     [90m 379 |[39m         act(() [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at findByProps (__tests__/m4_challenger_stress.test.tsx:376:38)
-          at Array.forEach (<anonymous>)
-      at Object.forEach (__tests__/m4_challenger_stress.test.tsx:375:23)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › handles stepper buttons (+5%, +1%, -1%, -5%) with boundary clamping [0, 100]
-
-    No instances found with props: {"testID":"symptom-step-plus"}
-
-    [0m [90m 405 |[39m       [90m// +5% button -> 15[39m
-     [90m 406 |[39m       act(() [33m=>[39m {
-    [31m[1m>[22m[39m[90m 407 |[39m         root[33m.[39mfindByProps({ testID[33m:[39m [32m"symptom-step-plus"[39m })[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m     |[39m              [31m[1m^[22m[39m
-     [90m 408 |[39m       })[33m;[39m
-     [90m 409 |[39m       expect(mockOnChangePct)[33m.[39mtoHaveBeenCalledWith([35m15[39m)[33m;[39m
-     [90m 410 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at findByProps (__tests__/m4_challenger_stress.test.tsx:407:14)
-      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:789:22)
-      at Object.<anonymous> (__tests__/m4_challenger_stress.test.tsx:406:10)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › clamps stepper calculations at lower (0%) and upper (100%) limits
-
-    No instances found with props: {"testID":"symptom-step-minus"}
-
-    [0m [90m 445 |[39m       act(() [33m=>[39m {
-     [90m 446 |[39m         compAt2[33m.[39mroot
-    [31m[1m>[22m[39m[90m 447 |[39m           [33m.[39mfindByProps({ testID[33m:[39m [32m"symptom-step-minus"[39m })
-     [90m     |[39m            [31m[1m^[22m[39m
-     [90m 448 |[39m           [33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 449 |[39m       })[33m;[39m
-     [90m 450 |[39m       expect(mockOnChangePct)[33m.[39mtoHaveBeenCalledWith([35m0[39m)[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at findByProps (__tests__/m4_challenger_stress.test.tsx:447:12)
-      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:789:22)
-      at Object.<anonymous> (__tests__/m4_challenger_stress.test.tsx:445:10)
-
-  ● Milestone 4 Challenger Stress Test Suite › 3. SymptomEvaluator Component Props & Interaction Tests › renders error messages when errors prop is populated
-
-    No instances found with props: {"testID":"symptom-description-error"}
-
-    [0m [90m 488 |[39m
-     [90m 489 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 490 |[39m       [36mconst[39m descError [33m=[39m root[33m.[39mfindByProps({
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 491 |[39m         testID[33m:[39m [32m"symptom-description-error"[39m[33m,[39m
-     [90m 492 |[39m       })[33m;[39m
-     [90m 493 |[39m       [36mconst[39m pctError [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"symptom-percentage-error"[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:490:30)
-
-  ● Milestone 4 Challenger Stress Test Suite › 4. StorageDestinationPicker Component Tests › renders local and gdrive options with active selection state for local
-
-    No instances found with props: {"testID":"destination-local-btn"}
-
-    [0m [90m 516 |[39m
-     [90m 517 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 518 |[39m       [36mconst[39m localBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-local-btn"[39m })[33m;[39m
-     [90m     |[39m                             [31m[1m^[22m[39m
-     [90m 519 |[39m       [36mconst[39m gdriveBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-gdrive-btn"[39m })[33m;[39m
-     [90m 520 |[39m
-     [90m 521 |[39m       expect(localBtn[33m.[39mprops[33m.[39maccessibilityState)[33m.[39mtoEqual({ selected[33m:[39m [36mtrue[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:518:29)
-
-  ● Milestone 4 Challenger Stress Test Suite › 4. StorageDestinationPicker Component Tests › renders gdrive active selection state when destination="gdrive"
-
-    No instances found with props: {"testID":"destination-local-btn"}
-
-    [0m [90m 543 |[39m
-     [90m 544 |[39m       [36mconst[39m root [33m=[39m component[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 545 |[39m       [36mconst[39m localBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-local-btn"[39m })[33m;[39m
-     [90m     |[39m                             [31m[1m^[22m[39m
-     [90m 546 |[39m       [36mconst[39m gdriveBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"destination-gdrive-btn"[39m })[33m;[39m
-     [90m 547 |[39m
-     [90m 548 |[39m       expect(localBtn[33m.[39mprops[33m.[39maccessibilityState)[33m.[39mtoEqual({ selected[33m:[39m [36mfalse[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m4_challenger_stress.test.tsx:545:29)
-
-FAIL __tests__/m3_challenger_stress.test.tsx (11.552 s)
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 1. AdminSidebarDrawer Slide Animations & Rapid Open/Close Toggles › handles rapid menu item clicks and triggers onClose and onSelectTab/onLogout callbacks
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 125 |[39m
-     [90m 126 |[39m       [90m// Rapid click on plots menu item[39m
-    [31m[1m>[22m[39m[90m 127 |[39m       [36mconst[39m plotsBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 128 |[39m       [36mconst[39m cropsBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m
-     [90m 129 |[39m       [36mconst[39m logoutBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-logout"[39m })[33m;[39m
-     [90m 130 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:127:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 1. AdminSidebarDrawer Slide Animations & Rapid Open/Close Toggles › triggers onClose when clicking scrim background pressable
-
-    Expected 1 but found 4 instances with node type: "Pressable"
-
-    [0m [90m 192 |[39m       })[33m;[39m
-     [90m 193 |[39m
-    [31m[1m>[22m[39m[90m 194 |[39m       [36mconst[39m scrim [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByType([32m"Pressable"[39m [36mas[39m any)[33m;[39m
-     [90m     |[39m                                [31m[1m^[22m[39m
-     [90m 195 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 196 |[39m         scrim[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 197 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByType (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14473:18)
-      at Object.findByType (__tests__/m3_challenger_stress.test.tsx:194:32)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › executes full import lifecycle from select -> progress bar animation -> completion callback
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 222 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-select"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 223 |[39m
-    [31m[1m>[22m[39m[90m 224 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 225 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 226 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 227 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:224:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › prevents duplicate upload triggers when dropZone / start-button is clicked rapidly multiple times
-
-    No instances found with props: {"testID":"select-csv-file-button"}
-
-    [0m [90m 259 |[39m       })[33m;[39m
-     [90m 260 |[39m
-    [31m[1m>[22m[39m[90m 261 |[39m       [36mconst[39m dropZone [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"select-csv-file-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 262 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m 263 |[39m
-     [90m 264 |[39m       [90m// Rapidly trigger clicks 30 times[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:261:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › blocks modal dismissal via handleClose while import uploading is active
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 299 |[39m
-     [90m 300 |[39m       [90m// Start import[39m
-    [31m[1m>[22m[39m[90m 301 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 302 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 303 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 304 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:301:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 2. CSV Upload Simulation & Progress Bar State Transitions › EMPIRICAL TEST: checks unmounting during active progress animation (500ms into 1400ms)
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 338 |[39m       })[33m;[39m
-     [90m 339 |[39m
-    [31m[1m>[22m[39m[90m 340 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 341 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 342 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 343 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:340:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › handles importCSV service exception gracefully without crashing component
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 388 |[39m       })[33m;[39m
-     [90m 389 |[39m
-    [31m[1m>[22m[39m[90m 390 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 391 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 392 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 393 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:390:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › handles null or undefined return value from importCSV gracefully
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 423 |[39m       })[33m;[39m
-     [90m 424 |[39m
-    [31m[1m>[22m[39m[90m 425 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 426 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 427 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 428 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:425:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › renders CsvImportResultModal with zero data counts (0 success, 0 skipped, 0 errors)
-
-    No instances found matching custom predicate: function (node) {
-            return node.props && node.props.children && Array.isArray(node.props.children) && node.props.children[0] === "Đã xử lý " && node.props.children[1] === 0;
-          }
-
-    [0m [90m 454 |[39m       })[33m;[39m
-     [90m 455 |[39m
-    [31m[1m>[22m[39m[90m 456 |[39m       [36mconst[39m descNode [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 457 |[39m         (node[33m:[39m any) [33m=>[39m
-     [90m 458 |[39m           node[33m.[39mprops [33m&&[39m
-     [90m 459 |[39m           node[33m.[39mprops[33m.[39mchildren [33m&&[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
-      at Object.find (__tests__/m3_challenger_stress.test.tsx:456:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › renders CsvImportResultModal with missing/undefined counts prop using fallback values
-
-    No instances found matching custom predicate: function (node) {
-            return node.props && node.props.children && Array.isArray(node.props.children) && node.props.children[0] === "Đã xử lý " && node.props.children[1] === 128;
-          }
-
-    [0m [90m 478 |[39m
-     [90m 479 |[39m       [90m// Total = 124 + 3 + 1 = 128[39m
-    [31m[1m>[22m[39m[90m 480 |[39m       [36mconst[39m descNode [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 481 |[39m         (node[33m:[39m any) [33m=>[39m
-     [90m 482 |[39m           node[33m.[39mprops [33m&&[39m
-     [90m 483 |[39m           node[33m.[39mprops[33m.[39mchildren [33m&&[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
-      at Object.find (__tests__/m3_challenger_stress.test.tsx:480:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 3. CSV Import Data Boundaries & API Error Handling › triggers onClose and onDone when clicking Hoàn tất button in CsvImportResultModal
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 505 |[39m       })[33m;[39m
-     [90m 506 |[39m
-    [31m[1m>[22m[39m[90m 507 |[39m       [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 508 |[39m
-     [90m 509 |[39m       [90m// Rapidly click 10 times[39m
-     [90m 510 |[39m       [36mfor[39m ([36mlet[39m i [33m=[39m [35m0[39m[33m;[39m i [33m<[39m [35m10[39m[33m;[39m i[33m++[39m) {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger_stress.test.tsx:507:34)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
+FAIL __tests__/m3_challenger_stress.test.tsx (13.297 s)
   ● Milestone 3 Challenger — Admin Sidebar & CSV Import Engine Stress Test Suite › 4. ManagementScreen E2E Stress & Integration › handles rapid sub-tab toggles (plots -> crops -> accounts) while performing live search
 
     No instances found with props: {"testID":"search-input"}
@@ -1860,96 +966,6 @@ FAIL __tests__/m3_challenger_stress.test.tsx (11.552 s)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m2_challenger2_empirical.test.tsx
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 1. AddPlotModal & Plot Schema Edge Cases › renders AddPlotModal bottom sheet when visible and triggers onClose on close button press
-
-    No instances found with props: {"testID":"add-plot-code-input"}
-
-    [0m [90m 110 |[39m
-     [90m 111 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 112 |[39m       [36mconst[39m codeInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-code-input"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 113 |[39m       [36mconst[39m nameInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-name-input"[39m })[33m;[39m
-     [90m 114 |[39m       [36mconst[39m submitBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"submit-add-plot-button"[39m })[33m;[39m
-     [90m 115 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:112:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 1. AddPlotModal & Plot Schema Edge Cases › handles form submission lifecycle in AddPlotModal
-
-    No instances found with props: {"testID":"add-plot-code-input"}
-
-    [0m [90m 142 |[39m
-     [90m 143 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 144 |[39m       [36mconst[39m codeInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-code-input"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 145 |[39m       [36mconst[39m nameInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-plot-name-input"[39m })[33m;[39m
-     [90m 146 |[39m       [36mconst[39m submitBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"submit-add-plot-button"[39m })[33m;[39m
-     [90m 147 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:144:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 2. AddCropModal & Crop Schema Edge Cases › renders AddCropModal and submits valid form data
-
-    No instances found with props: {"testID":"add-crop-name-input"}
-
-    [0m [90m 192 |[39m
-     [90m 193 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 194 |[39m       [36mconst[39m nameInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-crop-name-input"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 195 |[39m       [36mconst[39m categoryInput [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"add-crop-category-input"[39m })[33m;[39m
-     [90m 196 |[39m       [36mconst[39m submitBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"submit-add-crop-button"[39m })[33m;[39m
-     [90m 197 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:194:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 3. ActionMenuModal & ConfirmModal Actions › triggers callbacks when menu options are clicked in ActionMenuModal
-
-    expect(received).toBeDefined()
-
-    Received: undefined
-
-    [0m [90m 242 |[39m       [36mconst[39m disableBtn [33m=[39m findTouchableByText(menuCard[33m,[39m [32m"Ngừng sử dụng"[39m)[33m;[39m
-     [90m 243 |[39m
-    [31m[1m>[22m[39m[90m 244 |[39m       expect(editBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                       [31m[1m^[22m[39m
-     [90m 245 |[39m       expect(detailBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 246 |[39m       expect(disableBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 247 |[39m[0m
-
-      at Object.toBeDefined (__tests__/m2_challenger2_empirical.test.tsx:244:23)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 3. ActionMenuModal & ConfirmModal Actions › handles ConfirmModal confirms, cancels, and scrim presses
-
-    No instances found with props: {"testID":"admin-confirm-modal"}
-
-    [0m [90m 288 |[39m
-     [90m 289 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 290 |[39m       [36mconst[39m confirmCard [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-confirm-modal"[39m })[33m;[39m
-     [90m     |[39m                                [31m[1m^[22m[39m
-     [90m 291 |[39m       [36mconst[39m confirmBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"confirm-action-button"[39m })[33m;[39m
-     [90m 292 |[39m
-     [90m 293 |[39m       [90m// Confirm button click[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:290:32)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
   ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 4. AdminSidebarDrawer Navigation & Tab Switching › renders drawer items and calls onSelectTab / onLogout appropriately
 
     expect(received).toBeDefined()
@@ -1965,61 +981,6 @@ FAIL __tests__/m2_challenger2_empirical.test.tsx
      [90m 339 |[39m       [90m// Click 'Quản lý mã số luống'[39m[0m
 
       at Object.toBeDefined (__tests__/m2_challenger2_empirical.test.tsx:336:24)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 5. CsvImport Card & Result Modal Workflow › animates progress in CsvImportCard and completes import after duration
-
-    No instances found with props: {"testID":"select-csv-file-button"}
-
-    [0m [90m 388 |[39m
-     [90m 389 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 390 |[39m       [36mconst[39m selectBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"select-csv-file-button"[39m })[33m;[39m
-     [90m     |[39m                              [31m[1m^[22m[39m
-     [90m 391 |[39m
-     [90m 392 |[39m       [90m// Start import animation[39m
-     [90m 393 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:390:30)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 5. CsvImport Card & Result Modal Workflow › renders custom count summary in CsvImportResultModal and triggers onDone
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 427 |[39m
-     [90m 428 |[39m       [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 429 |[39m       [36mconst[39m doneBtn [33m=[39m root[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                            [31m[1m^[22m[39m
-     [90m 430 |[39m
-     [90m 431 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 432 |[39m         doneBtn[33m.[39mprops[33m.[39monPress()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m2_challenger2_empirical.test.tsx:429:28)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Challenger 2 — Empirical & Adversarial M2 Verification Suite › 6. SnackbarNotification Auto-Hide Behavior › calls onHide after specified durationMs
-
-    expect(jest.fn()).toHaveBeenCalled()
-
-    Expected number of calls: >= 1
-    Received number of calls:    0
-
-    [0m [90m 466 |[39m       })[33m;[39m
-     [90m 467 |[39m
-    [31m[1m>[22m[39m[90m 468 |[39m       expect(onHide)[33m.[39mtoHaveBeenCalled()[33m;[39m
-     [90m     |[39m                      [31m[1m^[22m[39m
-     [90m 469 |[39m       jest[33m.[39museRealTimers()[33m;[39m
-     [90m 470 |[39m     })[33m;[39m
-     [90m 471 |[39m   })[33m;[39m[0m
-
-      at Object.toHaveBeenCalled (__tests__/m2_challenger2_empirical.test.tsx:468:22)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
@@ -2060,78 +1021,6 @@ FAIL __tests__/m2_challenger2_empirical.test.tsx
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m3_challenger2_adversarial.test.tsx
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 2. AdminSidebarDrawer State & Rapid Tab Switching Verification › verifies testID retention ('admin-sidebar') and sub-tab item testIDs
-
-    No instances found with props: {"testID":"admin-sidebar-posts"}
-
-    [0m [90m 195 |[39m       expect(sidebarRoot)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 196 |[39m
-    [31m[1m>[22m[39m[90m 197 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-posts"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                         [31m[1m^[22m[39m
-     [90m 198 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 199 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 200 |[39m       expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-accounts"[39m }))[33m.[39mtoBeDefined()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:197:25)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 2. AdminSidebarDrawer State & Rapid Tab Switching Verification › handles rapid tab switching without state desynchronization or crashes
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 259 |[39m       })[33m;[39m
-     [90m 260 |[39m
-    [31m[1m>[22m[39m[90m 261 |[39m       [36mconst[39m plotsLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                    [31m[1m^[22m[39m
-     [90m 262 |[39m       [36mconst[39m cropsLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m
-     [90m 263 |[39m       [36mconst[39m accountsLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-accounts"[39m })[33m;[39m
-     [90m 264 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:261:36)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 2. AdminSidebarDrawer State & Rapid Tab Switching Verification › handles logout click triggering onClose and onLogout
-
-    No instances found with props: {"testID":"admin-sidebar-logout"}
-
-    [0m [90m 292 |[39m       })[33m;[39m
-     [90m 293 |[39m
-    [31m[1m>[22m[39m[90m 294 |[39m       [36mconst[39m logoutLink [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-logout"[39m })[33m;[39m
-     [90m     |[39m                                     [31m[1m^[22m[39m
-     [90m 295 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 296 |[39m         logoutLink[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 297 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:294:37)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportCard › verifies initial testID retention ('admin-import-select') and button testIDs
-
-    No instances found with props: {"testID":"select-csv-file-button"}
-
-    [0m [90m 320 |[39m
-     [90m 321 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-select"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-    [31m[1m>[22m[39m[90m 322 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"select-csv-file-button"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                           [31m[1m^[22m[39m
-     [90m 323 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m 324 |[39m       })[33m;[39m
-     [90m 325 |[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:322:27)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
   ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportCard › allows closing via backdrop scrim press when not uploading
 
     No instances found matching custom predicate: function (node) {
@@ -2154,148 +1043,62 @@ FAIL __tests__/m3_challenger2_adversarial.test.tsx
 
   ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportCard › transitions testID to 'admin-import-uploading' during import and prevents dismissal
 
-    No instances found with props: {"testID":"start-import-button"}
+    No instances found matching custom predicate: function (node) {
+              return node.props && node.props.onPress && node.props.style && node.props.style.backgroundColor === "rgba(17, 24, 39, 0.45)";
+            }
 
-    [0m [90m 366 |[39m         })[33m;[39m
-     [90m 367 |[39m
-    [31m[1m>[22m[39m[90m 368 |[39m         [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                     [31m[1m^[22m[39m
-     [90m 369 |[39m
-     [90m 370 |[39m         act(() [33m=>[39m {
-     [90m 371 |[39m           startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:368:37)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportResultModal › verifies testID retention ('admin-import-result') and button testIDs
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 412 |[39m
-     [90m 413 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-result"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-    [31m[1m>[22m[39m[90m 414 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m }))[33m.[39mtoBeDefined()[33m;[39m
-     [90m     |[39m                           [31m[1m^[22m[39m
-     [90m 415 |[39m       })[33m;[39m
-     [90m 416 |[39m
-     [90m 417 |[39m       it([32m"renders provided import counts correctly"[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+    [0m [90m 374 |[39m         expect(tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-import-uploading"[39m }))[33m.[39mtoBeDefined()[33m;[39m
+     [90m 375 |[39m
+    [31m[1m>[22m[39m[90m 376 |[39m         [36mconst[39m scrimNode [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
+     [90m     |[39m                                      [31m[1m^[22m[39m
+     [90m 377 |[39m           (node[33m:[39m any) [33m=>[39m node[33m.[39mprops [33m&&[39m node[33m.[39mprops[33m.[39monPress [33m&&[39m node[33m.[39mprops[33m.[39mstyle [33m&&[39m node[33m.[39mprops[33m.[39mstyle[33m.[39mbackgroundColor [33m===[39m [32m"rgba(17, 24, 39, 0.45)"[39m
+     [90m 378 |[39m         )[33m;[39m
+     [90m 379 |[39m[0m
 
       at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:414:27)
+      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
+      at Object.find (__tests__/m3_challenger2_adversarial.test.tsx:376:38)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
   ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportResultModal › renders provided import counts correctly
 
-    No instances found matching custom predicate: function (node) {
-              return node.props && node.props.children && Array.isArray(node.props.children) && node.props.children.join("").includes("264");
+    No instances found matching custom predicate: function (n) {
+              return n.props && n.props.children === "250";
             }
 
-    [0m [90m 430 |[39m
-     [90m 431 |[39m         [36mconst[39m root [33m=[39m tree[33m![39m[33m.[39mroot[33m;[39m
-    [31m[1m>[22m[39m[90m 432 |[39m         [36mconst[39m totalTextNode [33m=[39m root[33m.[39mfind(
-     [90m     |[39m                                    [31m[1m^[22m[39m
-     [90m 433 |[39m           (node[33m:[39m any) [33m=>[39m
-     [90m 434 |[39m             node[33m.[39mprops [33m&&[39m
-     [90m 435 |[39m             node[33m.[39mprops[33m.[39mchildren [33m&&[39m[0m
+    [0m [90m 439 |[39m         expect(totalTextNode)[33m.[39mtoBeDefined()[33m;[39m
+     [90m 440 |[39m
+    [31m[1m>[22m[39m[90m 441 |[39m         expect(root[33m.[39mfind((n[33m:[39m any) [33m=>[39m n[33m.[39mprops [33m&&[39m n[33m.[39mprops[33m.[39mchildren [33m===[39m [32m"250"[39m))[33m.[39mtoBeDefined()[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 442 |[39m         expect(root[33m.[39mfind((n[33m:[39m any) [33m=>[39m n[33m.[39mprops [33m&&[39m n[33m.[39mprops[33m.[39mchildren [33m===[39m [32m"10"[39m))[33m.[39mtoBeDefined()[33m;[39m
+     [90m 443 |[39m         expect(root[33m.[39mfind((n[33m:[39m any) [33m=>[39m n[33m.[39mprops [33m&&[39m n[33m.[39mprops[33m.[39mchildren [33m===[39m [32m"4"[39m))[33m.[39mtoBeDefined()[33m;[39m
+     [90m 444 |[39m       })[33m;[39m[0m
 
       at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
       at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
-      at Object.find (__tests__/m3_challenger2_adversarial.test.tsx:432:36)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Challenger 2 — Adversarial Zod & UI Verification › 3. CsvImportCard & CsvImportResultModal Verification › CsvImportResultModal › triggers onClose and onDone when done button is pressed
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 459 |[39m         })[33m;[39m
-     [90m 460 |[39m
-    [31m[1m>[22m[39m[90m 461 |[39m         [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                    [31m[1m^[22m[39m
-     [90m 462 |[39m         [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 463 |[39m           doneBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 464 |[39m         })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_challenger2_adversarial.test.tsx:461:36)
+      at Object.find (__tests__/m3_challenger2_adversarial.test.tsx:441:21)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m3_iter2_empirical_challenger.test.tsx
-  ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 2. AdminSidebarDrawer & Animation Stress › verifies item press triggers onClose and correct tab selection across all tabs
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 329 |[39m       })[33m;[39m
-     [90m 330 |[39m
-    [31m[1m>[22m[39m[90m 331 |[39m       [36mconst[39m plotsTab [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 332 |[39m       [36mconst[39m cropsTab [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m
-     [90m 333 |[39m       [36mconst[39m accountsTab [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-accounts"[39m })[33m;[39m
-     [90m 334 |[39m       [36mconst[39m logoutBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-logout"[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:331:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 3. CSV Modal State Transitions & Progress Harness › safely handles multi-click spamming on start-import-button without re-triggering import
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 368 |[39m       })[33m;[39m
-     [90m 369 |[39m
-    [31m[1m>[22m[39m[90m 370 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 371 |[39m
-     [90m 372 |[39m       [90m// Click startBtn 50 times rapidly[39m
-     [90m 373 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:370:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
   ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 3. CSV Modal State Transitions & Progress Harness › verifies scrim interaction is blocked during active upload animation
 
-    No instances found with props: {"testID":"start-import-button"}
+    No instances found matching custom predicate: function (node) {
+            return node.props && node.props.style && node.props.style.backgroundColor === "rgba(17, 24, 39, 0.45)";
+          }
 
-    [0m [90m 403 |[39m       })[33m;[39m
-     [90m 404 |[39m
-    [31m[1m>[22m[39m[90m 405 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 406 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 407 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 408 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:405:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-
-  ● Milestone 3 Iteration 2 Remediation — Empirical Challenger Test Suite › 3. CSV Modal State Transitions & Progress Harness › verifies CsvImportResultModal renders correct metric breakdown and triggers onDone
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 449 |[39m       })[33m;[39m
-     [90m 450 |[39m
-    [31m[1m>[22m[39m[90m 451 |[39m       [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 452 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 453 |[39m         doneBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 454 |[39m       })[33m;[39m[0m
+    [0m [90m 409 |[39m
+     [90m 410 |[39m       [90m// Find scrim pressable[39m
+    [31m[1m>[22m[39m[90m 411 |[39m       [36mconst[39m scrim [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfind(
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 412 |[39m         (node[33m:[39m any) [33m=>[39m
+     [90m 413 |[39m           node[33m.[39mprops [33m&&[39m
+     [90m 414 |[39m           node[33m.[39mprops[33m.[39mstyle [33m&&[39m[0m
 
       at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_empirical_challenger.test.tsx:451:34)
+      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.find (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14467:18)
+      at Object.find (__tests__/m3_iter2_empirical_challenger.test.tsx:411:32)
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
@@ -2626,59 +1429,6 @@ FAIL __tests__/login_screen.test.tsx
       at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
-FAIL __tests__/m3_iter2_challenger2_empirical.test.tsx
-  ● Milestone 3 Iteration 2 - Empirical Adversarial Test Suite › 3. UI TestIDs Retention & Component Verification › retains 'admin-sidebar' testID and menu item testIDs in AdminSidebarDrawer
-
-    No instances found with props: {"testID":"admin-sidebar-plots"}
-
-    [0m [90m 190 |[39m       expect(sidebarNode)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 191 |[39m
-    [31m[1m>[22m[39m[90m 192 |[39m       [36mconst[39m plotsMenuItem [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-plots"[39m })[33m;[39m
-     [90m     |[39m                                        [31m[1m^[22m[39m
-     [90m 193 |[39m       expect(plotsMenuItem)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 194 |[39m
-     [90m 195 |[39m       [36mconst[39m cropsMenuItem [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"admin-sidebar-crops"[39m })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_challenger2_empirical.test.tsx:192:40)
-
-  ● Milestone 3 Iteration 2 - Empirical Adversarial Test Suite › 3. UI TestIDs Retention & Component Verification › retains 'admin-import-select' and 'admin-import-uploading' testIDs in CsvImportCard
-
-    No instances found with props: {"testID":"start-import-button"}
-
-    [0m [90m 221 |[39m
-     [90m 222 |[39m       [90m// Trigger start import button[39m
-    [31m[1m>[22m[39m[90m 223 |[39m       [36mconst[39m startBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"start-import-button"[39m })[33m;[39m
-     [90m     |[39m                                   [31m[1m^[22m[39m
-     [90m 224 |[39m       [36mawait[39m act([36masync[39m () [33m=>[39m {
-     [90m 225 |[39m         startBtn[33m.[39mprops[33m.[39monPress()[33m;[39m
-     [90m 226 |[39m       })[33m;[39m[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_challenger2_empirical.test.tsx:223:35)
-      at asyncGeneratorStep (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
-      at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
-      at ../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
-      at Object.<anonymous> (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
-
-  ● Milestone 3 Iteration 2 - Empirical Adversarial Test Suite › 3. UI TestIDs Retention & Component Verification › retains 'admin-import-result' testID in CsvImportResultModal
-
-    No instances found with props: {"testID":"import-done-button"}
-
-    [0m [90m 250 |[39m       expect(resultNode)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 251 |[39m
-    [31m[1m>[22m[39m[90m 252 |[39m       [36mconst[39m doneBtn [33m=[39m tree[33m![39m[33m.[39mroot[33m.[39mfindByProps({ testID[33m:[39m [32m"import-done-button"[39m })[33m;[39m
-     [90m     |[39m                                  [31m[1m^[22m[39m
-     [90m 253 |[39m       expect(doneBtn)[33m.[39mtoBeDefined()[33m;[39m
-     [90m 254 |[39m
-     [90m 255 |[39m       act(() [33m=>[39m {[0m
-
-      at expectOne (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12559:13)
-      at ReactTestInstance.Object.<anonymous>.process.env.NODE_ENV._proto.findByProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:14481:18)
-      at Object.findByProps (__tests__/m3_iter2_challenger2_empirical.test.tsx:252:34)
-
 FAIL __tests__/login_challenger_stress.test.tsx
   ● LoginScreen Empirical Stress & Adversarial Challenge Suite › Adversarial Test Suite 1: Input Validation & Edge Case Inputs › handles whitespace-only email input by failing email validation
 
@@ -2830,64 +1580,198 @@ FAIL __tests__/login_challenger_stress.test.tsx
       at _next (../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
 
 FAIL __tests__/m4_challenger1_empirical.test.tsx
-  ● Test suite failed to run
+  ● Milestone 4 Challenger 1 Empirical Test Suite › 2. TabLayout Header & Role Switcher Render & Accessibility › renders required layout testIDs: app-header, app-title, role-selector
 
-    Configuration error:
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
 
-    Could not locate module @/components/haptic-tab mapped as:
-    /home/runner/work/farmdata/farmdata/frontend/$1.
+    Check the render method of `TabsLayout`.
 
-    Please check your configuration for these entries:
-    {
-      "moduleNameMapper": {
-        "/^@\/(.*)$/": "/home/runner/work/farmdata/farmdata/frontend/$1"
-      },
-      "resolver": /home/runner/work/farmdata/farmdata/node_modules/react-native/jest/resolver.js
-    }
+    [0m [90m 66 |[39m     it([32m"renders required layout testIDs: app-header, app-title, role-selector"[39m[33m,[39m () [33m=>[39m {
+     [90m 67 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 68 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 69 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 70 |[39m       })[33m;[39m
+     [90m 71 |[39m[0m
 
-    [0m [90m 30 |[39m
-     [90m 31 |[39m [90m// Mock HapticTab and IconSymbol[39m
-    [31m[1m>[22m[39m[90m 32 |[39m jest[33m.[39mmock([32m"@/components/haptic-tab"[39m[33m,[39m () [33m=>[39m ({
-     [90m    |[39m      [31m[1m^[22m[39m
-     [90m 33 |[39m   [33mHapticTab[39m[33m:[39m () [33m=>[39m [36mnull[39m[33m,[39m
-     [90m 34 |[39m }))[33m;[39m
-     [90m 35 |[39m jest[33m.[39mmock([32m"@/components/ui/icon-symbol"[39m[33m,[39m () [33m=>[39m ({[0m
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger1_empirical.test.tsx:68:10)
 
-      at createNoMappedModuleFoundError (node_modules/jest-resolve/build/resolver.js:759:17)
-      at Object.mock (__tests__/m4_challenger1_empirical.test.tsx:32:6)
+  ● Milestone 4 Challenger 1 Empirical Test Suite › 2. TabLayout Header & Role Switcher Render & Accessibility › verifies accessibility roles, labels, and selected states for role buttons
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 82 |[39m     it([32m"verifies accessibility roles, labels, and selected states for role buttons"[39m[33m,[39m () [33m=>[39m {
+     [90m 83 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 84 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 85 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 86 |[39m       })[33m;[39m
+     [90m 87 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger1_empirical.test.tsx:84:10)
+
+  ● Milestone 4 Challenger 1 Empirical Test Suite › 3. Role Switching Stress & Tab Routing Href Verification › handles multiple sequential role toggling without state drift
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 106 |[39m     it([32m"handles multiple sequential role toggling without state drift"[39m[33m,[39m () [33m=>[39m {
+     [90m 107 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 108 |[39m       act(() [33m=>[39m {
+     [90m     |[39m          [31m[1m^[22m[39m
+     [90m 109 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 110 |[39m       })[33m;[39m
+     [90m 111 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger1_empirical.test.tsx:108:10)
 
 FAIL __tests__/m4_challenger2_empirical.test.tsx
-  ● Test suite failed to run
+  ● Milestone 4 Challenger 2 Empirical Test Suite › 2. TabLayout Header & Role Switcher State Behavior › renders app-header, app-title, and role-selector testIDs correctly
 
-    Configuration error:
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
 
-    Could not locate module @/components/haptic-tab mapped as:
-    /home/runner/work/farmdata/farmdata/frontend/$1.
+    Check the render method of `TabsLayout`.
 
-    Please check your configuration for these entries:
-    {
-      "moduleNameMapper": {
-        "/^@\/(.*)$/": "/home/runner/work/farmdata/farmdata/frontend/$1"
-      },
-      "resolver": /home/runner/work/farmdata/farmdata/node_modules/react-native/jest/resolver.js
-    }
+    [0m [90m 66 |[39m     it([32m"renders app-header, app-title, and role-selector testIDs correctly"[39m[33m,[39m () [33m=>[39m {
+     [90m 67 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 68 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 69 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 70 |[39m       })[33m;[39m
+     [90m 71 |[39m[0m
 
-    [0m [90m 30 |[39m
-     [90m 31 |[39m [90m// Mock HapticTab and IconSymbol[39m
-    [31m[1m>[22m[39m[90m 32 |[39m jest[33m.[39mmock([32m"@/components/haptic-tab"[39m[33m,[39m () [33m=>[39m ({
-     [90m    |[39m      [31m[1m^[22m[39m
-     [90m 33 |[39m   [33mHapticTab[39m[33m:[39m () [33m=>[39m [36mnull[39m[33m,[39m
-     [90m 34 |[39m }))[33m;[39m
-     [90m 35 |[39m jest[33m.[39mmock([32m"@/components/ui/icon-symbol"[39m[33m,[39m () [33m=>[39m ({[0m
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger2_empirical.test.tsx:68:10)
 
-      at createNoMappedModuleFoundError (node_modules/jest-resolve/build/resolver.js:759:17)
-      at Object.mock (__tests__/m4_challenger2_empirical.test.tsx:32:6)
+  ● Milestone 4 Challenger 2 Empirical Test Suite › 2. TabLayout Header & Role Switcher State Behavior › defaults to Farmer role with proper accessibility state and tab href routing
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 78 |[39m     it([32m"defaults to Farmer role with proper accessibility state and tab href routing"[39m[33m,[39m () [33m=>[39m {
+     [90m 79 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 80 |[39m       act(() [33m=>[39m {
+     [90m    |[39m          [31m[1m^[22m[39m
+     [90m 81 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 82 |[39m       })[33m;[39m
+     [90m 83 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger2_empirical.test.tsx:80:10)
+
+  ● Milestone 4 Challenger 2 Empirical Test Suite › 2. TabLayout Header & Role Switcher State Behavior › switches to Admin role on press and updates tab href routing accordingly
+
+    Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+    Check the render method of `TabsLayout`.
+
+    [0m [90m 109 |[39m     it([32m"switches to Admin role on press and updates tab href routing accordingly"[39m[33m,[39m () [33m=>[39m {
+     [90m 110 |[39m       [36mlet[39m component[33m:[39m renderer[33m.[39m[33mReactTestRenderer[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 111 |[39m       act(() [33m=>[39m {
+     [90m     |[39m          [31m[1m^[22m[39m
+     [90m 112 |[39m         component [33m=[39m renderer[33m.[39mcreate([33m<[39m[33mTabLayout[39m [33m/[39m[33m>[39m)[33m;[39m
+     [90m 113 |[39m       })[33m;[39m
+     [90m 114 |[39m[0m
+
+      at createFiberFromTypeAndProps (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12185:28)
+      at createFiberFromElement (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:12199:14)
+      at reconcileChildFibersImpl (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5049:31)
+      at node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5227:33
+      at reconcileChildren (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:5735:13)
+      at updateFunctionComponent (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:6020:7)
+      at beginWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:7474:18)
+      at runWithFiberInDEV (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:1574:13)
+      at performUnitOfWork (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10972:22)
+      at workLoopSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10816:41)
+      at renderRootSync (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10797:11)
+      at performWorkOnRoot (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:10384:39)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-test-renderer/cjs/react-test-renderer.development.js:2094:7)
+      at flushActQueue (../node_modules/react/cjs/react.development.js:566:34)
+      at Object.<anonymous>.process.env.NODE_ENV.exports.act (../node_modules/react/cjs/react.development.js:859:10)
+      at Object.<anonymous> (__tests__/m4_challenger2_empirical.test.tsx:111:10)
 
 
-Test Suites: 11 failed, 21 passed, 32 total
-Tests:       75 failed, 308 passed, 383 total
+Test Suites: 9 failed, 23 passed, 32 total
+Tests:       42 failed, 351 passed, 393 total
 Snapshots:   0 total
-Time:        25.706 s
+Time:        27.102 s
 Ran all test suites.
 npm error Lifecycle script `test` failed with error:
 npm error code 1
