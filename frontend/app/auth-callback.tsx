@@ -17,12 +17,17 @@ export default function AuthCallbackScreen() {
   const rootNavigationState = useRootNavigationState();
   const router = useRouter();
   const { login } = useAuth();
+  const routerRef = useRef(router);
+  const loginRef = useRef(login);
   const hasHandledCallback = useRef(false);
   const { accessToken, refreshToken, error } = useLocalSearchParams<{
     accessToken?: string;
     refreshToken?: string;
     error?: string;
   }>();
+
+  routerRef.current = router;
+  loginRef.current = login;
 
   useEffect(() => {
     if (!rootNavigationState?.key || hasHandledCallback.current) {
@@ -39,7 +44,7 @@ export default function AuthCallbackScreen() {
         }
 
         if (typeof error === "string" && error) {
-          router.replace("/(auth)/login");
+          routerRef.current.replace("/(auth)/login");
           return;
         }
 
@@ -49,18 +54,18 @@ export default function AuthCallbackScreen() {
           typeof refreshToken !== "string" ||
           !refreshToken
         ) {
-          router.replace("/(auth)/login");
+          routerRef.current.replace("/(auth)/login");
           return;
         }
 
         try {
-          await login({ accessToken, refreshToken });
+          await loginRef.current({ accessToken, refreshToken });
           if (!cancelled) {
-            router.replace("/(tabs)/posts");
+            routerRef.current.replace("/(tabs)/posts");
           }
         } catch {
           if (!cancelled) {
-            router.replace("/(auth)/login");
+            routerRef.current.replace("/(auth)/login");
           }
         }
       })();
@@ -70,7 +75,7 @@ export default function AuthCallbackScreen() {
       cancelled = true;
       task.cancel();
     };
-  }, [accessToken, error, login, refreshToken, rootNavigationState?.key, router]);
+  }, [accessToken, error, refreshToken, rootNavigationState?.key]);
 
   return (
     <View style={styles.container}>
