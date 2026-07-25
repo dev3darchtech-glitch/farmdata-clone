@@ -1,0 +1,18 @@
+
+> capture-data@1.0.0 lint
+> expo lint
+
+
+/home/runner/work/farmdata/farmdata/frontend/components/farm/FarmDataScreens.tsx
+   170:7   warning  'DEFAULT_POSTS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   985:18  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+   994:18  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+  1005:16  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+  1019:20  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+  1028:20  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+  1039:22  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+  1047:22  warning  '_' is defined but never used                       @typescript-eslint/no-unused-vars
+  3226:10  warning  'EmptyState' is defined but never used              @typescript-eslint/no-unused-vars
+
+✖ 9 problems (0 errors, 9 warnings)
+

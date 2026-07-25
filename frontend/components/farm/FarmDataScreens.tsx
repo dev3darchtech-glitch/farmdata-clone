@@ -954,6 +954,7 @@ export function CaptureScreen() {
   >();
   const [symptomDescription, setSymptomDescription] = useState("");
   const [severity, setSeverity] = useState<SymptomSeverity | undefined>();
+  const [isEditingSymptom, setIsEditingSymptom] = useState(true);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState("");
@@ -1128,6 +1129,7 @@ export function CaptureScreen() {
       setGrowthStage(undefined);
       setSymptomDescription("");
       setSeverity(undefined);
+      setIsEditingSymptom(true);
       setLocalMeasurements(undefined);
       setAttemptedSubmit(false);
     } catch (err: any) {
@@ -1230,6 +1232,7 @@ export function CaptureScreen() {
               shouldShowInlineErrors ? validation.errors.cropType : undefined
             }
             onPress={() => setSheet("crop")}
+            testID="crop-type-input"
             icon={
               cropType ? (
                 <View
@@ -1260,6 +1263,7 @@ export function CaptureScreen() {
               shouldShowInlineErrors ? validation.errors.growthStage : undefined
             }
             onPress={() => setSheet("stage")}
+            testID="growth-stage-input"
             icon={
               growthStage ? (
                 <View
@@ -1477,12 +1481,14 @@ export function CaptureScreen() {
 
         <View style={[styles.section, styles.captureSectionWithTopPadding]}>
           <FieldLabel required>6. Tình trạng</FieldLabel>
-          {severity && (!shouldShowSymptomDescription || symptomDescription) ? (
+          {severity &&
+          (!shouldShowSymptomDescription || symptomDescription) &&
+          !isEditingSymptom ? (
             <View style={styles.symptomSummary}>
               {shouldShowSymptomDescription ? (
                 <Pressable
                   style={styles.symptomSummaryBox}
-                  onPress={() => setSeverity(undefined)}
+                  onPress={() => setIsEditingSymptom(true)}
                 >
                   <Text style={styles.symptomSummaryText}>
                     “{symptomDescription}”
@@ -1496,7 +1502,7 @@ export function CaptureScreen() {
                 <Text style={styles.severitySummaryLabel}>Mức độ:</Text>
                 <Pressable
                   style={styles.severityPill}
-                  onPress={() => setSeverity(undefined)}
+                  onPress={() => setIsEditingSymptom(true)}
                 >
                   <Text style={styles.severityPillText}>
                     {severityLabel(severity)}
@@ -1528,6 +1534,9 @@ export function CaptureScreen() {
                       setSeverity(item.value);
                       if (item.value === "Khỏe mạnh") {
                         setSymptomDescription("");
+                        setIsEditingSymptom(false);
+                      } else {
+                        setIsEditingSymptom(true);
                       }
                     }}
                   >
@@ -1565,10 +1574,19 @@ export function CaptureScreen() {
                   <FieldLabel required>Mô tả triệu chứng</FieldLabel>
                   <View style={styles.textAreaWrap}>
                     <TextInput
+                      testID="symptom-description-input"
                       multiline
                       maxLength={300}
                       value={symptomDescription}
-                      onChangeText={setSymptomDescription}
+                      onChangeText={(value) => {
+                        setSymptomDescription(value);
+                        setIsEditingSymptom(true);
+                      }}
+                      onBlur={() => {
+                        if (symptomDescription.trim()) {
+                          setIsEditingSymptom(false);
+                        }
+                      }}
                       placeholder="Nhập triệu chứng quan sát được..."
                       placeholderTextColor={COLORS.border}
                       style={[
@@ -1829,6 +1847,7 @@ function SelectionSheets(props: {
               filteredPlots.map((plot) => (
                 <Pressable
                   key={plot.id}
+                  testID={`plot-option-${plot.code}`}
                   style={styles.optionRow}
                   onPress={() => {
                     props.onPlot(plot.code);
@@ -1852,8 +1871,10 @@ function SelectionSheets(props: {
           <View style={styles.cropActionArea}>
             <Pressable
               style={styles.sheetOutlineAction}
+              testID="plot-clear-selection"
               onPress={() => {
                 props.onPlot(undefined);
+                close();
               }}
             >
               <Text style={styles.sheetOutlineActionText}>Không chọn mã</Text>
@@ -1897,6 +1918,7 @@ function SelectionSheets(props: {
                 return (
                   <Pressable
                     key={crop.id}
+                    testID={`crop-option-${crop.id}`}
                     style={[
                       styles.cropOption,
                       selected && styles.cropOptionSelected,
@@ -1954,6 +1976,7 @@ function SelectionSheets(props: {
             return (
               <Pressable
                 key={stage.id}
+                testID={`stage-option-${stage.id}`}
                 style={[
                   styles.stageOption,
                   selected && styles.stageOptionSelected,
