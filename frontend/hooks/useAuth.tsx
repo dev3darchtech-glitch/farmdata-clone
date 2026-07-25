@@ -90,11 +90,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           error: null,
         });
       } else {
-        const tokens = await authService.loginWithGoogle(
-          emailOrTokens,
-          passwordOrUser as Partial<User>,
-        );
-        const user = await authService.getStoredUser();
+        let user: User | null;
+        let tokens: AuthTokens;
+
+        if (emailOrTokens?.accessToken) {
+          const result = await authService.loginWithBackendTokens(
+            emailOrTokens.accessToken,
+            emailOrTokens.refreshToken || "",
+          );
+          user = result.user;
+          tokens = result.tokens;
+        } else {
+          tokens = await authService.loginWithGoogle(
+            emailOrTokens,
+            passwordOrUser as Partial<User>,
+          );
+          user = await authService.getStoredUser();
+        }
+
         setState({
           user,
           tokens,
@@ -179,6 +192,7 @@ export function useAuth(): AuthContextType {
       isLoading: false,
       isAuthenticated: false,
       tokens: null,
+      error: null,
       login: async () => {},
       logout: async () => {},
       refreshToken: async () => null,

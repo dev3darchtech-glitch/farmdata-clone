@@ -64,6 +64,21 @@ export async function loginBackend(
   return data;
 }
 
+export async function fetchCurrentUserProfile(): Promise<User> {
+  const res = await fetch(`${BACKEND_URL}/auth/me`, {
+    headers: getAuthHeaders(),
+  }).catch(() => {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.user) {
+    throw new Error(data.error || "Không thể tải thông tin tài khoản.");
+  }
+
+  return data.user as User;
+}
+
 /**
  * Submit CaptureSession directly to backend API.
  */
@@ -74,11 +89,7 @@ export async function submitCaptureSession(
   const totalImages = sessionData.images.length;
   if (onProgress) {
     for (let i = 1; i <= totalImages; i++) {
-      onProgress(
-        `Đang lưu phiên chụp... Đang tải ${totalImages} ảnh`,
-        i,
-        totalImages,
-      );
+      onProgress("Đang tải ảnh", i, totalImages);
     }
   }
 

@@ -1,7 +1,7 @@
 import { AuthTokens, User } from "@/types";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { loginBackend, setAuthToken } from "./apiClient";
+import { fetchCurrentUserProfile, loginBackend, setAuthToken } from "./apiClient";
 
 export const TOKENS_KEY = "auth_tokens";
 export const USER_KEY = "auth_user";
@@ -193,24 +193,55 @@ export async function loginWithGoogle(
   providedTokens?: Partial<AuthTokens>,
   providedUser?: Partial<User>,
 ): Promise<AuthTokens> {
+  if (!providedTokens?.accessToken || !providedUser?.email) {
+    throw new Error(
+      "Google OAuth phải được khởi tạo từ màn hình đăng nhập trước khi lưu phiên.",
+    );
+  }
+
   const user: User = {
-    id: providedUser?.id || "FARMER-01",
-    name: providedUser?.name || "Nông dân Nguyễn Văn An",
-    email: providedUser?.email || "an.nguyen@farm.vn",
+    id: providedUser.id || "FARMER-01",
+    name: providedUser.name || providedUser.email,
+    email: providedUser.email,
+    username: providedUser.username,
     role: (providedUser?.role as any) || "farmer",
+    photo: providedUser.photo,
+    picture: providedUser.picture,
   };
 
   const tokens: AuthTokens = {
-    accessToken: providedTokens?.accessToken || "jwt_access_token",
-    refreshToken: providedTokens?.refreshToken || "jwt_refresh_token",
+    accessToken: providedTokens.accessToken,
+    refreshToken: providedTokens.refreshToken || "",
     idToken: providedTokens?.idToken,
+    tokenType: "Bearer",
+    expiresIn: providedTokens.expiresIn || 86400,
+    issuedAt: providedTokens.issuedAt || Date.now(),
+  };
+
+  await saveAuthData(tokens, user);
+  return tokens;
+}
+
+export async function loginWithBackendTokens(
+  accessToken: string,
+  refreshToken = "",
+): Promise<{ user: User; tokens: AuthTokens }> {
+  if (!accessToken) {
+    throw new Error("Không nhận được token đăng nhập từ máy chủ.");
+  }
+
+  setAuthToken(accessToken);
+  const user = await fetchCurrentUserProfile();
+  const tokens: AuthTokens = {
+    accessToken,
+    refreshToken,
     tokenType: "Bearer",
     expiresIn: 86400,
     issuedAt: Date.now(),
   };
 
   await saveAuthData(tokens, user);
-  return tokens;
+  return { user, tokens };
 }
 
 export async function logout(): Promise<void> {

@@ -54,14 +54,11 @@ jest.mock("@/services/postService", () => {
   };
 });
 
-function findPressableContainingText(
-  root: renderer.ReactTestInstance,
-  expectedText: string,
-) {
-  const matches = root.findAll((node) => {
+function findPressableContainingText(root: any, expectedText: string) {
+  const matches = root.findAll((node: any) => {
     if (typeof node.props?.onPress !== "function") return false;
     return node.findAll(
-      (child) =>
+      (child: any) =>
         child.type === Text &&
         (child.props.children === expectedText ||
           (Array.isArray(child.props.children) &&
@@ -76,8 +73,9 @@ function findPressableContainingText(
   return matches[matches.length - 1];
 }
 
-function visibleModalCount(root: renderer.ReactTestInstance) {
-  return root.findAllByType(Modal).filter((modal) => modal.props.visible).length;
+function visibleModalCount(root: any) {
+  return root.findAllByType(Modal).filter((modal: any) => modal.props.visible)
+    .length;
 }
 
 describe("Capture interaction regressions", () => {
@@ -116,7 +114,10 @@ describe("Capture interaction regressions", () => {
     expect(visibleModalCount(root)).toBe(1);
 
     act(() => {
-      root.findAllByType(Modal).find((modal) => modal.props.visible)!.props.onRequestClose();
+      root
+        .findAllByType(Modal)
+        .find((modal: any) => modal.props.visible)!
+        .props.onRequestClose();
     });
     expect(visibleModalCount(root)).toBe(0);
 

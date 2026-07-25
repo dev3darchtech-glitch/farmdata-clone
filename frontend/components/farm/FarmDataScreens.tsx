@@ -39,7 +39,9 @@ import {
   WeatherCondition,
 } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { router, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import { router, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import {
   Apple,
   Bell,
@@ -59,6 +61,7 @@ import {
   CloudSnow,
   CloudSun,
   Droplets,
+  FileText,
   Filter,
   Flame,
   Flower2,
@@ -112,6 +115,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { FilterModal } from "../posts/FilterModal";
 import { SortModal } from "../posts/SortModal";
 
@@ -155,6 +159,18 @@ const DEFAULT_PLOTS: PlotInfo[] = [
     code: "L-003",
     name: "Khu B - Luống 003",
     areaSquareMeters: 1200,
+  },
+  {
+    id: "plot-4",
+    code: "L-004",
+    name: "Khu B - Luống 004",
+    areaSquareMeters: 900,
+  },
+  {
+    id: "plot-5",
+    code: "L-005",
+    name: "Khu C - Luống 005",
+    areaSquareMeters: 1100,
   },
 ];
 
@@ -314,6 +330,33 @@ function formatCaptureLocationName(location?: LocationData) {
       .join(", ") ||
     "Vị trí chụp"
   );
+}
+
+function plotSheetMeta(plot: PlotInfo) {
+  const primaryZone = plot.name.split("-")[0]?.trim() || plot.name.trim();
+  const area = plot.areaSquareMeters
+    ? `${plot.areaSquareMeters} m²`
+    : undefined;
+  return [primaryZone, area].filter(Boolean).join(" • ");
+}
+
+function normalizePostIdentity(post: Post & { _id?: string }) {
+  return {
+    ...post,
+    id:
+      post.id ||
+      post._id ||
+      post.sessionId ||
+      `${post.createdAt}-${post.cropType}-${post.plotId || "no-plot"}`,
+  };
+}
+
+function postListKey(post: Post & { _id?: string }, index: number) {
+  return [
+    post.id || post._id || post.sessionId || "post",
+    post.createdAt || "no-date",
+    index,
+  ].join("-");
 }
 
 function WeatherStatusIcon({
@@ -696,12 +739,135 @@ function BottomSheet({
   );
 }
 
+function LoadingProgressDialog({
+  visible,
+  title,
+  detail,
+  percent,
+}: {
+  visible: boolean;
+  title: string;
+  detail: string;
+  percent: number;
+}) {
+  if (!visible) return null;
+
+  const size = 128;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const safePercent = Math.max(0, Math.min(100, percent));
+  const strokeDashoffset = circumference - (circumference * safePercent) / 100;
+
+  return (
+    <View style={styles.loadingOverlay}>
+      <View style={styles.loadingDialog}>
+        <View style={styles.loadingRingWrap}>
+          <Svg width={size} height={size}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke="#e0e0e0"
+              strokeWidth={strokeWidth}
+              fill="none"
+            />
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={COLORS.green}
+              strokeWidth={strokeWidth}
+              fill="none"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          </Svg>
+          <View style={styles.loadingRingCenter}>
+            <Text style={styles.loadingPercentText}>{safePercent}%</Text>
+          </View>
+        </View>
+        <View style={styles.loadingTitleWrap}>
+          <Text style={styles.loadingTitle}>{title}</Text>
+          <View style={styles.loadingDetailRow}>
+            <Text style={styles.loadingDetail}>{detail}</Text>
+            <ActivityIndicator size="small" color={COLORS.green} />
+          </View>
+        </View>
+        <View style={styles.loadingBarTrack}>
+          <View style={[styles.loadingBarFill, { width: `${safePercent}%` }]} />
+        </View>
+        <Text style={styles.loadingHint}>Vui lòng không đóng ứng dụng</Text>
+      </View>
+    </View>
+  );
+}
+
+function CaptureSuccessDialog({
+  visible,
+  onCaptureNext,
+  onViewPosts,
+}: {
+  visible: boolean;
+  onCaptureNext: () => void;
+  onViewPosts: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <View style={styles.loadingOverlay}>
+      <View style={styles.captureSuccessDialog}>
+        <View style={styles.captureSuccessIconWrap}>
+          <View style={styles.captureSuccessIconCircle}>
+            <CircleCheck size={40} color={COLORS.green} fill={COLORS.green} />
+            <Check
+              size={20}
+              color="#eaf29d"
+              style={styles.captureSuccessIconCheck}
+            />
+          </View>
+        </View>
+        <Text style={styles.captureSuccessTitle}>
+          Session saved successfully!
+        </Text>
+        <Text style={styles.captureSuccessDescription}>
+          Post has been automatically created.
+        </Text>
+        <View style={styles.captureSuccessActions}>
+          <Pressable
+            style={styles.captureSuccessPrimaryButton}
+            onPress={onCaptureNext}
+          >
+            <Camera size={18} color="#fff" />
+            <Text style={styles.captureSuccessPrimaryText}>
+              Capture new session
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.captureSuccessSecondaryButton}
+            onPress={onViewPosts}
+          >
+            <FileText size={16} color="#2b2b2b" />
+            <Text style={styles.captureSuccessSecondaryText}>
+              View Post list
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export function LoginScreen() {
   const { login, isLoading, error } = useAuth();
   const { width, height } = useWindowDimensions();
+  const params = useLocalSearchParams<{ oauthSuccess?: string }>();
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [loginSucceeded, setLoginSucceeded] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const {
     control,
     handleSubmit,
@@ -719,7 +885,7 @@ export function LoginScreen() {
     errors.email?.message || errors.password?.message;
   const globalErrorMessage = validationErrorMessage || localError || error;
   const credentialInvalid = Boolean(
-    !validationErrorMessage && (localError || error),
+    !validationErrorMessage && !isGoogleSubmitting && (localError || error),
   );
   const emailInvalid = Boolean(errors.email) || credentialInvalid;
   const passwordInvalid = Boolean(errors.password) || credentialInvalid;
@@ -727,12 +893,18 @@ export function LoginScreen() {
     invalid ? ({ "in-valid": true, "aria-invalid": true } as const) : {};
 
   useEffect(() => {
+    if (params.oauthSuccess === "1") {
+      setLoginSucceeded(true);
+    }
+  }, [params.oauthSuccess]);
+
+  useEffect(() => {
     if (!loginSucceeded) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      router.replace("/(tabs)/capture");
+      router.replace("/(tabs)/posts");
     }, 1200);
 
     return () => clearTimeout(timeout);
@@ -756,6 +928,50 @@ export function LoginScreen() {
       setLocalError(null);
     },
   );
+
+  const handleGoogleLogin = async () => {
+    Keyboard.dismiss();
+    setLocalError(null);
+
+    try {
+      setIsGoogleSubmitting(true);
+      const redirectUri =
+        Platform.OS === "web"
+          ? Linking.createURL("auth-callback")
+          : "capturedata://auth-callback";
+      const authUrl = `${
+        process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api"
+      }/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.location.href = authUrl;
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri,
+      );
+      if (result.type !== "success" || !result.url) {
+        return;
+      }
+
+      const parsed = Linking.parse(result.url);
+      const accessToken = parsed.queryParams?.accessToken;
+      const refreshToken = parsed.queryParams?.refreshToken;
+
+      if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+        throw new Error("Không nhận được token đăng nhập từ máy chủ.");
+      }
+
+      await login({ accessToken, refreshToken });
+      setLoginSucceeded(true);
+    } catch (err: any) {
+      setLocalError(err?.message || "Đăng nhập Google không thành công.");
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  };
 
   if (loginSucceeded) {
     return (
@@ -893,6 +1109,7 @@ export function LoginScreen() {
                     )}
                   />
                   <Pressable
+                    testID="btn-toggle-password"
                     accessibilityRole="button"
                     style={styles.loginTrailingIcon}
                     onPress={() => setShowPassword((value) => !value)}
@@ -923,14 +1140,30 @@ export function LoginScreen() {
                   label={isLoading ? "Đang đăng nhập" : "Đăng nhập"}
                   onPress={submit}
                   loading={isLoading}
+                  testID="btn-submit-login"
                 />
-                <Pressable style={styles.googleButton}>
+                <Pressable
+                  testID="btn-google-login"
+                  style={[
+                    styles.googleButton,
+                    (isLoading || isGoogleSubmitting) &&
+                      styles.googleButtonDisabled,
+                  ]}
+                  disabled={isLoading || isGoogleSubmitting}
+                  onPress={() => {
+                    void handleGoogleLogin();
+                  }}
+                >
                   <Image
                     source={googleLogo}
                     style={styles.googleImage}
                     resizeMode="contain"
                   />
-                  <Text style={styles.googleText}>Sign in with Google</Text>
+                  <Text style={styles.googleText}>
+                    {isGoogleSubmitting
+                      ? "Đang đăng nhập với Google"
+                      : "Đăng nhập bằng Google"}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -974,6 +1207,8 @@ export function CaptureScreen() {
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState("");
+  const [progressCurrent, setProgressCurrent] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
@@ -1112,6 +1347,12 @@ export function CaptureScreen() {
   const shouldShowSymptomDescription =
     Boolean(severity) && severity !== "Khỏe mạnh";
   const shouldShowInlineErrors = attemptedSubmit && !validation.isValid;
+  const uploadPercent =
+    progressTotal > 0
+      ? Math.round(
+          (Math.min(progressCurrent, progressTotal) / progressTotal) * 100,
+        )
+      : 0;
 
   const addPhoto = async () => {
     try {
@@ -1135,7 +1376,9 @@ export function CaptureScreen() {
     }
     setAttemptedSubmit(false);
     setSaving(true);
-    setProgress("Đang lưu phiên chụp...");
+    setProgress(`Đang tải 0/${images.length} ảnh`);
+    setProgressCurrent(0);
+    setProgressTotal(images.length);
     try {
       await completeCaptureSessionAndAutoPost(
         {
@@ -1143,8 +1386,11 @@ export function CaptureScreen() {
           growthStage,
           severity,
         },
-        (message, current, total) =>
-          setProgress(`${message} (${current}/${total})`),
+        (_message, current, total) => {
+          setProgress(`Đang tải ${current}/${total} ảnh`);
+          setProgressCurrent(current);
+          setProgressTotal(total);
+        },
       );
       setSheet("success");
       setImages([]);
@@ -1163,6 +1409,8 @@ export function CaptureScreen() {
       setSheet("error");
     } finally {
       setSaving(false);
+      setProgressCurrent(0);
+      setProgressTotal(0);
     }
   };
 
@@ -1728,19 +1976,18 @@ export function CaptureScreen() {
         ) : null}
       </View>
       <BottomNav active="capture" />
-      {saving ? (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingCard}>
-            <ActivityIndicator color={COLORS.green} />
-            <Text style={styles.loadingText}>{progress}</Text>
-          </View>
-        </View>
-      ) : null}
+      <LoadingProgressDialog
+        visible={saving}
+        title="Đang lưu phiên chụp..."
+        detail={progress}
+        percent={uploadPercent}
+      />
       <SelectionSheets
         sheet={sheet}
         setSheet={setSheet}
         plots={plots}
         crops={crops}
+        plotId={plotId}
         cropType={cropType}
         growthStage={growthStage}
         stationWeather={stationWeather}
@@ -1806,6 +2053,7 @@ function SelectionSheets(props: {
   setSheet: (sheet: SheetKind | null) => void;
   plots: PlotInfo[];
   crops: CropTypeInfo[];
+  plotId?: string;
   cropType: string;
   growthStage?: GrowthStageId;
   stationWeather: WeatherCondition;
@@ -1940,7 +2188,7 @@ function SelectionSheets(props: {
             <TextInput
               value={plotSearch}
               onChangeText={setPlotSearch}
-              placeholder="Tìm mã, khu vực, luống..."
+              placeholder="Tìm mã luống"
               placeholderTextColor="#6b7280"
               style={styles.cropSearchInput}
             />
@@ -1959,24 +2207,42 @@ function SelectionSheets(props: {
             showsVerticalScrollIndicator={false}
           >
             {filteredPlots.length > 0 ? (
-              filteredPlots.map((plot) => (
-                <Pressable
-                  key={plot.id}
-                  testID={`plot-option-${plot.code}`}
-                  style={styles.optionRow}
-                  onPress={() => {
-                    props.onPlot(plot.code);
-                  }}
-                >
-                  <Text style={styles.optionTitle}>{plot.code}</Text>
-                  <Text style={styles.optionMeta}>
-                    {plot.code} {plot.name}
-                    {plot.areaSquareMeters
-                      ? ` - ${plot.areaSquareMeters}m²`
-                      : ""}
-                  </Text>
-                </Pressable>
-              ))
+              filteredPlots.map((plot) => {
+                const selected = props.plotId === plot.code;
+
+                return (
+                  <Pressable
+                    key={plot.id}
+                    testID={`plot-option-${plot.code}`}
+                    style={[
+                      styles.plotOption,
+                      selected && styles.plotOptionSelected,
+                    ]}
+                    onPress={() => {
+                      props.onPlot(plot.code);
+                    }}
+                  >
+                    <View style={styles.plotOptionBody}>
+                      <Text
+                        style={[
+                          styles.plotOptionCode,
+                          selected && styles.plotOptionCodeSelected,
+                        ]}
+                      >
+                        {plot.code}
+                      </Text>
+                      <Text style={styles.plotOptionMeta}>
+                        {plotSheetMeta(plot)}
+                      </Text>
+                    </View>
+                    {selected ? (
+                      <View style={styles.plotOptionCheck}>
+                        <Check size={12} color="#fff" />
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              })
             ) : (
               <View style={styles.cropSearchEmpty}>
                 <Text style={styles.cropSearchEmptyText}>
@@ -2416,19 +2682,11 @@ function SelectionSheets(props: {
           </View>
         </View>
       </BottomSheet>
-      <BottomSheet
+      <CaptureSuccessDialog
         visible={props.sheet === "success"}
-        title="Đã lưu phiên chụp"
-        onClose={close}
-      >
-        <Text style={styles.sheetBody}>
-          Post đã được tự động tạo từ phiên chụp.
-        </Text>
-        <PrimaryButton
-          label="Chuyển sang Post"
-          onPress={() => router.replace("/(tabs)/posts")}
-        />
-      </BottomSheet>
+        onCaptureNext={close}
+        onViewPosts={() => router.replace("/(tabs)/posts")}
+      />
       <BottomSheet
         visible={props.sheet === "error"}
         title="Chưa thể lưu phiên chụp"
@@ -2809,7 +3067,11 @@ export function PostsScreen() {
     setLoadError(null);
     try {
       const data = await getPosts(role, user?.id, undefined, query);
-      setPosts(data);
+      setPosts(
+        data.map((post) =>
+          normalizePostIdentity(post as Post & { _id?: string }),
+        ),
+      );
     } catch (err: any) {
       setLoadError(err?.message || "Lỗi tải dữ liệu");
       setPosts([]);
@@ -2965,9 +3227,9 @@ export function PostsScreen() {
             </Pressable>
           </View>
         ) : sortedAndFiltered.length ? (
-          sortedAndFiltered.map((post) => (
+          sortedAndFiltered.map((post, index) => (
             <PostCard
-              key={post.id}
+              key={postListKey(post as Post & { _id?: string }, index)}
               post={post}
               admin={role === "admin"}
               onImage={() => setViewerPost(post)}
@@ -3668,6 +3930,38 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   cropListContent: { paddingHorizontal: 35, paddingVertical: 8, gap: 4 },
+  plotOption: {
+    minHeight: 74,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  plotOptionSelected: { backgroundColor: "rgba(234,242,157,0.5)" },
+  plotOptionBody: { flex: 1, gap: 4 },
+  plotOptionCode: {
+    color: COLORS.body,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+  plotOptionCodeSelected: { color: COLORS.green },
+  plotOptionMeta: {
+    color: COLORS.body,
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  plotOptionCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cropOption: {
     minHeight: 64,
     borderRadius: 12,
@@ -3964,6 +4258,9 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
   },
   googleImage: { width: 24, height: 26 },
   googleText: { color: "#2b2b2b", fontSize: 16, fontWeight: "500" },
@@ -4468,9 +4765,175 @@ export const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(26,28,26,0.6)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingDialog: {
+    width: 320,
+    minHeight: 330,
+    borderRadius: 12,
+    backgroundColor: "#faf9f5",
+    paddingHorizontal: 32,
+    paddingTop: 32,
+    paddingBottom: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  loadingRingWrap: {
+    width: 128,
+    height: 128,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingRingCenter: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingPercentText: {
+    color: "#2b2b2b",
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "600",
+  },
+  loadingTitleWrap: {
+    marginTop: 24,
+    alignItems: "center",
+  },
+  loadingTitle: {
+    color: "#2b2b2b",
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  loadingDetailRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  loadingDetail: {
+    color: "#2b2b2b",
+    fontSize: 16,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  loadingBarTrack: {
+    width: "100%",
+    height: 6,
+    marginTop: 28,
+    borderRadius: 999,
+    backgroundColor: "#e0e0e0",
+    overflow: "hidden",
+  },
+  loadingBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: COLORS.green,
+  },
+  loadingHint: {
+    marginTop: 10,
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  captureSuccessDialog: {
+    width: 319,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    padding: 32,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  captureSuccessIconWrap: {
+    width: 80,
+    height: 104,
+    paddingBottom: 24,
+    alignItems: "center",
+  },
+  captureSuccessIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#eaf29d",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#34703f",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
+  },
+  captureSuccessIconCheck: {
+    position: "absolute",
+  },
+  captureSuccessTitle: {
+    paddingBottom: 8,
+    color: "#2b2b2b",
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  captureSuccessDescription: {
+    paddingBottom: 32,
+    color: "#2b2b2b",
+    fontSize: 16,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  captureSuccessActions: {
+    width: "100%",
+    gap: 16,
+  },
+  captureSuccessPrimaryButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.green,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  captureSuccessPrimaryText: {
+    color: "#fff",
+    fontSize: 14,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+  captureSuccessSecondaryButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.border,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  captureSuccessSecondaryText: {
+    color: "#2b2b2b",
+    fontSize: 14,
+    lineHeight: 16,
+    fontWeight: "600",
   },
   loadingCard: {
     width: 260,
