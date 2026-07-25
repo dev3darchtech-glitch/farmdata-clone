@@ -32,9 +32,30 @@ jobs:
         run: npm ci
 
       - name: Run OAuth redirect regression tests
+        id: oauth_tests
+        continue-on-error: true
         working-directory: frontend
-        run: npm test -- --runInBand __tests__/oauth_redirect_posts.test.tsx
+        run: |
+          set -o pipefail
+          npm test -- --runInBand __tests__/oauth_redirect_posts.test.tsx 2>&1 | tee ../oauth-test-output.txt
 
       - name: Run frontend lint
+        id: lint
+        continue-on-error: true
         working-directory: frontend
-        run: npm run lint
+        run: |
+          set -o pipefail
+          npm run lint 2>&1 | tee ../oauth-lint-output.txt
+
+      - name: Upload verification output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oauth-verification-output
+          path: |
+            oauth-test-output.txt
+            oauth-lint-output.txt
+
+      - name: Fail when verification fails
+        if: steps.oauth_tests.outcome != 'success' || steps.lint.outcome != 'success'
+        run: exit 1
