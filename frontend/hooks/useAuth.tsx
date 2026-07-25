@@ -3,6 +3,7 @@ import { AuthState, AuthTokens, User } from "@/types";
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -30,7 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(initialAuthState);
 
-  const initAuth = async () => {
+  const initAuth = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
       const tokens = await authService.getStoredTokens();
@@ -63,70 +64,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: err.message || "Failed to restore authentication session",
       });
     }
-  };
-
-  useEffect(() => {
-    initAuth();
   }, []);
 
-  const login = async (
-    emailOrTokens?: string | Partial<AuthTokens>,
-    passwordOrUser?: string | Partial<User>,
-  ) => {
-    try {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
-      if (typeof emailOrTokens === "string") {
-        const password =
-          typeof passwordOrUser === "string" ? passwordOrUser : "";
-        const { tokens, user } = await authService.loginWithCredentials(
-          emailOrTokens,
-          password,
-        );
-        setState({
-          user,
-          tokens,
-          isLoading: false,
-          isAuthenticated: true,
-          error: null,
-        });
-      } else {
-        let user: User | null;
-        let tokens: AuthTokens;
+  useEffect(() => {
+    void initAuth();
+  }, [initAuth]);
 
-        if (emailOrTokens?.accessToken) {
-          const result = await authService.loginWithBackendTokens(
-            emailOrTokens.accessToken,
-            emailOrTokens.refreshToken || "",
-          );
-          user = result.user;
-          tokens = result.tokens;
-        } else {
-          tokens = await authService.loginWithGoogle(
+  const login = useCallback(
+    async (
+      emailOrTokens?: string | Partial<AuthTokens>,
+      passwordOrUser?: string | Partial<User>,
+    ) => {
+      try {
+        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+        if (typeof emailOrTokens === "string") {
+          const password =
+            typeof passwordOrUser === "string" ? passwordOrUser : "";
+          const { tokens, user } = await authService.loginWithCredentials(
             emailOrTokens,
-            passwordOrUser as Partial<User>,
+            password,
           );
-          user = await authService.getStoredUser();
+          setState({
+            user,
+            tokens,
+            isLoading: false,
+            isAuthenticated: true,
+            error: null,
+          });
+        } else {
+          let user: User | null;
+          let tokens: AuthTokens;
+
+          if (emailOrTokens?.accessToken) {
+            const result = await authService.loginWithBackendTokens(
+              emailOrTokens.accessToken,
+              emailOrTokens.refreshToken || "",
+            );
+            user = result.user;
+            tokens = result.tokens;
+          } else {
+            tokens = await authService.loginWithGoogle(
+              emailOrTokens,
+              passwordOrUser as Partial<User>,
+            );
+            user = await authService.getStoredUser();
+          }
+
+          setState({
+            user,
+            tokens,
+            isLoading: false,
+            isAuthenticated: true,
+            error: null,
+          });
         }
-
-        setState({
-          user,
-          tokens,
+      } catch (err: any) {
+        setState((prev) => ({
+          ...prev,
           isLoading: false,
-          isAuthenticated: true,
-          error: null,
-        });
+          error: err.message || "Login failed",
+        }));
+        throw err;
       }
-    } catch (err: any) {
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: err.message || "Login failed",
-      }));
-      throw err;
-    }
-  };
+    },
+    [],
+  );
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
       await authService.logout();
@@ -146,9 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: err.message || "Logout failed",
       });
     }
-  };
+  }, []);
 
-  const handleRefreshToken = async (): Promise<AuthTokens | null> => {
+  const handleRefreshToken = useCallback(async (): Promise<AuthTokens | null> => {
     if (!state.tokens?.refreshToken) {
       await handleLogout();
       return null;
@@ -163,11 +167,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
       }));
       return newTokens;
-    } catch (err: any) {
+    } catch {
       await handleLogout();
       return null;
     }
-  };
+  }, [handleLogout, state.tokens?.refreshToken]);
 
   return (
     <AuthContext.Provider
