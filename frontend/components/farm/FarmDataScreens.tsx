@@ -6,8 +6,6 @@ import loginUser from "@/assets/images/login-user.png";
 import farmLogo from "@/assets/images/logo-farmdata.png";
 import { getGrowthStageById, GROWTH_STAGES } from "@/constants/growthStages";
 import { useAuth } from "@/hooks/useAuth";
-import { FilterModal } from "../posts/FilterModal";
-import { SortModal } from "../posts/SortModal";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/formSchemas";
 import {
   addCropType,
@@ -32,6 +30,7 @@ import {
   CropTypeInfo,
   EnvMode,
   GrowthStageId,
+  LocalWeatherMeasurement,
   LocationData,
   PlotInfo,
   Post,
@@ -113,6 +112,8 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { FilterModal } from "../posts/FilterModal";
+import { SortModal } from "../posts/SortModal";
 
 const COLORS = {
   green: "#31582b",
@@ -558,9 +559,22 @@ function SelectField({
         style={[styles.selectField, error && styles.invalidField]}
         onPress={onPress}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            flex: 1,
+            gap: 8,
+          }}
+        >
           {value && icon ? icon : null}
-          <Text style={[styles.selectText, !value && styles.placeholderText, { flex: 1 }]}>
+          <Text
+            style={[
+              styles.selectText,
+              !value && styles.placeholderText,
+              { flex: 1 },
+            ]}
+          >
             {value || placeholder}
           </Text>
         </View>
@@ -622,7 +636,9 @@ function TemperatureSlider({
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
         {...panResponder.panHandlers}
       >
-        <View style={[styles.sliderFill, { left: paddingX, width: progress }]} />
+        <View
+          style={[styles.sliderFill, { left: paddingX, width: progress }]}
+        />
         <View
           style={[
             styles.sliderThumb,
@@ -950,7 +966,7 @@ export function CaptureScreen() {
     LocationData | undefined
   >();
   const [localMeasurements, setLocalMeasurements] = useState<
-    WeatherCondition | undefined
+    LocalWeatherMeasurement | undefined
   >();
   const [symptomDescription, setSymptomDescription] = useState("");
   const [severity, setSeverity] = useState<SymptomSeverity | undefined>();
@@ -962,7 +978,7 @@ export function CaptureScreen() {
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const lastFetchTimeRef = useRef<number>(0);
-  const captureLocationRef = useRef<LocationData | undefined>();
+  const captureLocationRef = useRef<LocationData | undefined>(undefined);
   captureLocationRef.current = captureLocation;
   const isMountedRef = useRef<boolean>(true);
 
@@ -1005,8 +1021,15 @@ export function CaptureScreen() {
       } catch (_) {}
     });
 
-    console.log("JEST CHECK:", typeof process !== "undefined" ? process.env.NODE_ENV : "no process", typeof process !== "undefined" ? process.env.JEST_WORKER_ID : "no worker");
-    const isTestEnv = typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined);
+    console.log(
+      "JEST CHECK:",
+      typeof process !== "undefined" ? process.env.NODE_ENV : "no process",
+      typeof process !== "undefined" ? process.env.JEST_WORKER_ID : "no worker",
+    );
+    const isTestEnv =
+      typeof process !== "undefined" &&
+      (process.env.NODE_ENV === "test" ||
+        process.env.JEST_WORKER_ID !== undefined);
     let intervalId: any;
 
     if (!isTestEnv) {
@@ -1054,9 +1077,10 @@ export function CaptureScreen() {
       setStationLatitude(MOCK_OUTDOOR_WEATHER.latitude);
       setStationLongitude(MOCK_OUTDOOR_WEATHER.longitude);
       setCaptureLocation({
-        latitude: MOCK_OUTDOOR_WEATHER.latitude,
-        longitude: MOCK_OUTDOOR_WEATHER.longitude,
-        timestamp: MOCK_OUTDOOR_WEATHER.timestamp,
+        latitude: MOCK_OUTDOOR_WEATHER.latitude ?? 0,
+        longitude: MOCK_OUTDOOR_WEATHER.longitude ?? 0,
+        accuracy: 0,
+        timestamp: MOCK_OUTDOOR_WEATHER.timestamp ?? new Date().toISOString(),
       });
     }
 
@@ -1314,13 +1338,29 @@ export function CaptureScreen() {
             style={styles.stationCard}
             onPress={() => setSheet("station")}
           >
-            <View style={[styles.stationIconWrap, { backgroundColor: getWeatherBadgeBgColor(stationWeather.weatherCode) }]}>
+            <View
+              style={[
+                styles.stationIconWrap,
+                {
+                  backgroundColor: getWeatherBadgeBgColor(
+                    stationWeather.weatherCode,
+                  ),
+                },
+              ]}
+            >
               <WeatherStatusIcon
                 code={stationWeather.weatherCode}
                 size={24}
                 color={getWeatherBadgeTextColor(stationWeather.weatherCode)}
               />
-              <Text style={[styles.stationWeatherText, { color: getWeatherBadgeTextColor(stationWeather.weatherCode) }]}>
+              <Text
+                style={[
+                  styles.stationWeatherText,
+                  {
+                    color: getWeatherBadgeTextColor(stationWeather.weatherCode),
+                  },
+                ]}
+              >
                 {getWeatherLabel(stationWeather.weatherCode)}
               </Text>
             </View>
@@ -1356,7 +1396,12 @@ export function CaptureScreen() {
           <Pressable
             style={[
               styles.measureButton,
-              localMeasurements && { height: "auto", paddingVertical: 14, flexDirection: "column", alignItems: "stretch" }
+              localMeasurements && {
+                height: "auto",
+                paddingVertical: 14,
+                flexDirection: "column",
+                alignItems: "stretch",
+              },
             ]}
             onPress={() => setSheet("measurement")}
           >
@@ -1365,7 +1410,12 @@ export function CaptureScreen() {
                 <View style={styles.measureHeader}>
                   <View style={styles.measureStatusRow}>
                     <CircleCheck size={18} color={COLORS.green} />
-                    <Text style={[styles.measureText, { color: COLORS.green, fontWeight: "700" }]}>
+                    <Text
+                      style={[
+                        styles.measureText,
+                        { color: COLORS.green, fontWeight: "700" },
+                      ]}
+                    >
                       Đã nhập số đo tại nơi
                     </Text>
                   </View>
@@ -1385,7 +1435,12 @@ export function CaptureScreen() {
                           : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>Nhiệt độ</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.temperature !== undefined
@@ -1395,7 +1450,12 @@ export function CaptureScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>Độ ẩm KK</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
@@ -1404,7 +1464,12 @@ export function CaptureScreen() {
                           : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>Ánh sáng</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.lightUvIndex !== undefined
@@ -1414,7 +1479,12 @@ export function CaptureScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>Tốc độ gió</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
@@ -1423,7 +1493,12 @@ export function CaptureScreen() {
                           : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>CO2</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.co2Level !== undefined
@@ -1433,32 +1508,58 @@ export function CaptureScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>pH đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.soilPh || "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>EC đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
-                        {localMeasurements.soilEc ? `${localMeasurements.soilEc} mS` : "--"}
+                        {localMeasurements.soilEc
+                          ? `${localMeasurements.soilEc} mS`
+                          : "--"}
                       </Text>
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>DO đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
-                        {localMeasurements.soilDo ? `${localMeasurements.soilDo} mg/L` : "--"}
+                        {localMeasurements.soilDo
+                          ? `${localMeasurements.soilDo} mg/L`
+                          : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>Độ ẩm đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
-                        {localMeasurements.soilHumidity ? `${localMeasurements.soilHumidity}%` : "--"}
+                        {localMeasurements.soilHumidity
+                          ? `${localMeasurements.soilHumidity}%`
+                          : "--"}
                       </Text>
                     </View>
                   </View>
@@ -1481,97 +1582,80 @@ export function CaptureScreen() {
 
         <View style={[styles.section, styles.captureSectionWithTopPadding]}>
           <FieldLabel required>6. Tình trạng</FieldLabel>
-          {severity &&
-          (!shouldShowSymptomDescription || symptomDescription) &&
-          !isEditingSymptom ? (
-            <View style={styles.symptomSummary}>
-              {shouldShowSymptomDescription ? (
+          <View style={styles.symptomEditStack}>
+            <FieldLabel required>Mức độ</FieldLabel>
+            <View style={styles.severityList}>
+              {(
+                [
+                  { value: "Khỏe mạnh", label: "Khỏe mạnh" },
+                  { value: "Chớm bệnh", label: "Chớm (1 - 10%)" },
+                  { value: "Nhẹ", label: "Nhẹ (>10 - 25%)" },
+                  { value: "Vừa", label: "Vừa (>25 - 50%)" },
+                  { value: "Nặng", label: "Nặng (>50 - 75%)" },
+                  { value: "Rất nặng", label: "Rất nặng (>75%)" },
+                ] as { value: SymptomSeverity; label: string }[]
+              ).map((item, index) => (
                 <Pressable
-                  style={styles.symptomSummaryBox}
-                  onPress={() => setIsEditingSymptom(true)}
+                  key={item.value}
+                  style={[
+                    styles.severityItem,
+                    severity === item.value && styles.severityActive,
+                  ]}
+                  onPress={() => {
+                    setSeverity(item.value);
+                    if (item.value === "Khỏe mạnh") {
+                      setSymptomDescription("");
+                      setIsEditingSymptom(false);
+                    } else {
+                      setIsEditingSymptom(true);
+                    }
+                  }}
                 >
-                  <Text style={styles.symptomSummaryText}>
-                    “{symptomDescription}”
-                  </Text>
-                  <Text style={styles.symptomSummaryCounter}>
-                    {symptomDescription.length}/300
-                  </Text>
-                </Pressable>
-              ) : null}
-              <View style={styles.severitySummaryRow}>
-                <Text style={styles.severitySummaryLabel}>Mức độ:</Text>
-                <Pressable
-                  style={styles.severityPill}
-                  onPress={() => setIsEditingSymptom(true)}
-                >
-                  <Text style={styles.severityPillText}>
-                    {severityLabel(severity)}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.symptomEditStack}>
-              <FieldLabel required>Mức độ</FieldLabel>
-              <View style={styles.severityList}>
-                {(
-                  [
-                    { value: "Khỏe mạnh", label: "Khỏe mạnh" },
-                    { value: "Chớm bệnh", label: "Chớm (1 - 10%)" },
-                    { value: "Nhẹ", label: "Nhẹ (>10 - 25%)" },
-                    { value: "Vừa", label: "Vừa (>25 - 50%)" },
-                    { value: "Nặng", label: "Nặng (>50 - 75%)" },
-                    { value: "Rất nặng", label: "Rất nặng (>75%)" },
-                  ] as { value: SymptomSeverity; label: string }[]
-                ).map((item, index) => (
-                  <Pressable
-                    key={item.value}
+                  <View
                     style={[
-                      styles.severityItem,
-                      severity === item.value && styles.severityActive,
+                      styles.severityDot,
+                      {
+                        backgroundColor: [
+                          COLORS.green,
+                          "#facc15",
+                          "#fb923c",
+                          "#ea580c",
+                          "#ef4444",
+                          "#991b1b",
+                        ][index],
+                      },
                     ]}
-                    onPress={() => {
-                      setSeverity(item.value);
-                      if (item.value === "Khỏe mạnh") {
-                        setSymptomDescription("");
-                        setIsEditingSymptom(false);
-                      } else {
-                        setIsEditingSymptom(true);
-                      }
-                    }}
+                  />
+                  <Text style={styles.severityText}>{item.label}</Text>
+                  <View
+                    style={[
+                      styles.radioMark,
+                      severity === item.value && styles.radioMarkActive,
+                    ]}
                   >
-                    <View
-                      style={[
-                        styles.severityDot,
-                        {
-                          backgroundColor: [
-                            COLORS.green,
-                            "#facc15",
-                            "#fb923c",
-                            "#ea580c",
-                            "#ef4444",
-                            "#991b1b",
-                          ][index],
-                        },
-                      ]}
-                    />
-                    <Text style={styles.severityText}>{item.label}</Text>
-                    <View
-                      style={[
-                        styles.radioMark,
-                        severity === item.value && styles.radioMarkActive,
-                      ]}
-                    >
-                      {severity === item.value ? (
-                        <View style={styles.radioMarkDot} />
-                      ) : null}
-                    </View>
+                    {severity === item.value ? (
+                      <View style={styles.radioMarkDot} />
+                    ) : null}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+            {shouldShowSymptomDescription ? (
+              <>
+                <FieldLabel required>Mô tả triệu chứng</FieldLabel>
+                {symptomDescription && !isEditingSymptom ? (
+                  <Pressable
+                    style={styles.symptomSummaryBox}
+                    onPress={() => setIsEditingSymptom(true)}
+                  >
+                    <Text style={styles.symptomSummaryText}>
+                      “{symptomDescription}”
+                    </Text>
+                    <Text style={styles.symptomSummaryCounter}>
+                      {symptomDescription.length}/300
+                    </Text>
                   </Pressable>
-                ))}
-              </View>
-              {shouldShowSymptomDescription ? (
-                <>
-                  <FieldLabel required>Mô tả triệu chứng</FieldLabel>
+                ) : (
                   <View style={styles.textAreaWrap}>
                     <TextInput
                       testID="symptom-description-input"
@@ -1600,16 +1684,25 @@ export function CaptureScreen() {
                       {symptomDescription.length}/300
                     </Text>
                   </View>
-                  {shouldShowInlineErrors &&
-                  validation.errors.symptomDescription ? (
-                    <Text style={styles.fieldErrorText}>
-                      {validation.errors.symptomDescription}
-                    </Text>
-                  ) : null}
-                </>
-              ) : null}
-            </View>
-          )}
+                )}
+                {shouldShowInlineErrors &&
+                validation.errors.symptomDescription ? (
+                  <Text style={styles.fieldErrorText}>
+                    {validation.errors.symptomDescription}
+                  </Text>
+                ) : null}
+              </>
+            ) : severity ? (
+              <View style={styles.severitySummaryRow}>
+                <Text style={styles.severitySummaryLabel}>Mức độ:</Text>
+                <View style={styles.severityPill}>
+                  <Text style={styles.severityPillText}>
+                    {severityLabel(severity)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
           <View style={styles.contextHint}>
             <Info size={10} color={COLORS.muted} />
             <Text style={styles.contextHintText}>
@@ -1723,8 +1816,8 @@ function SelectionSheets(props: {
   onPlot: (value?: string) => void;
   onCrop: (value: string) => void;
   onStage: (value: GrowthStageId) => void;
-  localMeasurements?: WeatherCondition;
-  onMeasurements: (value: WeatherCondition) => void;
+  localMeasurements?: LocalWeatherMeasurement;
+  onMeasurements: (value: LocalWeatherMeasurement) => void;
   error: string;
 }) {
   const close = () => {
@@ -1733,22 +1826,25 @@ function SelectionSheets(props: {
     setCropSearch("");
     setPlotSearch("");
   };
-  const [measurement, setMeasurement] = useState<WeatherCondition>(() => {
-    if (props.localMeasurements) return props.localMeasurements;
-    return {
-      temperature: undefined,
-      humidity: undefined,
-      lightUvIndex: undefined,
-      windSpeed: undefined,
-      co2Level: undefined,
-      weatherCode: 0,
-    };
-  });
+  const [measurement, setMeasurement] = useState<LocalWeatherMeasurement>(
+    () => {
+      if (props.localMeasurements) return props.localMeasurements;
+      return {
+        temperature: undefined,
+        humidity: undefined,
+        lightUvIndex: undefined,
+        windSpeed: undefined,
+        co2Level: undefined,
+        weatherCode: 0,
+      };
+    },
+  );
   const [localStrings, setLocalStrings] = useState(() => {
     const initial = props.localMeasurements;
     return {
       humidity: initial?.humidity !== undefined ? String(initial.humidity) : "",
-      light: initial?.lightUvIndex !== undefined ? String(initial.lightUvIndex) : "",
+      light:
+        initial?.lightUvIndex !== undefined ? String(initial.lightUvIndex) : "",
       wind: initial?.windSpeed !== undefined ? String(initial.windSpeed) : "",
       co2: initial?.co2Level !== undefined ? String(initial.co2Level) : "",
     };
@@ -1785,10 +1881,22 @@ function SelectionSheets(props: {
       setWeatherType(getWeatherLabel(initialWeather.weatherCode));
       setShowWeatherDropdown(false);
       setLocalStrings({
-        humidity: initialWeather.humidity !== undefined ? String(initialWeather.humidity) : "",
-        light: initialWeather.lightUvIndex !== undefined ? String(initialWeather.lightUvIndex) : "",
-        wind: initialWeather.windSpeed !== undefined ? String(initialWeather.windSpeed) : "",
-        co2: initialWeather.co2Level !== undefined ? String(initialWeather.co2Level) : "",
+        humidity:
+          initialWeather.humidity !== undefined
+            ? String(initialWeather.humidity)
+            : "",
+        light:
+          initialWeather.lightUvIndex !== undefined
+            ? String(initialWeather.lightUvIndex)
+            : "",
+        wind:
+          initialWeather.windSpeed !== undefined
+            ? String(initialWeather.windSpeed)
+            : "",
+        co2:
+          initialWeather.co2Level !== undefined
+            ? String(initialWeather.co2Level)
+            : "",
       });
       setSoilMeasurements({
         ph: initialWeather.soilPh || "",
@@ -1808,8 +1916,12 @@ function SelectionSheets(props: {
   });
   const filteredPlots = props.plots.filter((plot) => {
     const cleanSearch = removeDiacritics(plotSearch.trim().toLowerCase());
-    const matchesCode = removeDiacritics(plot.code.toLowerCase()).includes(cleanSearch);
-    const matchesName = removeDiacritics(plot.name.toLowerCase()).includes(cleanSearch);
+    const matchesCode = removeDiacritics(plot.code.toLowerCase()).includes(
+      cleanSearch,
+    );
+    const matchesName = removeDiacritics(plot.name.toLowerCase()).includes(
+      cleanSearch,
+    );
     const matchesDesc = plot.description
       ? removeDiacritics(plot.description.toLowerCase()).includes(cleanSearch)
       : false;
@@ -1833,7 +1945,10 @@ function SelectionSheets(props: {
               style={styles.cropSearchInput}
             />
             {plotSearch ? (
-              <Pressable onPress={() => setPlotSearch("")} style={{ padding: 4 }}>
+              <Pressable
+                onPress={() => setPlotSearch("")}
+                style={{ padding: 4 }}
+              >
                 <X size={18} color="#6b7280" />
               </Pressable>
             ) : null}
@@ -1856,7 +1971,9 @@ function SelectionSheets(props: {
                   <Text style={styles.optionTitle}>{plot.code}</Text>
                   <Text style={styles.optionMeta}>
                     {plot.code} {plot.name}
-                    {plot.areaSquareMeters ? ` - ${plot.areaSquareMeters}m²` : ""}
+                    {plot.areaSquareMeters
+                      ? ` - ${plot.areaSquareMeters}m²`
+                      : ""}
                   </Text>
                 </Pressable>
               ))
@@ -1898,7 +2015,10 @@ function SelectionSheets(props: {
               style={styles.cropSearchInput}
             />
             {cropSearch ? (
-              <Pressable onPress={() => setCropSearch("")} style={{ padding: 4 }}>
+              <Pressable
+                onPress={() => setCropSearch("")}
+                style={{ padding: 4 }}
+              >
                 <X size={18} color="#6b7280" />
               </Pressable>
             ) : null}
@@ -2066,7 +2186,13 @@ function SelectionSheets(props: {
                   style={styles.measurementSelect}
                   onPress={() => setShowWeatherDropdown((current) => !current)}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     {(() => {
                       const SelectedOption = WEATHER_OPTIONS.find(
                         (opt) => opt.label === weatherType,
@@ -2147,7 +2273,7 @@ function SelectionSheets(props: {
                 ) : null}
               </View>
               <TemperatureSlider
-                value={measurement.temperature}
+                value={measurement.temperature ?? 0}
                 onChange={(value) =>
                   setMeasurement((current) => ({
                     ...current,
@@ -2270,7 +2396,7 @@ function SelectionSheets(props: {
                     const parsed = parseFloat(clean);
                     return Number.isNaN(parsed) ? undefined : parsed;
                   };
-                  const savedData: WeatherCondition = {
+                  const savedData: LocalWeatherMeasurement = {
                     temperature: measurement.temperature,
                     weatherCode: measurement.weatherCode,
                     humidity: parseNum(localStrings.humidity),
@@ -2371,19 +2497,22 @@ function WeatherMetricBadge({
 }) {
   const isWeather = metricKey === "weatherCode";
   const weatherOpt = isWeather
-    ? WEATHER_OPTIONS.find((o) => o.code === data.weatherCode) || WEATHER_OPTIONS[0]
+    ? WEATHER_OPTIONS.find((o) => o.code === data.weatherCode) ||
+      WEATHER_OPTIONS[0]
     : null;
 
   const Icon = isWeather ? weatherOpt!.Icon : metricIconMeta(metricKey).Icon;
-  const color = isWeather ? getWeatherColor(data.weatherCode) : metricIconMeta(metricKey).color;
-  const label = isWeather ? getWeatherLabel(data.weatherCode) : metricValueWithUnit(data, metricKey);
+  const color = isWeather
+    ? getWeatherBadgeTextColor(data.weatherCode)
+    : metricIconMeta(metricKey).color;
+  const label = isWeather
+    ? getWeatherLabel(data.weatherCode)
+    : metricValueWithUnit(data, metricKey);
 
   return (
     <View style={styles.weatherMetricBadge}>
       <Icon size={16} color={color} />
-      <Text style={styles.weatherMetricBadgeText}>
-        {label}
-      </Text>
+      <Text style={styles.weatherMetricBadgeText}>{label}</Text>
     </View>
   );
 }
@@ -2544,8 +2673,15 @@ function getWeatherBadgeTextColor(code?: number): string {
   return "#0891b2"; // Cyan for snow
 }
 
-function WeatherTypeIcon({ code, size = 24 }: { code?: number; size?: number }) {
-  const weatherOpt = WEATHER_OPTIONS.find((opt) => opt.code === code) || WEATHER_OPTIONS[0];
+function WeatherTypeIcon({
+  code,
+  size = 24,
+}: {
+  code?: number;
+  size?: number;
+}) {
+  const weatherOpt =
+    WEATHER_OPTIONS.find((opt) => opt.code === code) || WEATHER_OPTIONS[0];
   const Icon = weatherOpt.Icon;
   const color = getWeatherBadgeTextColor(code);
   return <Icon size={size} color={color} strokeWidth={2} />;
@@ -2566,11 +2702,21 @@ function StationDetail({
 }) {
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={[styles.weatherTypeCard, { backgroundColor: getWeatherBadgeBgColor(data.weatherCode) }]}>
+      <View
+        style={[
+          styles.weatherTypeCard,
+          { backgroundColor: getWeatherBadgeBgColor(data.weatherCode) },
+        ]}
+      >
         <View style={styles.weatherTypeIconWrap}>
           <WeatherTypeIcon code={data.weatherCode} size={20} />
         </View>
-        <Text style={[styles.weatherTypeValue, { color: getWeatherBadgeTextColor(data.weatherCode) }]}>
+        <Text
+          style={[
+            styles.weatherTypeValue,
+            { color: getWeatherBadgeTextColor(data.weatherCode) },
+          ]}
+        >
           {getWeatherLabel(data.weatherCode)}
         </Text>
       </View>
@@ -2689,16 +2835,21 @@ export function PostsScreen() {
   const filtered = useMemo(() => {
     const lower = query.trim().toLowerCase();
     return posts.filter((post) => {
-      const matchesEnv = env === "all" ? (selectedEnv === "all" || post.envMode === selectedEnv) : post.envMode === env;
-      const matchesPlot = selectedPlot === "all" || post.plotId === selectedPlot;
-      const matchesCrop = selectedCrop === "all" || post.cropType === selectedCrop;
+      const matchesEnv =
+        env === "all"
+          ? selectedEnv === "all" || post.envMode === selectedEnv
+          : post.envMode === env;
+      const matchesPlot =
+        selectedPlot === "all" || post.plotId === selectedPlot;
+      const matchesCrop =
+        selectedCrop === "all" || post.cropType === selectedCrop;
       const matchesQuery =
-          !lower ||
-          [post.plotId, post.cropType, post.user?.name, post.symptomDescription]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(lower);
+        !lower ||
+        [post.plotId, post.cropType, post.user?.name, post.symptomDescription]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(lower);
       return matchesEnv && matchesPlot && matchesCrop && matchesQuery;
     });
   }, [env, selectedEnv, selectedPlot, selectedCrop, posts, query]);
@@ -2706,12 +2857,27 @@ export function PostsScreen() {
   const sortedAndFiltered = useMemo(() => {
     const result = [...filtered];
     if (sortMode === "newest") {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
     } else if (sortMode === "oldest") {
-      result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      result.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     } else if (sortMode === "severity") {
-      const order = ["Khỏe mạnh", "Chớm bệnh", "Nhẹ", "Vừa", "Nặng", "Rất nặng"];
-      result.sort((a, b) => order.indexOf(b.severity) - order.indexOf(a.severity));
+      const order = [
+        "Khỏe mạnh",
+        "Chớm bệnh",
+        "Nhẹ",
+        "Vừa",
+        "Nặng",
+        "Rất nặng",
+      ];
+      result.sort(
+        (a, b) => order.indexOf(b.severity) - order.indexOf(a.severity),
+      );
     }
     return result;
   }, [filtered, sortMode]);
@@ -2737,10 +2903,16 @@ export function PostsScreen() {
               style={styles.searchInput}
             />
           </View>
-          <Pressable style={styles.filterButton} onPress={() => setSortOpen(true)}>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => setSortOpen(true)}
+          >
             <Text style={styles.filterText}>≡↑</Text>
           </Pressable>
-          <Pressable style={styles.filterButton} onPress={() => setFilterOpen(true)}>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => setFilterOpen(true)}
+          >
             <Filter size={16} color={COLORS.body} />
             <Text style={styles.filterText}>Bộ lọc</Text>
           </Pressable>
@@ -2774,9 +2946,21 @@ export function PostsScreen() {
       >
         {loadError ? (
           <View style={{ alignItems: "center", padding: 40 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>Không thể tải dữ liệu</Text>
-            <Text style={{ color: COLORS.muted, marginBottom: 16 }}>{loadError}</Text>
-            <Pressable onPress={refresh} style={{ backgroundColor: COLORS.green, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+              Không thể tải dữ liệu
+            </Text>
+            <Text style={{ color: COLORS.muted, marginBottom: 16 }}>
+              {loadError}
+            </Text>
+            <Pressable
+              onPress={refresh}
+              style={{
+                backgroundColor: COLORS.green,
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 8,
+              }}
+            >
               <Text style={{ color: "#fff", fontWeight: "600" }}>Thử lại</Text>
             </Pressable>
           </View>
@@ -2791,9 +2975,22 @@ export function PostsScreen() {
           ))
         ) : (
           <View style={{ alignItems: "center", padding: 40 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>Chưa có bài đăng</Text>
-            <Pressable onPress={() => routerPush("/capture")} style={{ backgroundColor: COLORS.green, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, marginTop: 12 }}>
-              <Text style={{ color: "#fff", fontWeight: "600" }}>Tạo phiên chụp</Text>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+              Chưa có bài đăng
+            </Text>
+            <Pressable
+              onPress={() => routerPush("/capture")}
+              style={{
+                backgroundColor: COLORS.green,
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 8,
+                marginTop: 12,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>
+                Tạo phiên chụp
+              </Text>
             </Pressable>
           </View>
         )}
@@ -3038,10 +3235,22 @@ export function ManagementScreen() {
             key={id}
             testID={`admin-${id}`}
             onPress={() => setVariant(id)}
-            style={[{ padding: 8 }, variant === id && { borderBottomWidth: 2, borderBottomColor: COLORS.green }]}
+            style={[
+              { padding: 8 },
+              variant === id && {
+                borderBottomWidth: 2,
+                borderBottomColor: COLORS.green,
+              },
+            ]}
           >
-            <Text style={{ color: variant === id ? COLORS.green : COLORS.muted }}>
-              {id === "plots" ? "Mã số luống" : id === "crops" ? "Loại cây" : "Tài khoản"}
+            <Text
+              style={{ color: variant === id ? COLORS.green : COLORS.muted }}
+            >
+              {id === "plots"
+                ? "Mã số luống"
+                : id === "crops"
+                  ? "Loại cây"
+                  : "Tài khoản"}
             </Text>
           </Pressable>
         ))}
