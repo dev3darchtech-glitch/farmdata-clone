@@ -105,6 +105,8 @@ export interface WeatherCondition {
   soilHumidity?: string;
 }
 
+export type LocalWeatherMeasurement = Partial<WeatherCondition>;
+
 /**
  * Complete Environmental Data payload for M3.
  */
@@ -252,7 +254,7 @@ export interface CaptureSession {
   envMode: EnvMode; // 'outdoor' | 'greenhouse' (Required)
   captureLocation?: LocationData; // GPS position captured at photo time
   stationMeasurements: WeatherCondition; // Auto-fetched station data
-  localMeasurements?: WeatherCondition; // On-site measurement (Optional)
+  localMeasurements?: LocalWeatherMeasurement; // On-site measurement (Optional)
   symptomDescription: string; // Required when severity is not "Khỏe mạnh"
   severity: SymptomSeverity; // Required
   status: CaptureSessionStatus;
@@ -283,7 +285,7 @@ export interface Post {
   severity: SymptomSeverity;
   images: string[]; // Photos belonging to the session
   stationMeasurements: WeatherCondition;
-  localMeasurements?: WeatherCondition;
+  localMeasurements?: LocalWeatherMeasurement;
   status: PostStatus;
   createdAt: string;
 }

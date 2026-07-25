@@ -1,5 +1,8 @@
 jest.setTimeout(15000);
 
+process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'test-google-web-client-id';
+
 // Global timer tracker to clean up leaks from tests using real timers
 const activeTimeouts = new Set();
 const activeIntervals = new Set();
@@ -93,14 +96,21 @@ jest.mock('expo-secure-store', () => ({
   deleteItem: jest.fn((key) => mockStore.delete(key)),
 }));
 
-// Mock expo-auth-session
-jest.mock('expo-auth-session', () => ({
-  makeRedirectUri: jest.fn(() => 'https://auth.expo.io/@demo/capture-data'),
-  useAuthRequest: jest.fn(() => [null, null, jest.fn()]),
-  fetchDiscoveryAsync: jest.fn(async () => ({
-    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  })),
+jest.mock('expo-linking', () => ({
+  createURL: jest.fn(() => 'capturedata://auth-callback'),
+  parse: jest.fn((url) => {
+    const parsed = new URL(url);
+    const queryParams = {};
+    for (const [key, value] of parsed.searchParams.entries()) {
+      queryParams[key] = value;
+    }
+    return {
+      hostname: parsed.hostname,
+      path: parsed.pathname.replace(/^\//, ''),
+      queryParams,
+      scheme: parsed.protocol.replace(':', ''),
+    };
+  }),
 }));
 
 // Mock expo-crypto
@@ -192,4 +202,3 @@ jest.mock('expo-router', () => ({
   usePathname: () => '/management',
   useSearchParams: () => new URLSearchParams(),
 }));
-

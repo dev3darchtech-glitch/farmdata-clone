@@ -1,5 +1,7 @@
 import { Router } from "express";
 import {
+  getGoogleAppAuthUrl,
+  getGoogleAppCallback,
   getGoogleAuthUrl,
   getMe,
   linkGoogleAccount,
@@ -13,6 +15,16 @@ const router = Router();
  * POST /api/auth/login
  */
 router.post("/login", login);
+
+/**
+ * GET /api/auth/google
+ */
+router.get("/google", getGoogleAppAuthUrl);
+
+/**
+ * GET /api/auth/google/callback
+ */
+router.get("/google/callback", getGoogleAppCallback);
 
 /**
  * GET /api/auth/me

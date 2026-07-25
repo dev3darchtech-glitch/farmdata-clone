@@ -8,14 +8,11 @@ export const loginFormSchema = z.object({
     .string()
     .trim()
     .min(1, "Vui lòng nhập tên đăng nhập hoặc email")
-    .refine(
-      (value) => {
-        const isEmail = z.string().email().safeParse(value).success;
-        const isUsername = /^[a-z0-9]+$/.test(value);
-        return isEmail || isUsername;
-      },
-      "Email không hợp lệ",
-    ),
+    .refine((value) => {
+      const isEmail = z.string().email().safeParse(value).success;
+      const isUsername = /^[a-z0-9]+$/.test(value);
+      return isEmail || isUsername;
+    }, "Email không hợp lệ"),
   password: z.string().min(1, "Vui lòng nhập mật khẩu"),
 });
 

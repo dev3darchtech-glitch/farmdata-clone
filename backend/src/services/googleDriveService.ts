@@ -89,6 +89,64 @@ export async function uploadImagesToAdminDrive(
     });
   }
 
+  // 1a. Prefer the logged-in user's own Google Drive tokens when available.
+  if (farmer?.googleTokens?.refreshToken && CLIENT_ID !== "mock_client_id") {
+    try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials({
+        refresh_token: farmer.googleTokens.refreshToken,
+      });
+
+      const drive = google.drive({ version: "v3", auth: oauth2Client });
+
+      let folderId = "";
+      const folderRes = await drive.files.list({
+        q: "mimeType='application/vnd.google-apps.folder' and name='FarmData Captures' and trashed=false",
+        fields: "files(id, name)",
+      });
+
+      if (folderRes.data.files && folderRes.data.files.length > 0) {
+        folderId = folderRes.data.files[0].id!;
+      } else {
+        const createFolderRes = await drive.files.create({
+          requestBody: {
+            name: "FarmData Captures",
+            mimeType: "application/vnd.google-apps.folder",
+          },
+          fields: "id",
+        });
+        folderId = createFolderRes.data.id!;
+      }
+
+      const uploadedFiles: IDriveFile[] = [];
+
+      for (let i = 0; i < imageUris.length; i++) {
+        const labelName = generatePhotoLabelName(cropType, growthStage, i + 1);
+        const response = await drive.files.create({
+          requestBody: {
+            name: labelName,
+            parents: [folderId],
+          },
+          fields: "id, webViewLink",
+        });
+
+        uploadedFiles.push({
+          fileId: response.data.id || `DRIVE-${Date.now()}-${i}`,
+          webViewLink: response.data.webViewLink || undefined,
+          fileName: labelName,
+        });
+      }
+
+      return uploadedFiles;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        "User Google Drive upload failed, falling back to Admin Drive:",
+        message,
+      );
+    }
+  }
+
   // 2. Find associated Admin user with linked Google Drive tokens
   let admin: IUserDocument | null = null;
   if (farmer && farmer.createdByAdminId) {

@@ -6,8 +6,6 @@ import loginUser from "@/assets/images/login-user.png";
 import farmLogo from "@/assets/images/logo-farmdata.png";
 import { getGrowthStageById, GROWTH_STAGES } from "@/constants/growthStages";
 import { useAuth } from "@/hooks/useAuth";
-import { FilterModal } from "../posts/FilterModal";
-import { SortModal } from "../posts/SortModal";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/formSchemas";
 import {
   addCropType,
@@ -32,6 +30,7 @@ import {
   CropTypeInfo,
   EnvMode,
   GrowthStageId,
+  LocalWeatherMeasurement,
   LocationData,
   PlotInfo,
   Post,
@@ -40,7 +39,9 @@ import {
   WeatherCondition,
 } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { router, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import { router, useLocalSearchParams, useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import {
   Apple,
   Bell,
@@ -60,6 +61,7 @@ import {
   CloudSnow,
   CloudSun,
   Droplets,
+  FileText,
   Filter,
   Flame,
   Flower2,
@@ -113,6 +115,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
+import { FilterModal } from "../posts/FilterModal";
+import { SortModal } from "../posts/SortModal";
 
 const COLORS = {
   green: "#31582b",
@@ -154,6 +159,18 @@ const DEFAULT_PLOTS: PlotInfo[] = [
     code: "L-003",
     name: "Khu B - Luống 003",
     areaSquareMeters: 1200,
+  },
+  {
+    id: "plot-4",
+    code: "L-004",
+    name: "Khu B - Luống 004",
+    areaSquareMeters: 900,
+  },
+  {
+    id: "plot-5",
+    code: "L-005",
+    name: "Khu C - Luống 005",
+    areaSquareMeters: 1100,
   },
 ];
 
@@ -313,6 +330,33 @@ function formatCaptureLocationName(location?: LocationData) {
       .join(", ") ||
     "Vị trí chụp"
   );
+}
+
+function plotSheetMeta(plot: PlotInfo) {
+  const primaryZone = plot.name.split("-")[0]?.trim() || plot.name.trim();
+  const area = plot.areaSquareMeters
+    ? `${plot.areaSquareMeters} m²`
+    : undefined;
+  return [primaryZone, area].filter(Boolean).join(" • ");
+}
+
+function normalizePostIdentity(post: Post & { _id?: string }) {
+  return {
+    ...post,
+    id:
+      post.id ||
+      post._id ||
+      post.sessionId ||
+      `${post.createdAt}-${post.cropType}-${post.plotId || "no-plot"}`,
+  };
+}
+
+function postListKey(post: Post & { _id?: string }, index: number) {
+  return [
+    post.id || post._id || post.sessionId || "post",
+    post.createdAt || "no-date",
+    index,
+  ].join("-");
 }
 
 function WeatherStatusIcon({
@@ -558,9 +602,22 @@ function SelectField({
         style={[styles.selectField, error && styles.invalidField]}
         onPress={onPress}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            flex: 1,
+            gap: 8,
+          }}
+        >
           {value && icon ? icon : null}
-          <Text style={[styles.selectText, !value && styles.placeholderText, { flex: 1 }]}>
+          <Text
+            style={[
+              styles.selectText,
+              !value && styles.placeholderText,
+              { flex: 1 },
+            ]}
+          >
             {value || placeholder}
           </Text>
         </View>
@@ -622,7 +679,9 @@ function TemperatureSlider({
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
         {...panResponder.panHandlers}
       >
-        <View style={[styles.sliderFill, { left: paddingX, width: progress }]} />
+        <View
+          style={[styles.sliderFill, { left: paddingX, width: progress }]}
+        />
         <View
           style={[
             styles.sliderThumb,
@@ -680,12 +739,135 @@ function BottomSheet({
   );
 }
 
+function LoadingProgressDialog({
+  visible,
+  title,
+  detail,
+  percent,
+}: {
+  visible: boolean;
+  title: string;
+  detail: string;
+  percent: number;
+}) {
+  if (!visible) return null;
+
+  const size = 128;
+  const strokeWidth = 8;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const safePercent = Math.max(0, Math.min(100, percent));
+  const strokeDashoffset = circumference - (circumference * safePercent) / 100;
+
+  return (
+    <View style={styles.loadingOverlay}>
+      <View style={styles.loadingDialog}>
+        <View style={styles.loadingRingWrap}>
+          <Svg width={size} height={size}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke="#e0e0e0"
+              strokeWidth={strokeWidth}
+              fill="none"
+            />
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={COLORS.green}
+              strokeWidth={strokeWidth}
+              fill="none"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+          </Svg>
+          <View style={styles.loadingRingCenter}>
+            <Text style={styles.loadingPercentText}>{safePercent}%</Text>
+          </View>
+        </View>
+        <View style={styles.loadingTitleWrap}>
+          <Text style={styles.loadingTitle}>{title}</Text>
+          <View style={styles.loadingDetailRow}>
+            <Text style={styles.loadingDetail}>{detail}</Text>
+            <ActivityIndicator size="small" color={COLORS.green} />
+          </View>
+        </View>
+        <View style={styles.loadingBarTrack}>
+          <View style={[styles.loadingBarFill, { width: `${safePercent}%` }]} />
+        </View>
+        <Text style={styles.loadingHint}>Vui lòng không đóng ứng dụng</Text>
+      </View>
+    </View>
+  );
+}
+
+function CaptureSuccessDialog({
+  visible,
+  onCaptureNext,
+  onViewPosts,
+}: {
+  visible: boolean;
+  onCaptureNext: () => void;
+  onViewPosts: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <View style={styles.loadingOverlay}>
+      <View style={styles.captureSuccessDialog}>
+        <View style={styles.captureSuccessIconWrap}>
+          <View style={styles.captureSuccessIconCircle}>
+            <CircleCheck size={40} color={COLORS.green} fill={COLORS.green} />
+            <Check
+              size={20}
+              color="#eaf29d"
+              style={styles.captureSuccessIconCheck}
+            />
+          </View>
+        </View>
+        <Text style={styles.captureSuccessTitle}>
+          Session saved successfully!
+        </Text>
+        <Text style={styles.captureSuccessDescription}>
+          Post has been automatically created.
+        </Text>
+        <View style={styles.captureSuccessActions}>
+          <Pressable
+            style={styles.captureSuccessPrimaryButton}
+            onPress={onCaptureNext}
+          >
+            <Camera size={18} color="#fff" />
+            <Text style={styles.captureSuccessPrimaryText}>
+              Capture new session
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.captureSuccessSecondaryButton}
+            onPress={onViewPosts}
+          >
+            <FileText size={16} color="#2b2b2b" />
+            <Text style={styles.captureSuccessSecondaryText}>
+              View Post list
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export function LoginScreen() {
   const { login, isLoading, error } = useAuth();
   const { width, height } = useWindowDimensions();
+  const params = useLocalSearchParams<{ oauthSuccess?: string }>();
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [loginSucceeded, setLoginSucceeded] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const {
     control,
     handleSubmit,
@@ -703,7 +885,7 @@ export function LoginScreen() {
     errors.email?.message || errors.password?.message;
   const globalErrorMessage = validationErrorMessage || localError || error;
   const credentialInvalid = Boolean(
-    !validationErrorMessage && (localError || error),
+    !validationErrorMessage && !isGoogleSubmitting && (localError || error),
   );
   const emailInvalid = Boolean(errors.email) || credentialInvalid;
   const passwordInvalid = Boolean(errors.password) || credentialInvalid;
@@ -711,12 +893,18 @@ export function LoginScreen() {
     invalid ? ({ "in-valid": true, "aria-invalid": true } as const) : {};
 
   useEffect(() => {
+    if (params.oauthSuccess === "1") {
+      setLoginSucceeded(true);
+    }
+  }, [params.oauthSuccess]);
+
+  useEffect(() => {
     if (!loginSucceeded) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      router.replace("/(tabs)/capture");
+      router.replace("/(tabs)/posts");
     }, 1200);
 
     return () => clearTimeout(timeout);
@@ -740,6 +928,50 @@ export function LoginScreen() {
       setLocalError(null);
     },
   );
+
+  const handleGoogleLogin = async () => {
+    Keyboard.dismiss();
+    setLocalError(null);
+
+    try {
+      setIsGoogleSubmitting(true);
+      const redirectUri =
+        Platform.OS === "web"
+          ? Linking.createURL("auth-callback")
+          : "capturedata://auth-callback";
+      const authUrl = `${
+        process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api"
+      }/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        window.location.href = authUrl;
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectUri,
+      );
+      if (result.type !== "success" || !result.url) {
+        return;
+      }
+
+      const parsed = Linking.parse(result.url);
+      const accessToken = parsed.queryParams?.accessToken;
+      const refreshToken = parsed.queryParams?.refreshToken;
+
+      if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
+        throw new Error("Không nhận được token đăng nhập từ máy chủ.");
+      }
+
+      await login({ accessToken, refreshToken });
+      setLoginSucceeded(true);
+    } catch (err: any) {
+      setLocalError(err?.message || "Đăng nhập Google không thành công.");
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  };
 
   if (loginSucceeded) {
     return (
@@ -877,6 +1109,7 @@ export function LoginScreen() {
                     )}
                   />
                   <Pressable
+                    testID="btn-toggle-password"
                     accessibilityRole="button"
                     style={styles.loginTrailingIcon}
                     onPress={() => setShowPassword((value) => !value)}
@@ -907,14 +1140,30 @@ export function LoginScreen() {
                   label={isLoading ? "Đang đăng nhập" : "Đăng nhập"}
                   onPress={submit}
                   loading={isLoading}
+                  testID="btn-submit-login"
                 />
-                <Pressable style={styles.googleButton}>
+                <Pressable
+                  testID="btn-google-login"
+                  style={[
+                    styles.googleButton,
+                    (isLoading || isGoogleSubmitting) &&
+                      styles.googleButtonDisabled,
+                  ]}
+                  disabled={isLoading || isGoogleSubmitting}
+                  onPress={() => {
+                    void handleGoogleLogin();
+                  }}
+                >
                   <Image
                     source={googleLogo}
                     style={styles.googleImage}
                     resizeMode="contain"
                   />
-                  <Text style={styles.googleText}>Sign in with Google</Text>
+                  <Text style={styles.googleText}>
+                    {isGoogleSubmitting
+                      ? "Đang đăng nhập với Google"
+                      : "Đăng nhập bằng Google"}
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -950,18 +1199,21 @@ export function CaptureScreen() {
     LocationData | undefined
   >();
   const [localMeasurements, setLocalMeasurements] = useState<
-    WeatherCondition | undefined
+    LocalWeatherMeasurement | undefined
   >();
   const [symptomDescription, setSymptomDescription] = useState("");
   const [severity, setSeverity] = useState<SymptomSeverity | undefined>();
+  const [isEditingSymptom, setIsEditingSymptom] = useState(true);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState("");
+  const [progressCurrent, setProgressCurrent] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   const lastFetchTimeRef = useRef<number>(0);
-  const captureLocationRef = useRef<LocationData | undefined>();
+  const captureLocationRef = useRef<LocationData | undefined>(undefined);
   captureLocationRef.current = captureLocation;
   const isMountedRef = useRef<boolean>(true);
 
@@ -1004,8 +1256,15 @@ export function CaptureScreen() {
       } catch (_) {}
     });
 
-    console.log("JEST CHECK:", typeof process !== "undefined" ? process.env.NODE_ENV : "no process", typeof process !== "undefined" ? process.env.JEST_WORKER_ID : "no worker");
-    const isTestEnv = typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.JEST_WORKER_ID !== undefined);
+    console.log(
+      "JEST CHECK:",
+      typeof process !== "undefined" ? process.env.NODE_ENV : "no process",
+      typeof process !== "undefined" ? process.env.JEST_WORKER_ID : "no worker",
+    );
+    const isTestEnv =
+      typeof process !== "undefined" &&
+      (process.env.NODE_ENV === "test" ||
+        process.env.JEST_WORKER_ID !== undefined);
     let intervalId: any;
 
     if (!isTestEnv) {
@@ -1053,9 +1312,10 @@ export function CaptureScreen() {
       setStationLatitude(MOCK_OUTDOOR_WEATHER.latitude);
       setStationLongitude(MOCK_OUTDOOR_WEATHER.longitude);
       setCaptureLocation({
-        latitude: MOCK_OUTDOOR_WEATHER.latitude,
-        longitude: MOCK_OUTDOOR_WEATHER.longitude,
-        timestamp: MOCK_OUTDOOR_WEATHER.timestamp,
+        latitude: MOCK_OUTDOOR_WEATHER.latitude ?? 0,
+        longitude: MOCK_OUTDOOR_WEATHER.longitude ?? 0,
+        accuracy: 0,
+        timestamp: MOCK_OUTDOOR_WEATHER.timestamp ?? new Date().toISOString(),
       });
     }
 
@@ -1087,6 +1347,12 @@ export function CaptureScreen() {
   const shouldShowSymptomDescription =
     Boolean(severity) && severity !== "Khỏe mạnh";
   const shouldShowInlineErrors = attemptedSubmit && !validation.isValid;
+  const uploadPercent =
+    progressTotal > 0
+      ? Math.round(
+          (Math.min(progressCurrent, progressTotal) / progressTotal) * 100,
+        )
+      : 0;
 
   const addPhoto = async () => {
     try {
@@ -1110,7 +1376,9 @@ export function CaptureScreen() {
     }
     setAttemptedSubmit(false);
     setSaving(true);
-    setProgress("Đang lưu phiên chụp...");
+    setProgress(`Đang tải 0/${images.length} ảnh`);
+    setProgressCurrent(0);
+    setProgressTotal(images.length);
     try {
       await completeCaptureSessionAndAutoPost(
         {
@@ -1118,8 +1386,11 @@ export function CaptureScreen() {
           growthStage,
           severity,
         },
-        (message, current, total) =>
-          setProgress(`${message} (${current}/${total})`),
+        (_message, current, total) => {
+          setProgress(`Đang tải ${current}/${total} ảnh`);
+          setProgressCurrent(current);
+          setProgressTotal(total);
+        },
       );
       setSheet("success");
       setImages([]);
@@ -1128,6 +1399,7 @@ export function CaptureScreen() {
       setGrowthStage(undefined);
       setSymptomDescription("");
       setSeverity(undefined);
+      setIsEditingSymptom(true);
       setLocalMeasurements(undefined);
       setAttemptedSubmit(false);
     } catch (err: any) {
@@ -1137,6 +1409,8 @@ export function CaptureScreen() {
       setSheet("error");
     } finally {
       setSaving(false);
+      setProgressCurrent(0);
+      setProgressTotal(0);
     }
   };
 
@@ -1230,6 +1504,7 @@ export function CaptureScreen() {
               shouldShowInlineErrors ? validation.errors.cropType : undefined
             }
             onPress={() => setSheet("crop")}
+            testID="crop-type-input"
             icon={
               cropType ? (
                 <View
@@ -1260,6 +1535,7 @@ export function CaptureScreen() {
               shouldShowInlineErrors ? validation.errors.growthStage : undefined
             }
             onPress={() => setSheet("stage")}
+            testID="growth-stage-input"
             icon={
               growthStage ? (
                 <View
@@ -1310,13 +1586,29 @@ export function CaptureScreen() {
             style={styles.stationCard}
             onPress={() => setSheet("station")}
           >
-            <View style={[styles.stationIconWrap, { backgroundColor: getWeatherBadgeBgColor(stationWeather.weatherCode) }]}>
+            <View
+              style={[
+                styles.stationIconWrap,
+                {
+                  backgroundColor: getWeatherBadgeBgColor(
+                    stationWeather.weatherCode,
+                  ),
+                },
+              ]}
+            >
               <WeatherStatusIcon
                 code={stationWeather.weatherCode}
                 size={24}
                 color={getWeatherBadgeTextColor(stationWeather.weatherCode)}
               />
-              <Text style={[styles.stationWeatherText, { color: getWeatherBadgeTextColor(stationWeather.weatherCode) }]}>
+              <Text
+                style={[
+                  styles.stationWeatherText,
+                  {
+                    color: getWeatherBadgeTextColor(stationWeather.weatherCode),
+                  },
+                ]}
+              >
                 {getWeatherLabel(stationWeather.weatherCode)}
               </Text>
             </View>
@@ -1352,7 +1644,12 @@ export function CaptureScreen() {
           <Pressable
             style={[
               styles.measureButton,
-              localMeasurements && { height: "auto", paddingVertical: 14, flexDirection: "column", alignItems: "stretch" }
+              localMeasurements && {
+                height: "auto",
+                paddingVertical: 14,
+                flexDirection: "column",
+                alignItems: "stretch",
+              },
             ]}
             onPress={() => setSheet("measurement")}
           >
@@ -1361,7 +1658,12 @@ export function CaptureScreen() {
                 <View style={styles.measureHeader}>
                   <View style={styles.measureStatusRow}>
                     <CircleCheck size={18} color={COLORS.green} />
-                    <Text style={[styles.measureText, { color: COLORS.green, fontWeight: "700" }]}>
+                    <Text
+                      style={[
+                        styles.measureText,
+                        { color: COLORS.green, fontWeight: "700" },
+                      ]}
+                    >
                       Đã nhập số đo tại nơi
                     </Text>
                   </View>
@@ -1381,7 +1683,12 @@ export function CaptureScreen() {
                           : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>Nhiệt độ</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.temperature !== undefined
@@ -1391,7 +1698,12 @@ export function CaptureScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>Độ ẩm KK</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
@@ -1400,7 +1712,12 @@ export function CaptureScreen() {
                           : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>Ánh sáng</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.lightUvIndex !== undefined
@@ -1410,7 +1727,12 @@ export function CaptureScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>Tốc độ gió</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
@@ -1419,7 +1741,12 @@ export function CaptureScreen() {
                           : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>CO2</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.co2Level !== undefined
@@ -1429,32 +1756,58 @@ export function CaptureScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>pH đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
                         {localMeasurements.soilPh || "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>EC đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
-                        {localMeasurements.soilEc ? `${localMeasurements.soilEc} mS` : "--"}
+                        {localMeasurements.soilEc
+                          ? `${localMeasurements.soilEc} mS`
+                          : "--"}
                       </Text>
                     </View>
                   </View>
 
-                  <View style={[styles.measureTableRow, styles.measureTableBorderTop]}>
+                  <View
+                    style={[
+                      styles.measureTableRow,
+                      styles.measureTableBorderTop,
+                    ]}
+                  >
                     <View style={styles.measureTableCell}>
                       <Text style={styles.measureCellLabel}>DO đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
-                        {localMeasurements.soilDo ? `${localMeasurements.soilDo} mg/L` : "--"}
+                        {localMeasurements.soilDo
+                          ? `${localMeasurements.soilDo} mg/L`
+                          : "--"}
                       </Text>
                     </View>
-                    <View style={[styles.measureTableCell, styles.measureTableBorderLeft]}>
+                    <View
+                      style={[
+                        styles.measureTableCell,
+                        styles.measureTableBorderLeft,
+                      ]}
+                    >
                       <Text style={styles.measureCellLabel}>Độ ẩm đất</Text>
                       <Text style={styles.measureCellValue} numberOfLines={1}>
-                        {localMeasurements.soilHumidity ? `${localMeasurements.soilHumidity}%` : "--"}
+                        {localMeasurements.soilHumidity
+                          ? `${localMeasurements.soilHumidity}%`
+                          : "--"}
                       </Text>
                     </View>
                   </View>
@@ -1477,98 +1830,95 @@ export function CaptureScreen() {
 
         <View style={[styles.section, styles.captureSectionWithTopPadding]}>
           <FieldLabel required>6. Tình trạng</FieldLabel>
-          {severity && (!shouldShowSymptomDescription || symptomDescription) ? (
-            <View style={styles.symptomSummary}>
-              {shouldShowSymptomDescription ? (
+          <View style={styles.symptomEditStack}>
+            <FieldLabel required>Mức độ</FieldLabel>
+            <View style={styles.severityList}>
+              {(
+                [
+                  { value: "Khỏe mạnh", label: "Khỏe mạnh" },
+                  { value: "Chớm bệnh", label: "Chớm (1 - 10%)" },
+                  { value: "Nhẹ", label: "Nhẹ (>10 - 25%)" },
+                  { value: "Vừa", label: "Vừa (>25 - 50%)" },
+                  { value: "Nặng", label: "Nặng (>50 - 75%)" },
+                  { value: "Rất nặng", label: "Rất nặng (>75%)" },
+                ] as { value: SymptomSeverity; label: string }[]
+              ).map((item, index) => (
                 <Pressable
-                  style={styles.symptomSummaryBox}
-                  onPress={() => setSeverity(undefined)}
+                  key={item.value}
+                  style={[
+                    styles.severityItem,
+                    severity === item.value && styles.severityActive,
+                  ]}
+                  onPress={() => {
+                    setSeverity(item.value);
+                    if (item.value === "Khỏe mạnh") {
+                      setSymptomDescription("");
+                      setIsEditingSymptom(false);
+                    } else {
+                      setIsEditingSymptom(true);
+                    }
+                  }}
                 >
-                  <Text style={styles.symptomSummaryText}>
-                    “{symptomDescription}”
-                  </Text>
-                  <Text style={styles.symptomSummaryCounter}>
-                    {symptomDescription.length}/300
-                  </Text>
-                </Pressable>
-              ) : null}
-              <View style={styles.severitySummaryRow}>
-                <Text style={styles.severitySummaryLabel}>Mức độ:</Text>
-                <Pressable
-                  style={styles.severityPill}
-                  onPress={() => setSeverity(undefined)}
-                >
-                  <Text style={styles.severityPillText}>
-                    {severityLabel(severity)}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.symptomEditStack}>
-              <FieldLabel required>Mức độ</FieldLabel>
-              <View style={styles.severityList}>
-                {(
-                  [
-                    { value: "Khỏe mạnh", label: "Khỏe mạnh" },
-                    { value: "Chớm bệnh", label: "Chớm (1 - 10%)" },
-                    { value: "Nhẹ", label: "Nhẹ (>10 - 25%)" },
-                    { value: "Vừa", label: "Vừa (>25 - 50%)" },
-                    { value: "Nặng", label: "Nặng (>50 - 75%)" },
-                    { value: "Rất nặng", label: "Rất nặng (>75%)" },
-                  ] as { value: SymptomSeverity; label: string }[]
-                ).map((item, index) => (
-                  <Pressable
-                    key={item.value}
+                  <View
                     style={[
-                      styles.severityItem,
-                      severity === item.value && styles.severityActive,
+                      styles.severityDot,
+                      {
+                        backgroundColor: [
+                          COLORS.green,
+                          "#facc15",
+                          "#fb923c",
+                          "#ea580c",
+                          "#ef4444",
+                          "#991b1b",
+                        ][index],
+                      },
                     ]}
-                    onPress={() => {
-                      setSeverity(item.value);
-                      if (item.value === "Khỏe mạnh") {
-                        setSymptomDescription("");
-                      }
-                    }}
+                  />
+                  <Text style={styles.severityText}>{item.label}</Text>
+                  <View
+                    style={[
+                      styles.radioMark,
+                      severity === item.value && styles.radioMarkActive,
+                    ]}
                   >
-                    <View
-                      style={[
-                        styles.severityDot,
-                        {
-                          backgroundColor: [
-                            COLORS.green,
-                            "#facc15",
-                            "#fb923c",
-                            "#ea580c",
-                            "#ef4444",
-                            "#991b1b",
-                          ][index],
-                        },
-                      ]}
-                    />
-                    <Text style={styles.severityText}>{item.label}</Text>
-                    <View
-                      style={[
-                        styles.radioMark,
-                        severity === item.value && styles.radioMarkActive,
-                      ]}
-                    >
-                      {severity === item.value ? (
-                        <View style={styles.radioMarkDot} />
-                      ) : null}
-                    </View>
+                    {severity === item.value ? (
+                      <View style={styles.radioMarkDot} />
+                    ) : null}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+            {shouldShowSymptomDescription ? (
+              <>
+                <FieldLabel required>Mô tả triệu chứng</FieldLabel>
+                {symptomDescription && !isEditingSymptom ? (
+                  <Pressable
+                    style={styles.symptomSummaryBox}
+                    onPress={() => setIsEditingSymptom(true)}
+                  >
+                    <Text style={styles.symptomSummaryText}>
+                      “{symptomDescription}”
+                    </Text>
+                    <Text style={styles.symptomSummaryCounter}>
+                      {symptomDescription.length}/300
+                    </Text>
                   </Pressable>
-                ))}
-              </View>
-              {shouldShowSymptomDescription ? (
-                <>
-                  <FieldLabel required>Mô tả triệu chứng</FieldLabel>
+                ) : (
                   <View style={styles.textAreaWrap}>
                     <TextInput
+                      testID="symptom-description-input"
                       multiline
                       maxLength={300}
                       value={symptomDescription}
-                      onChangeText={setSymptomDescription}
+                      onChangeText={(value) => {
+                        setSymptomDescription(value);
+                        setIsEditingSymptom(true);
+                      }}
+                      onBlur={() => {
+                        if (symptomDescription.trim()) {
+                          setIsEditingSymptom(false);
+                        }
+                      }}
                       placeholder="Nhập triệu chứng quan sát được..."
                       placeholderTextColor={COLORS.border}
                       style={[
@@ -1582,16 +1932,25 @@ export function CaptureScreen() {
                       {symptomDescription.length}/300
                     </Text>
                   </View>
-                  {shouldShowInlineErrors &&
-                  validation.errors.symptomDescription ? (
-                    <Text style={styles.fieldErrorText}>
-                      {validation.errors.symptomDescription}
-                    </Text>
-                  ) : null}
-                </>
-              ) : null}
-            </View>
-          )}
+                )}
+                {shouldShowInlineErrors &&
+                validation.errors.symptomDescription ? (
+                  <Text style={styles.fieldErrorText}>
+                    {validation.errors.symptomDescription}
+                  </Text>
+                ) : null}
+              </>
+            ) : severity ? (
+              <View style={styles.severitySummaryRow}>
+                <Text style={styles.severitySummaryLabel}>Mức độ:</Text>
+                <View style={styles.severityPill}>
+                  <Text style={styles.severityPillText}>
+                    {severityLabel(severity)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
           <View style={styles.contextHint}>
             <Info size={10} color={COLORS.muted} />
             <Text style={styles.contextHintText}>
@@ -1617,19 +1976,18 @@ export function CaptureScreen() {
         ) : null}
       </View>
       <BottomNav active="capture" />
-      {saving ? (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingCard}>
-            <ActivityIndicator color={COLORS.green} />
-            <Text style={styles.loadingText}>{progress}</Text>
-          </View>
-        </View>
-      ) : null}
+      <LoadingProgressDialog
+        visible={saving}
+        title="Đang lưu phiên chụp..."
+        detail={progress}
+        percent={uploadPercent}
+      />
       <SelectionSheets
         sheet={sheet}
         setSheet={setSheet}
         plots={plots}
         crops={crops}
+        plotId={plotId}
         cropType={cropType}
         growthStage={growthStage}
         stationWeather={stationWeather}
@@ -1695,6 +2053,7 @@ function SelectionSheets(props: {
   setSheet: (sheet: SheetKind | null) => void;
   plots: PlotInfo[];
   crops: CropTypeInfo[];
+  plotId?: string;
   cropType: string;
   growthStage?: GrowthStageId;
   stationWeather: WeatherCondition;
@@ -1705,8 +2064,8 @@ function SelectionSheets(props: {
   onPlot: (value?: string) => void;
   onCrop: (value: string) => void;
   onStage: (value: GrowthStageId) => void;
-  localMeasurements?: WeatherCondition;
-  onMeasurements: (value: WeatherCondition) => void;
+  localMeasurements?: LocalWeatherMeasurement;
+  onMeasurements: (value: LocalWeatherMeasurement) => void;
   error: string;
 }) {
   const close = () => {
@@ -1715,22 +2074,25 @@ function SelectionSheets(props: {
     setCropSearch("");
     setPlotSearch("");
   };
-  const [measurement, setMeasurement] = useState<WeatherCondition>(() => {
-    if (props.localMeasurements) return props.localMeasurements;
-    return {
-      temperature: undefined,
-      humidity: undefined,
-      lightUvIndex: undefined,
-      windSpeed: undefined,
-      co2Level: undefined,
-      weatherCode: 0,
-    };
-  });
+  const [measurement, setMeasurement] = useState<LocalWeatherMeasurement>(
+    () => {
+      if (props.localMeasurements) return props.localMeasurements;
+      return {
+        temperature: undefined,
+        humidity: undefined,
+        lightUvIndex: undefined,
+        windSpeed: undefined,
+        co2Level: undefined,
+        weatherCode: 0,
+      };
+    },
+  );
   const [localStrings, setLocalStrings] = useState(() => {
     const initial = props.localMeasurements;
     return {
       humidity: initial?.humidity !== undefined ? String(initial.humidity) : "",
-      light: initial?.lightUvIndex !== undefined ? String(initial.lightUvIndex) : "",
+      light:
+        initial?.lightUvIndex !== undefined ? String(initial.lightUvIndex) : "",
       wind: initial?.windSpeed !== undefined ? String(initial.windSpeed) : "",
       co2: initial?.co2Level !== undefined ? String(initial.co2Level) : "",
     };
@@ -1767,10 +2129,22 @@ function SelectionSheets(props: {
       setWeatherType(getWeatherLabel(initialWeather.weatherCode));
       setShowWeatherDropdown(false);
       setLocalStrings({
-        humidity: initialWeather.humidity !== undefined ? String(initialWeather.humidity) : "",
-        light: initialWeather.lightUvIndex !== undefined ? String(initialWeather.lightUvIndex) : "",
-        wind: initialWeather.windSpeed !== undefined ? String(initialWeather.windSpeed) : "",
-        co2: initialWeather.co2Level !== undefined ? String(initialWeather.co2Level) : "",
+        humidity:
+          initialWeather.humidity !== undefined
+            ? String(initialWeather.humidity)
+            : "",
+        light:
+          initialWeather.lightUvIndex !== undefined
+            ? String(initialWeather.lightUvIndex)
+            : "",
+        wind:
+          initialWeather.windSpeed !== undefined
+            ? String(initialWeather.windSpeed)
+            : "",
+        co2:
+          initialWeather.co2Level !== undefined
+            ? String(initialWeather.co2Level)
+            : "",
       });
       setSoilMeasurements({
         ph: initialWeather.soilPh || "",
@@ -1790,8 +2164,12 @@ function SelectionSheets(props: {
   });
   const filteredPlots = props.plots.filter((plot) => {
     const cleanSearch = removeDiacritics(plotSearch.trim().toLowerCase());
-    const matchesCode = removeDiacritics(plot.code.toLowerCase()).includes(cleanSearch);
-    const matchesName = removeDiacritics(plot.name.toLowerCase()).includes(cleanSearch);
+    const matchesCode = removeDiacritics(plot.code.toLowerCase()).includes(
+      cleanSearch,
+    );
+    const matchesName = removeDiacritics(plot.name.toLowerCase()).includes(
+      cleanSearch,
+    );
     const matchesDesc = plot.description
       ? removeDiacritics(plot.description.toLowerCase()).includes(cleanSearch)
       : false;
@@ -1810,12 +2188,15 @@ function SelectionSheets(props: {
             <TextInput
               value={plotSearch}
               onChangeText={setPlotSearch}
-              placeholder="Tìm mã, khu vực, luống..."
+              placeholder="Tìm mã luống"
               placeholderTextColor="#6b7280"
               style={styles.cropSearchInput}
             />
             {plotSearch ? (
-              <Pressable onPress={() => setPlotSearch("")} style={{ padding: 4 }}>
+              <Pressable
+                onPress={() => setPlotSearch("")}
+                style={{ padding: 4 }}
+              >
                 <X size={18} color="#6b7280" />
               </Pressable>
             ) : null}
@@ -1826,21 +2207,42 @@ function SelectionSheets(props: {
             showsVerticalScrollIndicator={false}
           >
             {filteredPlots.length > 0 ? (
-              filteredPlots.map((plot) => (
-                <Pressable
-                  key={plot.id}
-                  style={styles.optionRow}
-                  onPress={() => {
-                    props.onPlot(plot.code);
-                  }}
-                >
-                  <Text style={styles.optionTitle}>{plot.code}</Text>
-                  <Text style={styles.optionMeta}>
-                    {plot.code} {plot.name}
-                    {plot.areaSquareMeters ? ` - ${plot.areaSquareMeters}m²` : ""}
-                  </Text>
-                </Pressable>
-              ))
+              filteredPlots.map((plot) => {
+                const selected = props.plotId === plot.code;
+
+                return (
+                  <Pressable
+                    key={plot.id}
+                    testID={`plot-option-${plot.code}`}
+                    style={[
+                      styles.plotOption,
+                      selected && styles.plotOptionSelected,
+                    ]}
+                    onPress={() => {
+                      props.onPlot(plot.code);
+                    }}
+                  >
+                    <View style={styles.plotOptionBody}>
+                      <Text
+                        style={[
+                          styles.plotOptionCode,
+                          selected && styles.plotOptionCodeSelected,
+                        ]}
+                      >
+                        {plot.code}
+                      </Text>
+                      <Text style={styles.plotOptionMeta}>
+                        {plotSheetMeta(plot)}
+                      </Text>
+                    </View>
+                    {selected ? (
+                      <View style={styles.plotOptionCheck}>
+                        <Check size={12} color="#fff" />
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              })
             ) : (
               <View style={styles.cropSearchEmpty}>
                 <Text style={styles.cropSearchEmptyText}>
@@ -1852,8 +2254,10 @@ function SelectionSheets(props: {
           <View style={styles.cropActionArea}>
             <Pressable
               style={styles.sheetOutlineAction}
+              testID="plot-clear-selection"
               onPress={() => {
                 props.onPlot(undefined);
+                close();
               }}
             >
               <Text style={styles.sheetOutlineActionText}>Không chọn mã</Text>
@@ -1877,7 +2281,10 @@ function SelectionSheets(props: {
               style={styles.cropSearchInput}
             />
             {cropSearch ? (
-              <Pressable onPress={() => setCropSearch("")} style={{ padding: 4 }}>
+              <Pressable
+                onPress={() => setCropSearch("")}
+                style={{ padding: 4 }}
+              >
                 <X size={18} color="#6b7280" />
               </Pressable>
             ) : null}
@@ -1897,6 +2304,7 @@ function SelectionSheets(props: {
                 return (
                   <Pressable
                     key={crop.id}
+                    testID={`crop-option-${crop.id}`}
                     style={[
                       styles.cropOption,
                       selected && styles.cropOptionSelected,
@@ -1954,6 +2362,7 @@ function SelectionSheets(props: {
             return (
               <Pressable
                 key={stage.id}
+                testID={`stage-option-${stage.id}`}
                 style={[
                   styles.stageOption,
                   selected && styles.stageOptionSelected,
@@ -2043,7 +2452,13 @@ function SelectionSheets(props: {
                   style={styles.measurementSelect}
                   onPress={() => setShowWeatherDropdown((current) => !current)}
                 >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
                     {(() => {
                       const SelectedOption = WEATHER_OPTIONS.find(
                         (opt) => opt.label === weatherType,
@@ -2124,7 +2539,7 @@ function SelectionSheets(props: {
                 ) : null}
               </View>
               <TemperatureSlider
-                value={measurement.temperature}
+                value={measurement.temperature ?? 0}
                 onChange={(value) =>
                   setMeasurement((current) => ({
                     ...current,
@@ -2247,7 +2662,7 @@ function SelectionSheets(props: {
                     const parsed = parseFloat(clean);
                     return Number.isNaN(parsed) ? undefined : parsed;
                   };
-                  const savedData: WeatherCondition = {
+                  const savedData: LocalWeatherMeasurement = {
                     temperature: measurement.temperature,
                     weatherCode: measurement.weatherCode,
                     humidity: parseNum(localStrings.humidity),
@@ -2267,19 +2682,11 @@ function SelectionSheets(props: {
           </View>
         </View>
       </BottomSheet>
-      <BottomSheet
+      <CaptureSuccessDialog
         visible={props.sheet === "success"}
-        title="Đã lưu phiên chụp"
-        onClose={close}
-      >
-        <Text style={styles.sheetBody}>
-          Post đã được tự động tạo từ phiên chụp.
-        </Text>
-        <PrimaryButton
-          label="Chuyển sang Post"
-          onPress={() => router.replace("/(tabs)/posts")}
-        />
-      </BottomSheet>
+        onCaptureNext={close}
+        onViewPosts={() => router.replace("/(tabs)/posts")}
+      />
       <BottomSheet
         visible={props.sheet === "error"}
         title="Chưa thể lưu phiên chụp"
@@ -2348,19 +2755,22 @@ function WeatherMetricBadge({
 }) {
   const isWeather = metricKey === "weatherCode";
   const weatherOpt = isWeather
-    ? WEATHER_OPTIONS.find((o) => o.code === data.weatherCode) || WEATHER_OPTIONS[0]
+    ? WEATHER_OPTIONS.find((o) => o.code === data.weatherCode) ||
+      WEATHER_OPTIONS[0]
     : null;
 
   const Icon = isWeather ? weatherOpt!.Icon : metricIconMeta(metricKey).Icon;
-  const color = isWeather ? getWeatherColor(data.weatherCode) : metricIconMeta(metricKey).color;
-  const label = isWeather ? getWeatherLabel(data.weatherCode) : metricValueWithUnit(data, metricKey);
+  const color = isWeather
+    ? getWeatherBadgeTextColor(data.weatherCode)
+    : metricIconMeta(metricKey).color;
+  const label = isWeather
+    ? getWeatherLabel(data.weatherCode)
+    : metricValueWithUnit(data, metricKey);
 
   return (
     <View style={styles.weatherMetricBadge}>
       <Icon size={16} color={color} />
-      <Text style={styles.weatherMetricBadgeText}>
-        {label}
-      </Text>
+      <Text style={styles.weatherMetricBadgeText}>{label}</Text>
     </View>
   );
 }
@@ -2521,8 +2931,15 @@ function getWeatherBadgeTextColor(code?: number): string {
   return "#0891b2"; // Cyan for snow
 }
 
-function WeatherTypeIcon({ code, size = 24 }: { code?: number; size?: number }) {
-  const weatherOpt = WEATHER_OPTIONS.find((opt) => opt.code === code) || WEATHER_OPTIONS[0];
+function WeatherTypeIcon({
+  code,
+  size = 24,
+}: {
+  code?: number;
+  size?: number;
+}) {
+  const weatherOpt =
+    WEATHER_OPTIONS.find((opt) => opt.code === code) || WEATHER_OPTIONS[0];
   const Icon = weatherOpt.Icon;
   const color = getWeatherBadgeTextColor(code);
   return <Icon size={size} color={color} strokeWidth={2} />;
@@ -2543,11 +2960,21 @@ function StationDetail({
 }) {
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={[styles.weatherTypeCard, { backgroundColor: getWeatherBadgeBgColor(data.weatherCode) }]}>
+      <View
+        style={[
+          styles.weatherTypeCard,
+          { backgroundColor: getWeatherBadgeBgColor(data.weatherCode) },
+        ]}
+      >
         <View style={styles.weatherTypeIconWrap}>
           <WeatherTypeIcon code={data.weatherCode} size={20} />
         </View>
-        <Text style={[styles.weatherTypeValue, { color: getWeatherBadgeTextColor(data.weatherCode) }]}>
+        <Text
+          style={[
+            styles.weatherTypeValue,
+            { color: getWeatherBadgeTextColor(data.weatherCode) },
+          ]}
+        >
           {getWeatherLabel(data.weatherCode)}
         </Text>
       </View>
@@ -2640,7 +3067,11 @@ export function PostsScreen() {
     setLoadError(null);
     try {
       const data = await getPosts(role, user?.id, undefined, query);
-      setPosts(data);
+      setPosts(
+        data.map((post) =>
+          normalizePostIdentity(post as Post & { _id?: string }),
+        ),
+      );
     } catch (err: any) {
       setLoadError(err?.message || "Lỗi tải dữ liệu");
       setPosts([]);
@@ -2666,16 +3097,21 @@ export function PostsScreen() {
   const filtered = useMemo(() => {
     const lower = query.trim().toLowerCase();
     return posts.filter((post) => {
-      const matchesEnv = env === "all" ? (selectedEnv === "all" || post.envMode === selectedEnv) : post.envMode === env;
-      const matchesPlot = selectedPlot === "all" || post.plotId === selectedPlot;
-      const matchesCrop = selectedCrop === "all" || post.cropType === selectedCrop;
+      const matchesEnv =
+        env === "all"
+          ? selectedEnv === "all" || post.envMode === selectedEnv
+          : post.envMode === env;
+      const matchesPlot =
+        selectedPlot === "all" || post.plotId === selectedPlot;
+      const matchesCrop =
+        selectedCrop === "all" || post.cropType === selectedCrop;
       const matchesQuery =
-          !lower ||
-          [post.plotId, post.cropType, post.user?.name, post.symptomDescription]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(lower);
+        !lower ||
+        [post.plotId, post.cropType, post.user?.name, post.symptomDescription]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(lower);
       return matchesEnv && matchesPlot && matchesCrop && matchesQuery;
     });
   }, [env, selectedEnv, selectedPlot, selectedCrop, posts, query]);
@@ -2683,12 +3119,27 @@ export function PostsScreen() {
   const sortedAndFiltered = useMemo(() => {
     const result = [...filtered];
     if (sortMode === "newest") {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
     } else if (sortMode === "oldest") {
-      result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      result.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     } else if (sortMode === "severity") {
-      const order = ["Khỏe mạnh", "Chớm bệnh", "Nhẹ", "Vừa", "Nặng", "Rất nặng"];
-      result.sort((a, b) => order.indexOf(b.severity) - order.indexOf(a.severity));
+      const order = [
+        "Khỏe mạnh",
+        "Chớm bệnh",
+        "Nhẹ",
+        "Vừa",
+        "Nặng",
+        "Rất nặng",
+      ];
+      result.sort(
+        (a, b) => order.indexOf(b.severity) - order.indexOf(a.severity),
+      );
     }
     return result;
   }, [filtered, sortMode]);
@@ -2714,10 +3165,16 @@ export function PostsScreen() {
               style={styles.searchInput}
             />
           </View>
-          <Pressable style={styles.filterButton} onPress={() => setSortOpen(true)}>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => setSortOpen(true)}
+          >
             <Text style={styles.filterText}>≡↑</Text>
           </Pressable>
-          <Pressable style={styles.filterButton} onPress={() => setFilterOpen(true)}>
+          <Pressable
+            style={styles.filterButton}
+            onPress={() => setFilterOpen(true)}
+          >
             <Filter size={16} color={COLORS.body} />
             <Text style={styles.filterText}>Bộ lọc</Text>
           </Pressable>
@@ -2751,16 +3208,28 @@ export function PostsScreen() {
       >
         {loadError ? (
           <View style={{ alignItems: "center", padding: 40 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>Không thể tải dữ liệu</Text>
-            <Text style={{ color: COLORS.muted, marginBottom: 16 }}>{loadError}</Text>
-            <Pressable onPress={refresh} style={{ backgroundColor: COLORS.green, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+              Không thể tải dữ liệu
+            </Text>
+            <Text style={{ color: COLORS.muted, marginBottom: 16 }}>
+              {loadError}
+            </Text>
+            <Pressable
+              onPress={refresh}
+              style={{
+                backgroundColor: COLORS.green,
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 8,
+              }}
+            >
               <Text style={{ color: "#fff", fontWeight: "600" }}>Thử lại</Text>
             </Pressable>
           </View>
         ) : sortedAndFiltered.length ? (
-          sortedAndFiltered.map((post) => (
+          sortedAndFiltered.map((post, index) => (
             <PostCard
-              key={post.id}
+              key={postListKey(post as Post & { _id?: string }, index)}
               post={post}
               admin={role === "admin"}
               onImage={() => setViewerPost(post)}
@@ -2768,9 +3237,22 @@ export function PostsScreen() {
           ))
         ) : (
           <View style={{ alignItems: "center", padding: 40 }}>
-            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>Chưa có bài đăng</Text>
-            <Pressable onPress={() => routerPush("/capture")} style={{ backgroundColor: COLORS.green, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8, marginTop: 12 }}>
-              <Text style={{ color: "#fff", fontWeight: "600" }}>Tạo phiên chụp</Text>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8 }}>
+              Chưa có bài đăng
+            </Text>
+            <Pressable
+              onPress={() => routerPush("/capture")}
+              style={{
+                backgroundColor: COLORS.green,
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 8,
+                marginTop: 12,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "600" }}>
+                Tạo phiên chụp
+              </Text>
             </Pressable>
           </View>
         )}
@@ -3015,10 +3497,22 @@ export function ManagementScreen() {
             key={id}
             testID={`admin-${id}`}
             onPress={() => setVariant(id)}
-            style={[{ padding: 8 }, variant === id && { borderBottomWidth: 2, borderBottomColor: COLORS.green }]}
+            style={[
+              { padding: 8 },
+              variant === id && {
+                borderBottomWidth: 2,
+                borderBottomColor: COLORS.green,
+              },
+            ]}
           >
-            <Text style={{ color: variant === id ? COLORS.green : COLORS.muted }}>
-              {id === "plots" ? "Mã số luống" : id === "crops" ? "Loại cây" : "Tài khoản"}
+            <Text
+              style={{ color: variant === id ? COLORS.green : COLORS.muted }}
+            >
+              {id === "plots"
+                ? "Mã số luống"
+                : id === "crops"
+                  ? "Loại cây"
+                  : "Tài khoản"}
             </Text>
           </Pressable>
         ))}
@@ -3436,6 +3930,38 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   cropListContent: { paddingHorizontal: 35, paddingVertical: 8, gap: 4 },
+  plotOption: {
+    minHeight: 74,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  plotOptionSelected: { backgroundColor: "rgba(234,242,157,0.5)" },
+  plotOptionBody: { flex: 1, gap: 4 },
+  plotOptionCode: {
+    color: COLORS.body,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+  plotOptionCodeSelected: { color: COLORS.green },
+  plotOptionMeta: {
+    color: COLORS.body,
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  plotOptionCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cropOption: {
     minHeight: 64,
     borderRadius: 12,
@@ -3732,6 +4258,9 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
   },
   googleImage: { width: 24, height: 26 },
   googleText: { color: "#2b2b2b", fontSize: 16, fontWeight: "500" },
@@ -4236,9 +4765,175 @@ export const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.72)",
+    backgroundColor: "rgba(26,28,26,0.6)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  loadingDialog: {
+    width: 320,
+    minHeight: 330,
+    borderRadius: 12,
+    backgroundColor: "#faf9f5",
+    paddingHorizontal: 32,
+    paddingTop: 32,
+    paddingBottom: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  loadingRingWrap: {
+    width: 128,
+    height: 128,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingRingCenter: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingPercentText: {
+    color: "#2b2b2b",
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: "600",
+  },
+  loadingTitleWrap: {
+    marginTop: 24,
+    alignItems: "center",
+  },
+  loadingTitle: {
+    color: "#2b2b2b",
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  loadingDetailRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  loadingDetail: {
+    color: "#2b2b2b",
+    fontSize: 16,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  loadingBarTrack: {
+    width: "100%",
+    height: 6,
+    marginTop: 28,
+    borderRadius: 999,
+    backgroundColor: "#e0e0e0",
+    overflow: "hidden",
+  },
+  loadingBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    backgroundColor: COLORS.green,
+  },
+  loadingHint: {
+    marginTop: 10,
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  captureSuccessDialog: {
+    width: 319,
+    borderRadius: 24,
+    backgroundColor: "#fff",
+    padding: 32,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 6,
+  },
+  captureSuccessIconWrap: {
+    width: 80,
+    height: 104,
+    paddingBottom: 24,
+    alignItems: "center",
+  },
+  captureSuccessIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#eaf29d",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#34703f",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 3,
+  },
+  captureSuccessIconCheck: {
+    position: "absolute",
+  },
+  captureSuccessTitle: {
+    paddingBottom: 8,
+    color: "#2b2b2b",
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  captureSuccessDescription: {
+    paddingBottom: 32,
+    color: "#2b2b2b",
+    fontSize: 16,
+    lineHeight: 20,
+    textAlign: "center",
+  },
+  captureSuccessActions: {
+    width: "100%",
+    gap: 16,
+  },
+  captureSuccessPrimaryButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.green,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  captureSuccessPrimaryText: {
+    color: "#fff",
+    fontSize: 14,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+  captureSuccessSecondaryButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.border,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  captureSuccessSecondaryText: {
+    color: "#2b2b2b",
+    fontSize: 14,
+    lineHeight: 16,
+    fontWeight: "600",
   },
   loadingCard: {
     width: 260,

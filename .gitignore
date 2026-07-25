@@ -44,3 +44,5 @@ app-example
 .contextos/
 .agents/
 **/.env
+**/android/
+**/ios/

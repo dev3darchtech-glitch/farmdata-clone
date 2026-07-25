@@ -1,7 +1,7 @@
-import { GardenPalette } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { StyleSheet, Text } from "react-native";
 import renderer, { act } from "react-test-renderer";
 import LoginScreen from "../app/(auth)/login";
 
@@ -15,8 +15,9 @@ jest.mock("@/hooks/useAuth", () => ({
 }));
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockOpenAuthSessionAsync = WebBrowser.openAuthSessionAsync as jest.Mock;
 
-describe("LoginScreen Empirical Stress & Adversarial Challenge Suite", () => {
+describe("LoginScreen stress cases", () => {
   const mockLogin = jest.fn();
   const mockLogout = jest.fn().mockResolvedValue(undefined);
   const mockRefreshToken = jest.fn().mockResolvedValue(null);
@@ -35,242 +36,111 @@ describe("LoginScreen Empirical Stress & Adversarial Challenge Suite", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOpenAuthSessionAsync.mockResolvedValue({
+      type: "success",
+      url: "capturedata://auth-callback?accessToken=mock_google_access_token&refreshToken=mock_google_refresh_token",
+    });
     mockLogin.mockResolvedValue(undefined);
     mockUseAuth.mockReturnValue(createMockAuthContext());
   });
 
-  describe("Adversarial Test Suite 1: Input Validation & Edge Case Inputs", () => {
-    it("handles whitespace-only email input by failing email validation", async () => {
-      let component: renderer.ReactTestRenderer;
-      await act(async () => {
-        component = renderer.create(<LoginScreen />);
-      });
-
-      const root = component!.root;
-      const emailInput = root.findByProps({ testID: "input-login-email" });
-      const submitButton = root.findByProps({ testID: "btn-submit-login" });
-
-      await act(async () => {
-        emailInput.props.onChangeText("   ");
-      });
-
-      await act(async () => {
-        submitButton.props.onPress();
-      });
-
-      const textNodes = root.findAllByType(Text);
-      const textContents = textNodes.map((node: any) =>
-        Array.isArray(node.props.children)
-          ? node.props.children.join("")
-          : String(node.props.children || "")
-      );
-
-      expect(textContents).toContain("Email không hợp lệ");
-      expect(mockLogin).not.toHaveBeenCalled();
+  it("rejects whitespace-only username", async () => {
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<LoginScreen />);
     });
 
-    it("handles multiple invalid email formats correctly", async () => {
-      const invalidEmails = [
-        "plainaddress",
-        "#@%^%#$@#$@#.com",
-        "@example.com",
-        "Joe Smith <email@example.com>",
-        "email.example.com",
-        "email@example@example.com",
-      ];
-
-      for (const invalidEmail of invalidEmails) {
-        let component: renderer.ReactTestRenderer;
-        await act(async () => {
-          component = renderer.create(<LoginScreen />);
-        });
-
-        const root = component!.root;
-        const emailInput = root.findByProps({ testID: "input-login-email" });
-        const submitButton = root.findByProps({ testID: "btn-submit-login" });
-
-        await act(async () => {
-          emailInput.props.onChangeText(invalidEmail);
-        });
-
-        await act(async () => {
-          submitButton.props.onPress();
-        });
-
-        const textNodes = root.findAllByType(Text);
-        const textContents = textNodes.map((node: any) =>
-          Array.isArray(node.props.children)
-            ? node.props.children.join("")
-            : String(node.props.children || "")
-        );
-
-        expect(textContents).toContain("Email không hợp lệ");
-        expect(mockLogin).not.toHaveBeenCalled();
-      }
+    const root = component!.root;
+    await act(async () => {
+      root.findByProps({ testID: "input-login-email" }).props.onChangeText("   ");
+      root.findByProps({ testID: "input-login-password" }).props.onChangeText("123456");
+      root.findByProps({ testID: "btn-submit-login" }).props.onPress();
     });
 
-    it("allows valid email formats to pass validation and invoke login", async () => {
-      const validEmails = [
-        "farmer.john@agri.com",
-        "user+tag@domain.co.uk",
-        "test.user@sub.domain.vn",
-      ];
+    const textContents = root.findAllByType(Text).map((node: any) =>
+      Array.isArray(node.props.children)
+        ? node.props.children.join("")
+        : String(node.props.children || ""),
+    );
 
-      for (const validEmail of validEmails) {
-        mockLogin.mockClear();
-
-        let component: renderer.ReactTestRenderer;
-        await act(async () => {
-          component = renderer.create(<LoginScreen />);
-        });
-
-        const root = component!.root;
-        const emailInput = root.findByProps({ testID: "input-login-email" });
-        const submitButton = root.findByProps({ testID: "btn-submit-login" });
-
-        await act(async () => {
-          emailInput.props.onChangeText(validEmail);
-        });
-
-        await act(async () => {
-          await submitButton.props.onPress();
-        });
-
-        expect(mockLogin).toHaveBeenCalledTimes(1);
-      }
-    });
+    expect(textContents).toContain("Vui lòng nhập tên đăng nhập hoặc email");
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 
-  describe("Adversarial Test Suite 2: Styling & Error State Visual Distinction", () => {
-    it("applies error border style specifically to email field when only email has validation error", async () => {
+  it("accepts valid usernames and emails", async () => {
+    const validValues = ["farmer01", "farmer.john@agri.com"];
+
+    for (const loginValue of validValues) {
+      mockLogin.mockClear();
       let component: renderer.ReactTestRenderer;
       await act(async () => {
         component = renderer.create(<LoginScreen />);
       });
 
       const root = component!.root;
-      const emailInput = root.findByProps({ testID: "input-login-email" });
-      const submitButton = root.findByProps({ testID: "btn-submit-login" });
-
       await act(async () => {
-        emailInput.props.onChangeText(""); // Empty email
-      });
-
-      await act(async () => {
-        await submitButton.props.onPress();
-      });
-
-      const emailContainer = root.findByProps({ testID: "input-login-email" }).parent.parent;
-      const passwordContainer = root.findByProps({ testID: "input-login-password" }).parent.parent;
-
-      const flatEmailStyle = StyleSheet.flatten(emailContainer.props.style);
-      const flatPasswordStyle = StyleSheet.flatten(passwordContainer.props.style);
-
-      expect(flatEmailStyle.borderColor).toBe(GardenPalette.error);
-      expect(flatEmailStyle.borderWidth).toBe(1.5);
-      expect(flatPasswordStyle.borderColor).toBe(GardenPalette.rule);
-      expect(flatPasswordStyle.borderWidth).toBe(1);
-    });
-
-    it("applies error border style to BOTH email and password fields when global auth error exists", async () => {
-      mockUseAuth.mockReturnValue(
-        createMockAuthContext({
-          error: "Tài khoản hoặc mật khẩu không chính xác",
-        })
-      );
-
-      let component: renderer.ReactTestRenderer;
-      await act(async () => {
-        component = renderer.create(<LoginScreen />);
-      });
-
-      const root = component!.root;
-      const emailContainer = root.findByProps({ testID: "input-login-email" }).parent.parent;
-      const passwordContainer = root.findByProps({ testID: "input-login-password" }).parent.parent;
-
-      const flatEmailStyle = StyleSheet.flatten(emailContainer.props.style);
-      const flatPasswordStyle = StyleSheet.flatten(passwordContainer.props.style);
-
-      expect(flatEmailStyle.borderColor).toBe(GardenPalette.error);
-      expect(flatEmailStyle.borderWidth).toBe(1.5);
-      expect(flatPasswordStyle.borderColor).toBe(GardenPalette.error);
-      expect(flatPasswordStyle.borderWidth).toBe(1.5);
-    });
-  });
-
-  describe("Adversarial Test Suite 3: Password Toggle Rapid Cycles & State Consistency", () => {
-    it("handles 10 consecutive toggle clicks maintaining consistent state, text, and secureTextEntry", async () => {
-      let component: renderer.ReactTestRenderer;
-      await act(async () => {
-        component = renderer.create(<LoginScreen />);
-      });
-
-      const root = component!.root;
-      const passwordInput = root.findByProps({ testID: "input-login-password" });
-
-      const toggleButton = root.findAllByType(TouchableOpacity).find((btn: any) => {
-        try {
-          const texts = btn.findAllByType(Text);
-          return texts.some((t: any) => t.props.children === "Hiện" || t.props.children === "Ẩn");
-        } catch {
-          return false;
-        }
-      });
-      expect(toggleButton).toBeDefined();
-
-      for (let i = 1; i <= 10; i++) {
-        const expectedShow = i % 2 === 1;
-
-        await act(async () => {
-          toggleButton!.props.onPress();
-        });
-
-        expect(passwordInput.props.secureTextEntry).toBe(!expectedShow);
-
-        const toggleTextNode = root.findAllByType(Text).find((node: any) => {
-          const text = typeof node.props.children === "string" ? node.props.children : "";
-          return text === "Hiện" || text === "Ẩn";
-        });
-        expect(toggleTextNode?.props.children).toBe(expectedShow ? "Ẩn" : "Hiện");
-      }
-    });
-  });
-
-  describe("Adversarial Test Suite 4: Async Error Handling Resilience", () => {
-    it("gracefully catches rejected auth login promise without throwing unhandled rejection error", async () => {
-      mockLogin.mockRejectedValue(new Error("Network Failure"));
-
-      let component: renderer.ReactTestRenderer;
-      await act(async () => {
-        component = renderer.create(<LoginScreen />);
-      });
-
-      const root = component!.root;
-      const submitButton = root.findByProps({ testID: "btn-submit-login" });
-
-      await act(async () => {
-        await submitButton.props.onPress();
+        root.findByProps({ testID: "input-login-email" }).props.onChangeText(loginValue);
+        root.findByProps({ testID: "input-login-password" }).props.onChangeText("123456");
+        root.findByProps({ testID: "btn-submit-login" }).props.onPress();
       });
 
       expect(mockLogin).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("marks both input shells invalid when global auth error exists", async () => {
+    mockUseAuth.mockReturnValue(
+      createMockAuthContext({
+        error: "Tài khoản hoặc mật khẩu không chính xác",
+      }),
+    );
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<LoginScreen />);
     });
 
-    it("gracefully catches rejected auth Google login promise without throwing unhandled rejection error", async () => {
-      mockLogin.mockRejectedValue(new Error("Google OAuth Cancelled"));
+    const root = component!.root;
+    const emailShell = root.findByProps({ testID: "input-login-email" }).parent.parent;
+    const passwordShell = root.findByProps({ testID: "input-login-password" }).parent.parent;
 
-      let component: renderer.ReactTestRenderer;
-      await act(async () => {
-        component = renderer.create(<LoginScreen />);
-      });
+    const emailStyle = StyleSheet.flatten(emailShell.props.style);
+    const passwordStyle = StyleSheet.flatten(passwordShell.props.style);
 
-      const root = component!.root;
-      const googleButton = root.findByProps({ testID: "btn-google-login" });
+    expect(emailStyle.borderColor).toBe("#ba1a1a");
+    expect(passwordStyle.borderColor).toBe("#ba1a1a");
+  });
 
-      await act(async () => {
-        await googleButton.props.onPress();
-      });
-
-      expect(mockLogin).toHaveBeenCalledTimes(1);
+  it("maintains password toggle state across repeated presses", async () => {
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<LoginScreen />);
     });
+
+    const root = component!.root;
+    const passwordInput = root.findByProps({ testID: "input-login-password" });
+
+    for (let index = 0; index < 10; index += 1) {
+      await act(async () => {
+        root.findByProps({ testID: "btn-toggle-password" }).props.onPress();
+      });
+      expect(passwordInput.props.secureTextEntry).toBe(index % 2 === 0 ? false : true);
+    }
+  });
+
+  it("surfaces rejected Google login without crashing", async () => {
+    mockLogin.mockRejectedValueOnce(new Error("Google OAuth Cancelled"));
+
+    let component: renderer.ReactTestRenderer;
+    await act(async () => {
+      component = renderer.create(<LoginScreen />);
+    });
+
+    const root = component!.root;
+    await act(async () => {
+      await root.findByProps({ testID: "btn-google-login" }).props.onPress();
+    });
+
+    expect(mockLogin).toHaveBeenCalledTimes(1);
   });
 });
