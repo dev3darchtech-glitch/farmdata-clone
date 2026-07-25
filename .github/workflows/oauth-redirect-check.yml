@@ -1,20 +1,34 @@
-name: OAuth redirect check
+name: Frontend OAuth regression
 
 on:
-  push:
-    branches:
-      - fix/oauth-redirect-posts
   pull_request:
     branches:
       - main
+    paths:
+      - ".github/workflows/oauth-redirect-check.yml"
+      - "frontend/app/auth-callback.tsx"
+      - "frontend/hooks/useAuth.tsx"
+      - "frontend/__tests__/oauth_redirect_posts.test.tsx"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/oauth-redirect-check.yml"
+      - "frontend/app/auth-callback.tsx"
+      - "frontend/hooks/useAuth.tsx"
+      - "frontend/__tests__/oauth_redirect_posts.test.tsx"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
 
 permissions:
   contents: read
 
 jobs:
-  frontend-oauth-check:
+  frontend-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -31,31 +45,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Run OAuth redirect regression tests
-        id: oauth_tests
-        continue-on-error: true
+      - name: Run frontend test suite
         working-directory: frontend
-        run: |
-          set -o pipefail
-          npm test -- --runInBand __tests__/oauth_redirect_posts.test.tsx 2>&1 | tee ../oauth-test-output.txt
+        run: npm test -- --runInBand
 
       - name: Run frontend lint
-        id: lint
-        continue-on-error: true
         working-directory: frontend
-        run: |
-          set -o pipefail
-          npm run lint 2>&1 | tee ../oauth-lint-output.txt
-
-      - name: Upload verification output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: oauth-verification-output
-          path: |
-            oauth-test-output.txt
-            oauth-lint-output.txt
-
-      - name: Fail when verification fails
-        if: steps.oauth_tests.outcome != 'success' || steps.lint.outcome != 'success'
-        run: exit 1
+        run: npm run lint
