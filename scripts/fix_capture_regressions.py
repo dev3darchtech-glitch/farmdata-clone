@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# This patch is intentionally deterministic so CI fails loudly when the source drifts.
 TARGET = Path("frontend/components/farm/FarmDataScreens.tsx")
 source = TARGET.read_text(encoding="utf-8")
 
