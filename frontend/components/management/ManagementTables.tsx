@@ -1,7 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { CropTypeInfo, PlotInfo, User } from "@/types";
 import { cropIcon, getCropBgColor, getCropColor } from "@/utils/captureDisplay";
-import { formatPlotMeta, getFarmerDisplayCode } from "@/utils/management";
 import { MoreVertical } from "lucide-react-native";
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -32,7 +31,6 @@ export function PlotManagementTable({
           <View key={item.id || item.code} style={tableStyles.plotRow}>
             <View style={tableStyles.plotCell}>
               <Text style={tableStyles.rowPrimary}>{item.code}</Text>
-              <Text style={tableStyles.rowMeta}>{formatPlotMeta(item)}</Text>
             </View>
             <ManagementStatus item={item} />
             <Pressable
@@ -76,7 +74,11 @@ export function CropManagementTable({
                     { backgroundColor: getCropBgColor(item.name) },
                   ]}
                 >
-                  <Icon size={20} color={getCropColor(item.name)} />
+                  {item.icon ? (
+                    <Text style={tableStyles.cropIconText}>{item.icon}</Text>
+                  ) : (
+                    <Icon size={20} color={getCropColor(item.name)} />
+                  )}
                 </View>
                 <Text style={tableStyles.cropName}>{item.name}</Text>
               </View>
@@ -98,12 +100,10 @@ export function CropManagementTable({
 export function AccountManagementTable({
   rows,
   total,
-  pageStart,
   onAction,
 }: {
   rows: User[];
   total: number;
-  pageStart: number;
   onAction: (item: User) => void;
 }) {
   return (
@@ -111,18 +111,19 @@ export function AccountManagementTable({
       <Text style={tableStyles.summary}>Tổng số: {total}</Text>
       <View style={tableStyles.accountTable}>
         <View style={tableStyles.accountHeader}>
-          <Text style={tableStyles.headerText}>MÃ CẤP</Text>
-          <Text style={tableStyles.headerText}>USERNAME</Text>
-          <Text style={tableStyles.headerText}>TRẠNG THÁI</Text>
+          <Text style={[tableStyles.headerText, tableStyles.accountCell]}>
+            USERNAME
+          </Text>
+          <Text style={[tableStyles.headerText, tableStyles.accountStatusCell]}>
+            TRẠNG THÁI
+          </Text>
+          <View style={tableStyles.accountMoreCell} />
         </View>
         {rows.map((item, index) => (
           <View
             key={item.id || item.username || String(index)}
             style={tableStyles.accountRow}
           >
-            <Text style={tableStyles.accountCell}>
-              {getFarmerDisplayCode(item, pageStart + index)}
-            </Text>
             <Text style={tableStyles.accountCell} numberOfLines={1}>
               {item.username || item.name}
             </Text>
@@ -211,7 +212,7 @@ const tableStyles = StyleSheet.create({
     lineHeight: 20,
   },
   plotRow: {
-    minHeight: 68,
+    minHeight: 56,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -226,12 +227,6 @@ const tableStyles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
     fontWeight: "700",
-    lineHeight: 20,
-  },
-  rowMeta: {
-    marginTop: 2,
-    color: "#9ca3af",
-    fontSize: 14,
     lineHeight: 20,
   },
   moreButton: {
@@ -261,6 +256,12 @@ const tableStyles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+  cropIconText: {
+    color: COLORS.text,
+    fontSize: 20,
+    lineHeight: 24,
+    textAlign: "center",
   },
   cropName: {
     flex: 1,

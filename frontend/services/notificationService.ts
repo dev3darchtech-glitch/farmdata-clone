@@ -1,23 +1,47 @@
 import Constants from "expo-constants";
-import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { Platform } from "react-native";
-import {
-  registerPushTokenAPI,
-  unregisterPushTokenAPI,
-} from "./apiClient";
+import type * as Notifications from "expo-notifications";
+import { registerPushTokenAPI, unregisterPushTokenAPI } from "./apiClient";
 
 const CHANNEL_ID = "farmdata-default";
+const EXPO_GO_EXECUTION_ENVIRONMENT = "storeClient";
 let lastRegisteredPushToken: string | null = null;
+let notificationsModule: ExpoNotificationsModule | null = null;
+let isNotificationHandlerConfigured = false;
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+type ExpoNotificationsModule = typeof import("expo-notifications");
+
+function isExpoGo(): boolean {
+  return Constants.executionEnvironment === EXPO_GO_EXECUTION_ENVIRONMENT;
+}
+
+function canUseExpoNotifications(): boolean {
+  return Platform.OS !== "web" && !isExpoGo();
+}
+
+function getNotificationsModule(): ExpoNotificationsModule | null {
+  if (!canUseExpoNotifications()) return null;
+
+  // Lazy-load to avoid expo-notifications' Expo Go warning at module import time.
+  notificationsModule ??=
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require("expo-notifications") as ExpoNotificationsModule;
+
+  if (!isNotificationHandlerConfigured) {
+    notificationsModule.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+    isNotificationHandlerConfigured = true;
+  }
+
+  return notificationsModule;
+}
 
 function getExpoProjectId(): string | undefined {
   return (
@@ -27,26 +51,29 @@ function getExpoProjectId(): string | undefined {
 }
 
 function hasNotificationPermission(
+  notifications: ExpoNotificationsModule,
   permission: Notifications.NotificationPermissionsStatus,
 ): boolean {
-  if (permission.status === Notifications.PermissionStatus.GRANTED) {
+  if (permission.status === notifications.PermissionStatus.GRANTED) {
     return true;
   }
 
   const iosStatus = permission.ios?.status;
   return (
-    iosStatus === Notifications.IosAuthorizationStatus.AUTHORIZED ||
-    iosStatus === Notifications.IosAuthorizationStatus.PROVISIONAL ||
-    iosStatus === Notifications.IosAuthorizationStatus.EPHEMERAL
+    iosStatus === notifications.IosAuthorizationStatus.AUTHORIZED ||
+    iosStatus === notifications.IosAuthorizationStatus.PROVISIONAL ||
+    iosStatus === notifications.IosAuthorizationStatus.EPHEMERAL
   );
 }
 
-async function ensureAndroidNotificationChannel() {
+async function ensureAndroidNotificationChannel(
+  notifications: ExpoNotificationsModule,
+) {
   if (Platform.OS !== "android") return;
 
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+  await notifications.setNotificationChannelAsync(CHANNEL_ID, {
     name: "FarmData",
-    importance: Notifications.AndroidImportance.DEFAULT,
+    importance: notifications.AndroidImportance.DEFAULT,
     vibrationPattern: [0, 250],
     lightColor: "#195729",
     sound: "default",
@@ -56,12 +83,15 @@ async function ensureAndroidNotificationChannel() {
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === "web") return null;
 
-  await ensureAndroidNotificationChannel();
+  const notifications = getNotificationsModule();
+  if (!notifications) return null;
 
-  const existingPermission = await Notifications.getPermissionsAsync();
+  await ensureAndroidNotificationChannel(notifications);
+
+  const existingPermission = await notifications.getPermissionsAsync();
   let finalPermission = existingPermission;
-  if (!hasNotificationPermission(existingPermission)) {
-    finalPermission = await Notifications.requestPermissionsAsync({
+  if (!hasNotificationPermission(notifications, existingPermission)) {
+    finalPermission = await notifications.requestPermissionsAsync({
       ios: {
         allowAlert: true,
         allowBadge: true,
@@ -70,7 +100,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  if (!hasNotificationPermission(finalPermission)) {
+  if (!hasNotificationPermission(notifications, finalPermission)) {
     return null;
   }
 
@@ -81,7 +111,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   const token = (
-    await Notifications.getExpoPushTokenAsync({
+    await notifications.getExpoPushTokenAsync({
       projectId,
     })
   ).data;
@@ -108,6 +138,9 @@ export async function unregisterLastPushToken(): Promise<void> {
 }
 
 export function observeNotificationResponses() {
+  const notifications = getNotificationsModule();
+  if (!notifications) return { remove: () => {} };
+
   const handleNotification = (notification: Notifications.Notification) => {
     const url = notification.request.content.data?.url;
     if (typeof url === "string" && url.startsWith("/")) {
@@ -115,13 +148,22 @@ export function observeNotificationResponses() {
     }
   };
 
-  Notifications.getLastNotificationResponseAsync().then((response) => {
-    if (response?.notification) {
-      handleNotification(response.notification);
-    }
-  });
+  notifications
+    .getLastNotificationResponseAsync()
+    .then((response) => {
+      if (response?.notification) {
+        handleNotification(response.notification);
+      }
+    })
+    .catch((error) => {
+      console.warn(
+        error instanceof Error
+          ? error.message
+          : "Unable to get the last notification response.",
+      );
+    });
 
-  return Notifications.addNotificationResponseReceivedListener((response) => {
+  return notifications.addNotificationResponseReceivedListener((response) => {
     handleNotification(response.notification);
   });
 }

@@ -4,12 +4,13 @@ import {
   createCropAPI,
   createPlotAPI,
   createUserAPI,
-  deactivateCropAPI,
-  deactivatePlotAPI,
   fetchCropsAPI,
   fetchPlotsAPI,
   fetchUsersAPI,
+  restoreUserAPI,
   revokeUserAPI,
+  setCropActiveStatusAPI,
+  setPlotActiveStatusAPI,
   updateCropAPI,
   updatePlotAPI,
   updateUserAPI,
@@ -41,10 +42,11 @@ export async function updateCropType(
   return await updateCropAPI(cropId, crop);
 }
 
-export async function deactivateCropType(
+export async function setCropTypeActiveStatus(
   cropId: string,
+  isActive: boolean,
 ): Promise<CropTypeInfo> {
-  return await deactivateCropAPI(cropId);
+  return await setCropActiveStatusAPI(cropId, isActive);
 }
 
 export async function getPlots(): Promise<PlotInfo[]> {
@@ -62,8 +64,11 @@ export async function updatePlot(
   return await updatePlotAPI(plotId, plot);
 }
 
-export async function deactivatePlot(plotId: string): Promise<PlotInfo> {
-  return await deactivatePlotAPI(plotId);
+export async function setPlotActiveStatus(
+  plotId: string,
+  isActive: boolean,
+): Promise<PlotInfo> {
+  return await setPlotActiveStatusAPI(plotId, isActive);
 }
 
 export async function getUsers(): Promise<User[]> {
@@ -86,6 +91,10 @@ export async function addUser(user: {
 
 export async function revokeUser(userId: string): Promise<User> {
   return await revokeUserAPI(userId);
+}
+
+export async function restoreUser(userId: string): Promise<User> {
+  return await restoreUserAPI(userId);
 }
 
 export async function updateUser(

@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { getCropTypes, getPlots } from "@/services/adminService";
 import { captureImageWithMetadata } from "@/services/cameraService";
@@ -75,24 +75,27 @@ function hasMeaningfulCaptureDraft(draft: CaptureScreenDraft) {
 }
 
 const captureScreenStyles = StyleSheet.create({
+  captureScroll: {
+    flex: 1,
+  },
   captureContent: {
-    paddingHorizontal: 35,
-    paddingTop: 24,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
     paddingBottom: 208,
-    gap: 32,
+    gap: LAYOUT.screenGap,
   },
   screenTitle: {
     color: COLORS.body,
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.title,
     fontWeight: "700",
-    lineHeight: 24,
+    lineHeight: TYPOGRAPHY.titleLine,
   },
   fixedCta: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 64,
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.screenX,
     paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: "#fff",
@@ -102,8 +105,8 @@ const captureScreenStyles = StyleSheet.create({
   },
   ctaErrorText: {
     color: COLORS.danger,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     textAlign: "center",
   },
 });
@@ -491,8 +494,11 @@ export function CaptureScreen() {
     >
       <View testID="storage-destination-picker" style={{ display: "none" }} />
       <ScrollView
+        style={captureScreenStyles.captureScroll}
         contentContainerStyle={captureScreenStyles.captureContent}
+        keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         showsVerticalScrollIndicator={false}
       >
         <Text style={captureScreenStyles.screenTitle}>Phiên chụp mới</Text>

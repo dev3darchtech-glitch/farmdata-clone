@@ -32,7 +32,11 @@ export function StationDetail({
 }) {
   return (
     <ScrollView
+      style={stationDetailStyles.stationDetailScroll}
+      contentContainerStyle={stationDetailStyles.stationDetailContent}
+      keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
       showsVerticalScrollIndicator={false}
     >
       <View
@@ -100,6 +104,12 @@ export function StationDetail({
 }
 
 const stationDetailStyles = StyleSheet.create({
+  stationDetailScroll: {
+    flex: 1,
+  },
+  stationDetailContent: {
+    paddingBottom: 28,
+  },
   weatherTypeCard: {
     backgroundColor: COLORS.greenSoft,
     borderRadius: 12,

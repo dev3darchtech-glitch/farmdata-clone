@@ -11,6 +11,15 @@ function isCreatedByCurrentAdmin(
   return String(target.createdByAdminId || "") === req.user!.id;
 }
 
+function readRequestedActiveStatus(req: Request, res: Response) {
+  if (typeof req.body?.isActive !== "boolean") {
+    res.status(400).json({ error: "isActive boolean is required" });
+    return undefined;
+  }
+
+  return req.body.isActive as boolean;
+}
+
 /**
  * GET /api/admin/plots
  */
@@ -103,14 +112,20 @@ export const updatePlot = async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/admin/plots/:id/deactivate
+ * Body: { isActive: boolean }
  */
 export const deactivatePlot = async (req: Request, res: Response) => {
+  const requestedIsActive = readRequestedActiveStatus(req, res);
+  if (requestedIsActive === undefined) {
+    return;
+  }
+
   const target = await PlotModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Plot not found" });
   }
 
-  target.isActive = false;
+  target.isActive = requestedIsActive;
   await target.save();
   return res.json(target);
 };
@@ -194,14 +209,20 @@ export const updateCrop = async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/admin/crops/:id/deactivate
+ * Body: { isActive: boolean }
  */
 export const deactivateCrop = async (req: Request, res: Response) => {
+  const requestedIsActive = readRequestedActiveStatus(req, res);
+  if (requestedIsActive === undefined) {
+    return;
+  }
+
   const target = await CropModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Crop not found" });
   }
 
-  target.isActive = false;
+  target.isActive = requestedIsActive;
   await target.save();
   return res.json(target);
 };
@@ -356,6 +377,36 @@ export const revokeUser = async (req: Request, res: Response) => {
   target.isRevoked = true;
   target.revokedAt = new Date();
   target.revokedByAdminId = req.user!.id as any;
+  await target.save();
+
+  return res.json(target);
+};
+
+/**
+ * PATCH /api/admin/users/:id/restore
+ * Admin restores a FARMER account they created.
+ */
+export const restoreUser = async (req: Request, res: Response) => {
+  const target = await UserModel.findById(req.params.id).select(
+    "-passwordHash",
+  );
+  if (!target) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  if (target.role !== "FARMER") {
+    return res
+      .status(403)
+      .json({ error: "Admins can only restore FARMER accounts" });
+  }
+  if (!isCreatedByCurrentAdmin(target, req)) {
+    return res
+      .status(403)
+      .json({ error: "Cannot restore a farmer created by another admin" });
+  }
+
+  target.isRevoked = false;
+  target.revokedAt = undefined;
+  target.revokedByAdminId = undefined;
   await target.save();
 
   return res.json(target);

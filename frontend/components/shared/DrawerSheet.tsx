@@ -1,14 +1,15 @@
 import { X } from "lucide-react-native";
-import React from "react";
+import { LAYOUT } from "@/constants/theme";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
   type ViewStyle,
 } from "react-native";
@@ -18,6 +19,10 @@ const DRAWER_COLORS = {
   body: "#565656",
   border: "#e0e0e0",
 };
+
+const MIN_SHEET_RATIO = 0.36;
+const DEFAULT_SHEET_RATIO = 0.76;
+const FULL_SHEET_RATIO = 0.92;
 
 type DrawerSheetProps = {
   visible: boolean;
@@ -38,6 +43,97 @@ export function DrawerSheet({
   contentStyle,
   showHandle = true,
 }: DrawerSheetProps) {
+  const { height: windowHeight } = useWindowDimensions();
+  const measuredHeightRef = useRef(0);
+  const dragStartHeightRef = useRef(0);
+  const sheetHeightRatioRef = useRef<number | null>(
+    full ? FULL_SHEET_RATIO : null,
+  );
+  const [sheetHeightRatio, setSheetHeightRatio] = useState<number | null>(
+    full ? FULL_SHEET_RATIO : null,
+  );
+
+  const updateSheetHeightRatio = useCallback((ratio: number | null) => {
+    sheetHeightRatioRef.current = ratio;
+    setSheetHeightRatio(ratio);
+  }, []);
+
+  useEffect(() => {
+    if (visible) {
+      updateSheetHeightRatio(full ? FULL_SHEET_RATIO : null);
+    }
+  }, [full, updateSheetHeightRatio, visible]);
+
+  const clampSheetRatio = (ratio: number) =>
+    Math.min(FULL_SHEET_RATIO, Math.max(MIN_SHEET_RATIO, ratio));
+
+  const snapSheetRatio = (ratio: number) => {
+    if (ratio < 0.5) return MIN_SHEET_RATIO;
+    if (ratio > 0.84) return FULL_SHEET_RATIO;
+    return DEFAULT_SHEET_RATIO;
+  };
+
+  const toggleSheetHeight = useCallback(() => {
+    const currentRatio = sheetHeightRatioRef.current;
+    updateSheetHeightRatio(
+      currentRatio && currentRatio > DEFAULT_SHEET_RATIO
+        ? DEFAULT_SHEET_RATIO
+        : FULL_SHEET_RATIO,
+    );
+  }, [updateSheetHeightRatio]);
+
+  const handlePanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dy) > 4,
+        onPanResponderTerminationRequest: () => false,
+        onPanResponderGrant: () => {
+          dragStartHeightRef.current =
+            (sheetHeightRatioRef.current ||
+              measuredHeightRef.current / windowHeight) *
+            windowHeight;
+        },
+        onPanResponderMove: (_, gestureState) => {
+          const nextHeight = dragStartHeightRef.current - gestureState.dy;
+          updateSheetHeightRatio(clampSheetRatio(nextHeight / windowHeight));
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (
+            Math.abs(gestureState.dy) < 6 &&
+            Math.abs(gestureState.dx) < 6
+          ) {
+            toggleSheetHeight();
+            return;
+          }
+
+          const nextRatio = clampSheetRatio(
+            (dragStartHeightRef.current - gestureState.dy) / windowHeight,
+          );
+
+          if (gestureState.dy > 140 && nextRatio <= MIN_SHEET_RATIO + 0.04) {
+            onClose();
+            return;
+          }
+
+          updateSheetHeightRatio(snapSheetRatio(nextRatio));
+        },
+        onPanResponderTerminate: (_, gestureState) => {
+          const nextRatio = clampSheetRatio(
+            (dragStartHeightRef.current - gestureState.dy) / windowHeight,
+          );
+          updateSheetHeightRatio(snapSheetRatio(nextRatio));
+        },
+      }),
+    [onClose, toggleSheetHeight, updateSheetHeightRatio, windowHeight],
+  );
+
+  const sheetSizeStyle = {
+    maxHeight: windowHeight * FULL_SHEET_RATIO,
+    ...(sheetHeightRatio ? { height: windowHeight * sheetHeightRatio } : {}),
+  };
+
   return (
     <Modal
       visible={visible}
@@ -47,29 +143,38 @@ export function DrawerSheet({
     >
       <View style={drawerStyles.scrim}>
         <Pressable style={drawerStyles.scrimFill} onPress={onClose} />
-        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+          style={[drawerStyles.sheet, sheetSizeStyle, contentStyle]}
+          onLayout={(event) => {
+            measuredHeightRef.current = event.nativeEvent.layout.height;
+          }}
+        >
+          {showHandle ? (
+            <View
+              accessibilityRole="adjustable"
+              style={drawerStyles.handleWrap}
+              {...handlePanResponder.panHandlers}
+            >
+              <View style={drawerStyles.handle} />
+            </View>
+          ) : null}
+          <View style={drawerStyles.header}>
+            <Text style={drawerStyles.title}>{title}</Text>
+            <Pressable style={drawerStyles.iconButton} onPress={onClose}>
+              <X size={22} color={DRAWER_COLORS.text} />
+            </Pressable>
+          </View>
+          <View
             style={[
-              drawerStyles.sheet,
-              full && drawerStyles.fullSheet,
-              contentStyle,
+              drawerStyles.content,
+              sheetHeightRatio ? drawerStyles.contentFlex : null,
             ]}
           >
-            {showHandle ? (
-              <View style={drawerStyles.handleWrap}>
-                <View style={drawerStyles.handle} />
-              </View>
-            ) : null}
-            <View style={drawerStyles.header}>
-              <Text style={drawerStyles.title}>{title}</Text>
-              <Pressable style={drawerStyles.iconButton} onPress={onClose}>
-                <X size={22} color={DRAWER_COLORS.text} />
-              </Pressable>
-            </View>
             {children}
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
+          </View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -89,21 +194,17 @@ const drawerStyles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingHorizontal: LAYOUT.sheetX,
+    paddingBottom: LAYOUT.sheetBottom,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 40,
     shadowOffset: { width: 0, height: -8 },
   },
-  fullSheet: {
-    maxHeight: "92%",
-    minHeight: "82%",
-  },
   handleWrap: {
+    height: 36,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 16,
   },
   handle: {
     width: 40,
@@ -129,5 +230,11 @@ const drawerStyles = StyleSheet.create({
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
+  },
+  content: {
+    flexShrink: 1,
+  },
+  contentFlex: {
+    flex: 1,
   },
 });

@@ -1,8 +1,11 @@
 import { GlobalOfflineNotice } from "@/components/screens/GlobalOfflineNotice";
+import { TYPOGRAPHY } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import {
@@ -10,10 +13,30 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Text,
+  TextInput,
   TouchableWithoutFeedback,
   useWindowDimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const defaultTextStyle = { fontFamily: TYPOGRAPHY.fontFamily };
+const AppText = Text as typeof Text & {
+  defaultProps?: { style?: unknown };
+};
+const AppTextInput = TextInput as typeof TextInput & {
+  defaultProps?: { style?: unknown };
+};
+
+AppText.defaultProps = AppText.defaultProps || {};
+AppText.defaultProps.style = [defaultTextStyle, AppText.defaultProps.style];
+AppTextInput.defaultProps = AppTextInput.defaultProps || {};
+AppTextInput.defaultProps.style = [
+  defaultTextStyle,
+  AppTextInput.defaultProps.style,
+];
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -46,6 +69,22 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const { width, height } = useWindowDimensions();
+  const [fontsLoaded] = useFonts({
+    "Be Vietnam": require("../assets/fonts/BeVietnam-Regular.ttf"),
+    "Be Vietnam Medium": require("../assets/fonts/BeVietnam-Medium.ttf"),
+    "Be Vietnam SemiBold": require("../assets/fonts/BeVietnam-SemiBold.ttf"),
+    "Be Vietnam Bold": require("../assets/fonts/BeVietnam-Bold.ttf"),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>
@@ -55,7 +94,7 @@ export default function RootLayout() {
       >
         <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.keyboardRoot}
           >
             <AuthProvider>

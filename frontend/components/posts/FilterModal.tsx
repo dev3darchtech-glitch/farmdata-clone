@@ -1,6 +1,7 @@
 import { Calendar, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 
 const ENV_OPTIONS = [
   { id: "all", label: "Tất cả" },
@@ -203,15 +204,15 @@ const styles = StyleSheet.create({
     height: 73,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.modalX,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   title: {
     color: "#111827",
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.title,
+    lineHeight: TYPOGRAPHY.titleLine,
     fontWeight: "700",
   },
   closeButton: {
@@ -222,15 +223,15 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   content: {
-    paddingHorizontal: 35,
-    paddingTop: 24,
-    gap: 32,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingTop: LAYOUT.modalY,
+    gap: LAYOUT.screenGap,
   },
-  section: { gap: 16 },
+  section: { gap: LAYOUT.sectionGap },
   sectionTitle: {
     color: "#111827",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     fontWeight: "500",
   },
   row: { flexDirection: "row", gap: 8 },
@@ -251,8 +252,8 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: "#565656",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   chipTextActive: { color: "#fff" },
   dateInput: {
@@ -267,13 +268,13 @@ const styles = StyleSheet.create({
   },
   dateText: {
     color: "#b3b3b3",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   footer: {
-    paddingHorizontal: 35,
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingTop: LAYOUT.sectionGap,
+    paddingBottom: LAYOUT.modalY,
     gap: 12,
   },
   applyButton: {
@@ -290,8 +291,8 @@ const styles = StyleSheet.create({
   },
   applyText: {
     color: "#fff",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     fontWeight: "500",
   },
   resetButton: {
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
   },
   resetText: {
     color: "#31582b",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
 });

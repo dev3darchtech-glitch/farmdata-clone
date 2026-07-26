@@ -1,14 +1,15 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import {
   addCropType,
   addPlot,
   addUser,
-  deactivateCropType,
-  deactivatePlot,
   getCropTypes,
   getPlots,
   getUsers,
+  restoreUser,
   revokeUser,
+  setCropTypeActiveStatus,
+  setPlotActiveStatus,
   updateCropType,
   updatePlot,
   updateUser,
@@ -27,7 +28,7 @@ import {
 } from "@/utils/management";
 import { useLocalSearchParams } from "expo-router";
 import { Plus, Search, Upload } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
   Pressable,
@@ -39,7 +40,7 @@ import {
 } from "react-native";
 
 import {
-  ConfirmDeactivateDialog,
+  ConfirmStatusDialog,
   CsvImportModal,
   ManagementActionMenu,
   ManagementSnackbar,
@@ -53,8 +54,71 @@ import {
 import { PlotFormSheet } from "../management/PlotFormSheet";
 import { AppScreenLayout } from "../shared/AppScreenLayout";
 import { BottomSheet } from "../shared/BottomSheet";
+import { InputSelection } from "../shared/InputSelection";
 import { InputText } from "../shared/InputText";
 import { PrimaryButton } from "../shared/PrimaryButton";
+
+const DEFAULT_CROP_ICON_OPTIONS = [
+  "🌱",
+  "🌿",
+  "☘️",
+  "🍀",
+  "🪴",
+  "🎋",
+  "🌾",
+  "🌵",
+  "🌲",
+  "🌳",
+  "🌴",
+  "🍄",
+  "🍄‍🟫",
+  "🌷",
+  "🌹",
+  "🥀",
+  "🪷",
+  "🌺",
+  "🌸",
+  "🌼",
+  "🌻",
+  "🍇",
+  "🍉",
+  "🍅",
+  "🍈",
+  "🍊",
+  "🍋",
+  "🍋‍🟩",
+  "🍌",
+  "🍍",
+  "🥭",
+  "🍎",
+  "🍏",
+  "🍐",
+  "🍑",
+  "🍒",
+  "🍓",
+  "🫐",
+  "🥝",
+  "🫒",
+  "🥥",
+  "🥑",
+  "🥦",
+  "🫑",
+  "🌶️",
+  "🥕",
+  "🥬",
+  "🧅",
+  "🧄",
+  "🥔",
+  "🍠",
+  "🍆",
+  "🥒",
+  "🌽",
+  "🫛",
+  "🫘",
+  "🥜",
+  "🌰",
+  "🫚",
+] as const;
 
 export function ManagementScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
@@ -65,8 +129,9 @@ export function ManagementScreen() {
   const [users, setUsers] = useState<User[]>([]);
   const [actionItem, setActionItem] = useState<any | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [cropIconPickerOpen, setCropIconPickerOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<ToastState>(null);
-  const [formValue, setFormValue] = useState("");
+  const [cropForm, setCropForm] = useState({ name: "", icon: "" });
   const [editingPlot, setEditingPlot] = useState<PlotInfo | null>(null);
   const [editingCrop, setEditingCrop] = useState<CropTypeInfo | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -164,6 +229,15 @@ export function ManagementScreen() {
     variant === "accounts"
       ? (filteredRows as User[]).filter((item) => !isAdminAccount(item))
       : filteredRows;
+  const cropIconOptions = useMemo(() => {
+    const existingIcons = crops
+      .map((crop) => crop.icon?.trim())
+      .filter((icon): icon is string => Boolean(icon));
+
+    return Array.from(
+      new Set([...existingIcons, ...DEFAULT_CROP_ICON_OPTIONS]),
+    );
+  }, [crops]);
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const pagedRows = visibleRows.slice(
@@ -185,10 +259,11 @@ export function ManagementScreen() {
   };
   const closeAddDrawer = () => {
     setAddOpen(false);
+    setCropIconPickerOpen(false);
     setEditingPlot(null);
     setEditingCrop(null);
     setEditingUser(null);
-    setFormValue("");
+    setCropForm({ name: "", icon: "" });
     setPlotForm({
       code: "",
       zone: "",
@@ -201,7 +276,7 @@ export function ManagementScreen() {
     setEditingPlot(null);
     setEditingCrop(null);
     setEditingUser(null);
-    setFormValue("");
+    setCropForm({ name: "", icon: "" });
     setPlotForm({
       code: "",
       zone: "",
@@ -235,19 +310,21 @@ export function ManagementScreen() {
           setPlots((current) => [item, ...current]);
         }
       } else if (variant === "crops") {
-        if (!formValue.trim()) return;
+        if (!cropForm.name.trim()) return;
         if (editingCrop) {
           const item = await updateCropType(editingCrop.id, {
-            name: formValue.trim(),
+            name: cropForm.name.trim(),
             category: editingCrop.category || "Master Data",
+            icon: cropForm.icon.trim() || undefined,
           });
           setCrops((current) =>
             current.map((crop) => (crop.id === item.id ? item : crop)),
           );
         } else {
           const item = await addCropType({
-            name: formValue.trim(),
+            name: cropForm.name.trim(),
             category: "Master Data",
+            icon: cropForm.icon.trim() || undefined,
           });
           setCrops((current) => [item, ...current]);
         }
@@ -293,7 +370,7 @@ export function ManagementScreen() {
   };
 
   const openEditSelectedItem = () => {
-    if (!actionItem || isManagementItemInactive(actionItem)) {
+    if (!actionItem) {
       setActionItem(null);
       return;
     }
@@ -315,7 +392,7 @@ export function ManagementScreen() {
     if (variant === "crops") {
       const crop = actionItem as CropTypeInfo;
       setEditingCrop(crop);
-      setFormValue(crop.name || "");
+      setCropForm({ name: crop.name || "", icon: crop.icon || "" });
       setActionItem(null);
       setAddOpen(true);
       return;
@@ -356,6 +433,23 @@ export function ManagementScreen() {
     }
   };
 
+  const restoreSelectedUser = async () => {
+    if (!actionItem?.id) return;
+    try {
+      const restored = await restoreUser(actionItem.id);
+      setUsers((current) =>
+        current.map((item) => (item.id === restored.id ? restored : item)),
+      );
+      notify("Đã mở khóa tài khoản farmer.");
+      setActionItem(null);
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : "Không thể mở khóa tài khoản.",
+        "error",
+      );
+    }
+  };
+
   const openResetPasswordSelectedUser = () => {
     if (!actionItem || isAdminAccount(actionItem) || actionItem.isRevoked) {
       setActionItem(null);
@@ -372,8 +466,8 @@ export function ManagementScreen() {
     notify("Nhập mật khẩu mới rồi bấm Lưu.", "warning");
   };
 
-  const requestDeactivate = () => {
-    if (!actionItem || isManagementItemInactive(actionItem)) {
+  const requestStatusChange = () => {
+    if (!actionItem || variant === "accounts") {
       setActionItem(null);
       return;
     }
@@ -381,53 +475,30 @@ export function ManagementScreen() {
     setActionItem(null);
   };
 
-  const activateSelectedItem = async () => {
-    if (!actionItem || isManagementItemActive(actionItem)) {
-      setActionItem(null);
-      return;
-    }
-
-    try {
-      if (variant === "plots") {
-        const item = await updatePlot(actionItem.id, { isActive: true });
-        setPlots((current) =>
-          current.map((plot) => (plot.id === item.id ? item : plot)),
-        );
-      }
-      if (variant === "crops") {
-        const item = await updateCropType(actionItem.id, { isActive: true });
-        setCrops((current) =>
-          current.map((crop) => (crop.id === item.id ? item : crop)),
-        );
-      }
-      notify("Đã hoạt động lại.", "success");
-      setActionItem(null);
-    } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Không thể hoạt động lại dữ liệu.",
-        "error",
-      );
-    }
-  };
-
-  const deactivateSelectedItem = async () => {
+  const updateSelectedItemStatus = async () => {
     if (!confirmItem) return;
+    const nextIsActive = isManagementItemInactive(confirmItem);
+
     try {
       if (variant === "plots") {
-        const item = await deactivatePlot(confirmItem.id);
+        const item = await setPlotActiveStatus(confirmItem.id, nextIsActive);
         setPlots((current) =>
           current.map((plot) => (plot.id === item.id ? item : plot)),
         );
       }
       if (variant === "crops") {
-        const item = await deactivateCropType(confirmItem.id);
+        const item = await setCropTypeActiveStatus(
+          confirmItem.id,
+          nextIsActive,
+        );
         setCrops((current) =>
           current.map((crop) => (crop.id === item.id ? item : crop)),
         );
       }
-      notify("Đã cập nhật trạng thái.", "warning");
+      notify(
+        nextIsActive ? "Đã hoạt động lại." : "Đã cập nhật trạng thái.",
+        nextIsActive ? "success" : "warning",
+      );
       setConfirmItem(null);
     } catch (error) {
       notify(
@@ -462,15 +533,17 @@ export function ManagementScreen() {
             visible={Boolean(actionItem)}
             variant={variant}
             inactive={
-              variant !== "accounts" &&
               Boolean(actionItem) &&
-              isManagementItemInactive(actionItem)
+              (variant === "accounts"
+                ? Boolean(actionItem.isRevoked)
+                : isManagementItemInactive(actionItem))
             }
             onClose={() => setActionItem(null)}
             onEdit={openEditSelectedItem}
-            onDeactivate={requestDeactivate}
-            onActivate={activateSelectedItem}
+            onDeactivate={requestStatusChange}
+            onActivate={requestStatusChange}
             onRevoke={variant === "accounts" ? revokeSelectedUser : undefined}
+            onRestore={variant === "accounts" ? restoreSelectedUser : undefined}
             onResetPassword={openResetPasswordSelectedUser}
           />
           {variant === "plots" ? (
@@ -485,83 +558,145 @@ export function ManagementScreen() {
           ) : (
             <BottomSheet
               visible={addOpen}
-              title={`${editingUser || editingCrop ? "Chỉnh sửa" : "Thêm"} ${title}`}
-              onClose={closeAddDrawer}
+              title={
+                cropIconPickerOpen
+                  ? "Chọn Icon"
+                  : `${editingUser || editingCrop ? "Chỉnh sửa" : "Thêm"} ${title}`
+              }
+              onClose={
+                cropIconPickerOpen
+                  ? () => setCropIconPickerOpen(false)
+                  : closeAddDrawer
+              }
+              full={cropIconPickerOpen}
             >
               <TouchableWithoutFeedback
                 accessible={false}
                 onPress={Keyboard.dismiss}
               >
-                <ScrollView
-                  contentContainerStyle={
-                    managementScreenStyles.managementEditDrawerContent
-                  }
-                  keyboardShouldPersistTaps="handled"
-                  showsVerticalScrollIndicator={false}
-                >
-                  {variant === "accounts" ? (
-                    <>
-                      <InputText
-                        containerStyle={managementScreenStyles.drawerFieldStack}
-                        label="Tên farmer"
-                        value={accountForm.name}
-                        onChangeText={(name) =>
-                          setAccountForm((current) => ({ ...current, name }))
-                        }
-                        placeholder="Nhập tên farmer"
-                      />
-                      <InputText
-                        autoCapitalize="none"
-                        containerStyle={managementScreenStyles.drawerFieldStack}
-                        label="Username đăng nhập"
-                        value={accountForm.username}
-                        onChangeText={(username) =>
-                          setAccountForm((current) => ({
-                            ...current,
-                            username,
-                          }))
-                        }
-                        placeholder="vd: farmer01"
-                      />
-                      <InputText
-                        containerStyle={managementScreenStyles.drawerFieldStack}
-                        label="Mật khẩu tạm thời"
-                        value={accountForm.password}
-                        onChangeText={(password) =>
-                          setAccountForm((current) => ({
-                            ...current,
-                            password,
-                          }))
-                        }
-                        secureTextEntry
-                        placeholder={
-                          editingUser
-                            ? "Để trống nếu không đổi"
-                            : "Nhập mật khẩu"
-                        }
-                      />
-                    </>
-                  ) : (
-                    <InputText
-                      containerStyle={managementScreenStyles.drawerFieldStack}
-                      label={title}
-                      value={formValue}
-                      onChangeText={setFormValue}
-                      placeholder={`Nhập ${title.toLowerCase()}`}
-                    />
-                  )}
-                  <PrimaryButton
-                    label="Lưu"
-                    onPress={addItem}
-                    disabled={
-                      variant === "accounts"
-                        ? !accountForm.name.trim() ||
-                          !accountForm.username.trim() ||
-                          (!editingUser && !accountForm.password.trim())
-                        : !formValue.trim()
+                {cropIconPickerOpen ? (
+                  <ScrollView
+                    contentContainerStyle={managementScreenStyles.cropIconGrid}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {cropIconOptions.map((icon) => {
+                      const selected = cropForm.icon === icon;
+                      return (
+                        <Pressable
+                          key={icon}
+                          style={[
+                            managementScreenStyles.cropIconOption,
+                            selected &&
+                              managementScreenStyles.cropIconOptionActive,
+                          ]}
+                          onPress={() => {
+                            setCropForm((current) => ({ ...current, icon }));
+                            setCropIconPickerOpen(false);
+                          }}
+                        >
+                          <Text
+                            style={managementScreenStyles.cropIconOptionText}
+                          >
+                            {icon}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <ScrollView
+                    contentContainerStyle={
+                      managementScreenStyles.managementEditDrawerContent
                     }
-                  />
-                </ScrollView>
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {variant === "accounts" ? (
+                      <>
+                        <InputText
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Tên farmer"
+                          value={accountForm.name}
+                          onChangeText={(name) =>
+                            setAccountForm((current) => ({ ...current, name }))
+                          }
+                          placeholder="Nhập tên farmer"
+                        />
+                        <InputText
+                          autoCapitalize="none"
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Username đăng nhập"
+                          value={accountForm.username}
+                          onChangeText={(username) =>
+                            setAccountForm((current) => ({
+                              ...current,
+                              username,
+                            }))
+                          }
+                          placeholder="vd: farmer01"
+                        />
+                        <InputText
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Mật khẩu tạm thời"
+                          value={accountForm.password}
+                          onChangeText={(password) =>
+                            setAccountForm((current) => ({
+                              ...current,
+                              password,
+                            }))
+                          }
+                          secureTextEntry
+                          placeholder={
+                            editingUser
+                              ? "Để trống nếu không đổi"
+                              : "Nhập mật khẩu"
+                          }
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <InputText
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label={title}
+                          value={cropForm.name}
+                          onChangeText={(name) =>
+                            setCropForm((current) => ({ ...current, name }))
+                          }
+                          placeholder={`Nhập ${title.toLowerCase()}`}
+                        />
+                        <InputSelection
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Chọn Icon"
+                          value={cropForm.icon}
+                          placeholder="Chọn icon loại cây"
+                          onPress={() => setCropIconPickerOpen(true)}
+                        />
+                      </>
+                    )}
+                    <PrimaryButton
+                      label="Lưu"
+                      onPress={addItem}
+                      disabled={
+                        variant === "accounts"
+                          ? !accountForm.name.trim() ||
+                            !accountForm.username.trim() ||
+                            (!editingUser && !accountForm.password.trim())
+                          : !cropForm.name.trim()
+                      }
+                    />
+                  </ScrollView>
+                )}
               </TouchableWithoutFeedback>
             </BottomSheet>
           )}
@@ -572,12 +707,15 @@ export function ManagementScreen() {
             onClose={() => setCsvMode(null)}
             onStart={startCsvImport}
           />
-          <ConfirmDeactivateDialog
+          <ConfirmStatusDialog
             visible={Boolean(confirmItem)}
             itemLabel={getManagementItemLabel(confirmItem, variant)}
+            isActivating={
+              Boolean(confirmItem) && isManagementItemInactive(confirmItem)
+            }
             variant={variant}
             onCancel={() => setConfirmItem(null)}
-            onConfirm={deactivateSelectedItem}
+            onConfirm={updateSelectedItemStatus}
           />
           <ManagementSnackbar
             toast={snackbar}
@@ -666,7 +804,6 @@ export function ManagementScreen() {
           <AccountManagementTable
             rows={pagedRows as User[]}
             total={visibleRows.length}
-            pageStart={(safePage - 1) * pageSize}
             onAction={setActionItem}
           />
         )}
@@ -683,13 +820,13 @@ export function ManagementScreen() {
 
 const managementScreenStyles = StyleSheet.create({
   managementHeader: {
-    paddingHorizontal: 35,
-    paddingTop: 16,
-    paddingBottom: 16,
-    gap: 16,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
+    paddingBottom: LAYOUT.sectionGap,
+    gap: LAYOUT.sectionGap,
   },
   managementHeaderAccounts: {
-    paddingTop: 24,
+    paddingTop: LAYOUT.screenTop,
     paddingBottom: 8,
   },
   managementAccountSearch: {
@@ -709,7 +846,7 @@ const managementScreenStyles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: COLORS.body,
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     padding: 0,
   },
   toolbar: {
@@ -729,7 +866,7 @@ const managementScreenStyles = StyleSheet.create({
   },
   importText: {
     color: COLORS.green,
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     fontWeight: "700",
   },
   addButton: {
@@ -744,14 +881,14 @@ const managementScreenStyles = StyleSheet.create({
   },
   addText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     fontWeight: "700",
   },
   managementList: {
     flex: 1,
   },
   managementListContent: {
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.screenX,
     paddingTop: 12,
     paddingBottom: 170,
   },
@@ -767,10 +904,37 @@ const managementScreenStyles = StyleSheet.create({
     height: 1,
   },
   drawerFieldStack: {
-    marginBottom: 16,
+    marginBottom: LAYOUT.sectionGap,
   },
   managementEditDrawerContent: {
-    paddingHorizontal: 24,
+    paddingTop: 4,
     paddingBottom: 72,
+  },
+  cropIconGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingTop: 4,
+    paddingBottom: LAYOUT.sheetBottom,
+  },
+  cropIconOption: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cropIconOptionActive: {
+    borderColor: COLORS.green,
+    backgroundColor: "#f0f8ed",
+  },
+  cropIconOptionText: {
+    color: COLORS.text,
+    fontSize: 24,
+    lineHeight: 28,
+    textAlign: "center",
   },
 });

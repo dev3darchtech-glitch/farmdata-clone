@@ -1,5 +1,5 @@
 import { getCaptureWeatherLabel } from "@/components/shared/CaptureFormParts";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import { Post } from "@/types";
 import {
   envName,
@@ -263,8 +263,8 @@ const imageViewerStyles = StyleSheet.create({
     top: 0,
     height: 110,
     zIndex: 5,
-    paddingHorizontal: 35,
-    paddingTop: 29,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -379,8 +379,8 @@ const imageViewerStyles = StyleSheet.create({
   },
   viewerActions: {
     position: "absolute",
-    left: 35,
-    right: 35,
+    left: LAYOUT.screenX,
+    right: LAYOUT.screenX,
     bottom: 28,
     height: 72,
     flexDirection: "row",

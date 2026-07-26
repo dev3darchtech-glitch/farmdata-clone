@@ -42,6 +42,42 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-notifications",
     [
+      "expo-font",
+      {
+        fonts: [
+          "./assets/fonts/BeVietnam-Regular.ttf",
+          "./assets/fonts/BeVietnam-Medium.ttf",
+          "./assets/fonts/BeVietnam-SemiBold.ttf",
+          "./assets/fonts/BeVietnam-Bold.ttf",
+        ],
+        android: {
+          fonts: [
+            {
+              fontFamily: "Be Vietnam",
+              fontDefinitions: [
+                {
+                  path: "./assets/fonts/BeVietnam-Regular.ttf",
+                  weight: 400,
+                },
+                {
+                  path: "./assets/fonts/BeVietnam-Medium.ttf",
+                  weight: 500,
+                },
+                {
+                  path: "./assets/fonts/BeVietnam-SemiBold.ttf",
+                  weight: 600,
+                },
+                {
+                  path: "./assets/fonts/BeVietnam-Bold.ttf",
+                  weight: 700,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+    [
       "expo-camera",
       {
         cameraPermission,

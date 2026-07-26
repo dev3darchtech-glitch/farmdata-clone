@@ -3,7 +3,7 @@ import authBackground from "@/assets/images/login-background.png";
 import loginEye from "@/assets/images/login-eye.png";
 import loginLock from "@/assets/images/login-lock.png";
 import loginUser from "@/assets/images/login-user.png";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/formSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -230,6 +230,7 @@ export function LoginScreen() {
                     render={({ field: { onBlur, onChange, value } }) => (
                       <InputText
                         {...invalidInputProps(emailInvalid)}
+                        containerStyle={loginScreenStyles.loginInputField}
                         testID="input-login-email"
                         value={value}
                         onBlur={onBlur}
@@ -267,6 +268,7 @@ export function LoginScreen() {
                     render={({ field: { onBlur, onChange, value } }) => (
                       <InputText
                         {...invalidInputProps(passwordInvalid)}
+                        containerStyle={loginScreenStyles.loginInputField}
                         testID="input-login-password"
                         value={value}
                         onBlur={onBlur}
@@ -367,7 +369,7 @@ const loginScreenStyles = StyleSheet.create({
   },
   loginContent: {
     flex: 1,
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.screenX,
     paddingTop: 70,
     paddingBottom: 28,
   },
@@ -415,6 +417,10 @@ const loginScreenStyles = StyleSheet.create({
     height: 20,
     marginLeft: 18,
     marginRight: 12,
+  },
+  loginInputField: {
+    flex: 1,
+    minWidth: 0,
   },
   loginTextInput: {
     flex: 1,
@@ -501,7 +507,7 @@ const loginScreenStyles = StyleSheet.create({
     transform: [{ translateY: -56 }],
   },
   successIconMargin: {
-    paddingBottom: 32,
+    paddingBottom: LAYOUT.screenGap,
   },
   successRing: {
     width: 96,
@@ -539,7 +545,7 @@ const loginScreenStyles = StyleSheet.create({
   },
   successProgressMargin: {
     width: 256,
-    paddingTop: 32,
+    paddingTop: LAYOUT.screenGap,
   },
   successProgressTrack: {
     width: 256,

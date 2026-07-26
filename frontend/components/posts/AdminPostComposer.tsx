@@ -5,7 +5,7 @@ import {
   CaptureWeatherOptions,
   getCaptureWeatherLabel,
 } from "@/components/shared/CaptureFormParts";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import {
   captureCropImage,
   pickCropImagesFromLibrary,
@@ -341,9 +341,9 @@ const postComposerStyles = StyleSheet.create({
   },
   composerHeader: {
     minHeight: 88,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
+    paddingBottom: LAYOUT.sectionGap,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#edf0ea",
@@ -373,10 +373,10 @@ const postComposerStyles = StyleSheet.create({
     justifyContent: "center",
   },
   composerContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
     paddingBottom: 120,
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   composerSection: {
     gap: 14,
@@ -391,9 +391,9 @@ const postComposerStyles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 24,
+    paddingHorizontal: LAYOUT.screenX,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: LAYOUT.screenTop,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#edf0ea",

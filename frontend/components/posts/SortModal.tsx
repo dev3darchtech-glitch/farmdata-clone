@@ -1,3 +1,4 @@
+import { LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -82,9 +83,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     backgroundColor: "#fff",
-    paddingHorizontal: 35,
-    paddingTop: 24,
-    gap: 24,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingTop: LAYOUT.modalY,
+    gap: LAYOUT.screenGap,
   },
   handle: {
     width: 48,
@@ -95,8 +96,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#1f2937",
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.title,
+    lineHeight: TYPOGRAPHY.titleLine,
     fontWeight: "700",
   },
   optionList: { width: "100%" },
@@ -110,8 +111,8 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: "#374151",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   radio: {
     width: 16,
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
   footer: {
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
-    paddingTop: 17,
+    paddingTop: LAYOUT.sectionGap,
   },
   cancelButton: {
     height: 48,
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: "#31582b",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
 });
