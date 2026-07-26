@@ -5,7 +5,8 @@ import { SymptomData, SymptomSeverity, SymptomValidationResult } from "@/types";
  * - <= 10%: 'Chớm bệnh'
  * - <= 25%: 'Nhẹ' (10.1% - 25%)
  * - <= 50%: 'Vừa' (25.1% - 50%)
- * - > 50%:  'Rất nặng' (50.1% - 100%)
+ * - <= 75%: 'Nặng' (50.1% - 75%)
+ * - > 75%:  'Rất nặng' (75.1% - 100%)
  */
 export function classifySymptomSeverity(percentage: number): SymptomSeverity {
   if (percentage <= 10) {
@@ -16,6 +17,9 @@ export function classifySymptomSeverity(percentage: number): SymptomSeverity {
   }
   if (percentage <= 50) {
     return "Vừa";
+  }
+  if (percentage <= 75) {
+    return "Nặng";
   }
   return "Rất nặng";
 }

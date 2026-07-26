@@ -22,6 +22,6 @@ export default function Index() {
   }
 
   return (
-    <Redirect href={isAuthenticated ? "/(tabs)/capture" : "/(auth)/login"} />
+    <Redirect href={isAuthenticated ? "/(tabs)/posts" : "/(auth)/login"} />
   );
 }

@@ -1,3 +1,3 @@
-import { LoginScreen } from "@/components/farm/FarmDataScreens";
+import { LoginScreen } from "@/components/screens/LoginScreen";
 
 export default LoginScreen;

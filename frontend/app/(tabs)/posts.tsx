@@ -1,3 +1,3 @@
-import { PostsScreen } from "@/components/farm/FarmDataScreens";
+import { PostsScreen } from "@/components/screens/PostsScreen";
 
 export default PostsScreen;

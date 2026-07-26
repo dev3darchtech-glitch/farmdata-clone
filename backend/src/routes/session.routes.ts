@@ -6,7 +6,7 @@ const router = Router();
 
 /**
  * POST /api/sessions
- * Creates a CaptureSession and automatically generates linked Post in MongoDB.
+ * Creates a CaptureSession in MongoDB.
  * Enforces role check (FARMER or ADMIN).
  */
 router.post(

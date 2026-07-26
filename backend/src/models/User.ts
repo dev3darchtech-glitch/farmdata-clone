@@ -9,14 +9,26 @@ export interface IUserGoogleTokens {
   isLinked: boolean;
 }
 
+export interface IUserPushToken {
+  token: string;
+  platform: "android" | "ios";
+  provider: "expo";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IUserDocument extends Document {
   name: string;
-  email: string;
+  email?: string;
   username: string;
   passwordHash: string;
   role: RoleName;
   createdByAdminId?: mongoose.Types.ObjectId;
+  isRevoked: boolean;
+  revokedAt?: Date;
+  revokedByAdminId?: mongoose.Types.ObjectId;
   googleTokens?: IUserGoogleTokens;
+  pushTokens?: IUserPushToken[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,8 +48,8 @@ const UserSchema = new Schema<IUserDocument>(
     name: { type: String, required: true },
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
@@ -48,7 +60,9 @@ const UserSchema = new Schema<IUserDocument>(
       trim: true,
       match: /^[a-z0-9]+$/,
       default: function (this: IUserDocument) {
-        return createUsernameFromEmail(this.email);
+        return this.email
+          ? createUsernameFromEmail(this.email)
+          : `user${Date.now()}`;
       },
     },
     passwordHash: { type: String, required: true, select: false },
@@ -58,6 +72,9 @@ const UserSchema = new Schema<IUserDocument>(
       default: "FARMER",
     },
     createdByAdminId: { type: Schema.Types.ObjectId, ref: "User" },
+    isRevoked: { type: Boolean, default: false },
+    revokedAt: { type: Date },
+    revokedByAdminId: { type: Schema.Types.ObjectId, ref: "User" },
     googleTokens: {
       accessToken: { type: String },
       refreshToken: { type: String },
@@ -65,6 +82,15 @@ const UserSchema = new Schema<IUserDocument>(
       email: { type: String },
       isLinked: { type: Boolean, default: false },
     },
+    pushTokens: [
+      {
+        token: { type: String, required: true },
+        platform: { type: String, enum: ["android", "ios"], required: true },
+        provider: { type: String, enum: ["expo"], default: "expo" },
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true },
 );
@@ -74,6 +100,9 @@ UserSchema.pre("validate", function (next) {
     this.username = createUsernameFromEmail(this.email);
   } else if (this.username) {
     this.username = this.username.toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+  if (this.email === "") {
+    this.email = undefined;
   }
   next();
 });

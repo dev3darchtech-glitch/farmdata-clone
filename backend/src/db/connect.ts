@@ -127,7 +127,9 @@ export async function seedDefaultsIfEmpty() {
     });
 
     for (const user of usersWithoutUsername) {
-      user.username = createUsernameFromEmail(user.email);
+      user.username = user.email
+        ? createUsernameFromEmail(user.email)
+        : `user${user._id.toString().slice(-6)}`;
       await user.save();
     }
 

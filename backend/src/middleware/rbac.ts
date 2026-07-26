@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../configs/env";
+import { UserModel } from "../models/User";
 import { RoleName } from "../types";
 
 export const JWT_SECRET = env.jwtSecret;
@@ -38,8 +39,27 @@ export function authenticateToken(
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
-    req.user = decoded;
-    next();
+    UserModel.findById(decoded.id)
+      .select("name email username role isRevoked")
+      .then((user) => {
+        if (!user) {
+          return res.status(403).json({ error: "Forbidden: User not found" });
+        }
+        if (user.isRevoked) {
+          return res.status(403).json({ error: "Forbidden: Account revoked" });
+        }
+        req.user = {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email || "",
+          username: user.username,
+          role: user.role,
+        };
+        next();
+      })
+      .catch(() =>
+        res.status(403).json({ error: "Forbidden: Invalid token user" }),
+      );
   } catch (err) {
     return res
       .status(403)

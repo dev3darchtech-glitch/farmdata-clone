@@ -3,9 +3,16 @@ import { CropTypeInfo, PlotInfo, User } from "@/types";
 import {
   createCropAPI,
   createPlotAPI,
+  createUserAPI,
+  deactivateCropAPI,
+  deactivatePlotAPI,
   fetchCropsAPI,
   fetchPlotsAPI,
   fetchUsersAPI,
+  revokeUserAPI,
+  updateCropAPI,
+  updatePlotAPI,
+  updateUserAPI,
 } from "./apiClient";
 
 export const csvRowSchema = z.object({
@@ -27,6 +34,19 @@ export async function addCropType(
   return await createCropAPI(crop);
 }
 
+export async function updateCropType(
+  cropId: string,
+  crop: Partial<Omit<CropTypeInfo, "id">>,
+): Promise<CropTypeInfo> {
+  return await updateCropAPI(cropId, crop);
+}
+
+export async function deactivateCropType(
+  cropId: string,
+): Promise<CropTypeInfo> {
+  return await deactivateCropAPI(cropId);
+}
+
 export async function getPlots(): Promise<PlotInfo[]> {
   return await fetchPlotsAPI();
 }
@@ -35,8 +55,44 @@ export async function addPlot(plot: Omit<PlotInfo, "id">): Promise<PlotInfo> {
   return await createPlotAPI(plot);
 }
 
+export async function updatePlot(
+  plotId: string,
+  plot: Partial<Omit<PlotInfo, "id">>,
+): Promise<PlotInfo> {
+  return await updatePlotAPI(plotId, plot);
+}
+
+export async function deactivatePlot(plotId: string): Promise<PlotInfo> {
+  return await deactivatePlotAPI(plotId);
+}
+
 export async function getUsers(): Promise<User[]> {
   return await fetchUsersAPI();
+}
+
+export async function addUser(user: {
+  name: string;
+  username: string;
+  password: string;
+  role?: string;
+}): Promise<User> {
+  return await createUserAPI({
+    name: user.name,
+    username: user.username,
+    password: user.password,
+    role: user.role || "FARMER",
+  });
+}
+
+export async function revokeUser(userId: string): Promise<User> {
+  return await revokeUserAPI(userId);
+}
+
+export async function updateUser(
+  userId: string,
+  user: { name?: string; username?: string; password?: string },
+): Promise<User> {
+  return await updateUserAPI(userId, user);
 }
 
 export async function importCSV(
@@ -83,7 +139,9 @@ export async function importCSV(
       continue;
     }
 
-    const values = line.split(",").map((v) => v.trim().replace(/^["']|["']$/g, ""));
+    const values = line
+      .split(",")
+      .map((v) => v.trim().replace(/^["']|["']$/g, ""));
 
     if (!headers) {
       headers = values.map((h) => h.toLowerCase());
@@ -96,9 +154,17 @@ export async function importCSV(
     });
 
     const plotCode =
-      rowMap["plot_code"] || rowMap["code"] || rowMap["plotcode"] || values[0] || "";
+      rowMap["plot_code"] ||
+      rowMap["code"] ||
+      rowMap["plotcode"] ||
+      values[0] ||
+      "";
     const name =
-      rowMap["name"] || rowMap["plot_name"] || rowMap["plotname"] || values[1] || "";
+      rowMap["name"] ||
+      rowMap["plot_name"] ||
+      rowMap["plotname"] ||
+      values[1] ||
+      "";
     const rawArea =
       rowMap["area"] || rowMap["areasquaremeters"] || values[2] || "";
     const status = rowMap["status"] || values[3] || "active";
@@ -126,7 +192,9 @@ export async function importCSV(
       continue;
     }
 
-    const uniqueKey = plotCode ? plotCode.toLowerCase() : JSON.stringify(rowData);
+    const uniqueKey = plotCode
+      ? plotCode.toLowerCase()
+      : JSON.stringify(rowData);
     if (seenCodes.has(uniqueKey)) {
       skipped++;
       continue;
@@ -143,5 +211,3 @@ export async function importCSV(
 
   return { success, skipped, errors };
 }
-
-

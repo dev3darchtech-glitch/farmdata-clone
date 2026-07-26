@@ -1,4 +1,5 @@
 import * as authService from "@/services/authService";
+import { unregisterLastPushToken } from "@/services/notificationService";
 import { AuthState, AuthTokens, User } from "@/types";
 import React, {
   createContext,
@@ -133,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleLogout = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
+      await unregisterLastPushToken();
       await authService.logout();
       setState({
         user: null,
@@ -152,26 +154,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const handleRefreshToken = useCallback(async (): Promise<AuthTokens | null> => {
-    if (!state.tokens?.refreshToken) {
-      await handleLogout();
-      return null;
-    }
-    try {
-      const newTokens = await authService.refreshToken(
-        state.tokens.refreshToken,
-      );
-      setState((prev) => ({
-        ...prev,
-        tokens: newTokens,
-        isAuthenticated: true,
-      }));
-      return newTokens;
-    } catch {
-      await handleLogout();
-      return null;
-    }
-  }, [handleLogout, state.tokens?.refreshToken]);
+  const handleRefreshToken =
+    useCallback(async (): Promise<AuthTokens | null> => {
+      if (!state.tokens?.refreshToken) {
+        await handleLogout();
+        return null;
+      }
+      try {
+        const newTokens = await authService.refreshToken(
+          state.tokens.refreshToken,
+        );
+        setState((prev) => ({
+          ...prev,
+          tokens: newTokens,
+          isAuthenticated: true,
+        }));
+        return newTokens;
+      } catch {
+        await handleLogout();
+        return null;
+      }
+    }, [handleLogout, state.tokens?.refreshToken]);
 
   return (
     <AuthContext.Provider

@@ -3,17 +3,21 @@ import {
   CropTypeInfo,
   PlotInfo,
   Post,
+  GrowthStageId,
+  SymptomSeverity,
   User,
   UserRole,
 } from "@/types";
 
-const BACKEND_URL =
+export const BACKEND_URL =
   process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
 
 let activeJwtToken: string | null = null;
 
 export interface BackendLoginResponse {
   token: string;
+  refreshToken?: string;
+  expiresIn?: number;
   user: User;
 }
 
@@ -33,6 +37,28 @@ function getAuthHeaders(): Record<string, string> {
     headers["Authorization"] = `Bearer ${activeJwtToken}`;
   }
   return headers;
+}
+
+function mapPlot(p: any): PlotInfo {
+  return {
+    id: p._id || p.id,
+    code: p.code,
+    name: p.name,
+    areaSquareMeters: p.areaSquareMeters,
+    isActive: p.isActive !== false,
+    status: p.status,
+  };
+}
+
+function mapCrop(c: any): CropTypeInfo {
+  return {
+    id: c._id || c.id,
+    name: c.name,
+    category: c.category,
+    icon: c.icon,
+    isActive: c.isActive !== false,
+    status: c.status,
+  };
 }
 
 /**
@@ -79,13 +105,43 @@ export async function fetchCurrentUserProfile(): Promise<User> {
   return data.user as User;
 }
 
+export async function registerPushTokenAPI(pushToken: {
+  platform: "android" | "ios";
+  token: string;
+}): Promise<void> {
+  const res = await fetch(`${BACKEND_URL}/auth/push-token`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(pushToken),
+  }).catch(() => {
+    throw new Error("Không thể đăng ký thông báo đẩy.");
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể đăng ký thông báo đẩy.");
+  }
+}
+
+export async function unregisterPushTokenAPI(token: string): Promise<void> {
+  const res = await fetch(`${BACKEND_URL}/auth/push-token`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ token }),
+  }).catch(() => undefined);
+
+  if (res && !res.ok) {
+    throw new Error("Không thể hủy thông báo đẩy.");
+  }
+}
+
 /**
  * Submit CaptureSession directly to backend API.
  */
 export async function submitCaptureSession(
   sessionData: Omit<CaptureSession, "id" | "status" | "createdAt">,
   onProgress?: (step: string, current: number, total: number) => void,
-): Promise<{ session: CaptureSession; post: Post }> {
+): Promise<{ session: CaptureSession }> {
   const totalImages = sessionData.images.length;
   if (onProgress) {
     for (let i = 1; i <= totalImages; i++) {
@@ -102,60 +158,54 @@ export async function submitCaptureSession(
 
     if (res.ok) {
       const data = await res.json();
-      return { session: data.session, post: data.post };
+      return { session: data.session };
     }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể lưu phiên chụp.");
   } catch (err) {
-    // Silent offline catch
+    throw err instanceof Error
+      ? err
+      : new Error("Không thể kết nối đến máy chủ.");
   }
-
-  const sessionId = `SESS-${Date.now()}`;
-  const mockSession: CaptureSession = {
-    ...sessionData,
-    id: sessionId,
-    status: "COMPLETED",
-    createdAt: new Date().toISOString(),
-  };
-
-  const mockPost: Post = {
-    id: `POST-${Date.now()}`,
-    sessionId,
-    user: {
-      id: sessionData.farmerId || "FARMER-01",
-      name: sessionData.farmerName || "Nông dân Nguyễn Văn An",
-      email: sessionData.farmerEmail || "an.nguyen@farm.vn",
-      role: "farmer",
-    },
-    cropType: sessionData.cropType,
-    plotId: sessionData.plotId,
-    growthStage: sessionData.growthStage,
-    envMode: sessionData.envMode,
-    symptomDescription: sessionData.symptomDescription,
-    severity: sessionData.severity,
-    images: sessionData.images,
-    stationMeasurements: sessionData.stationMeasurements,
-    localMeasurements: sessionData.localMeasurements,
-    status: "PUBLISHED",
-    createdAt: new Date().toISOString(),
-  };
-
-  return { session: mockSession, post: mockPost };
 }
 
 /**
- * Fetch Post Feed directly from backend API using server-side query parameters (`crop`, `q`).
+ * Fetch Post Feed directly from backend API using server-side filters and sorting.
  */
 export async function fetchPostFeed(
   role: UserRole = "farmer",
-  cropFilter?: string,
-  searchQuery?: string,
+  filters: {
+    crop?: string;
+    env?: string;
+    plot?: string;
+    q?: string;
+    severity?: string;
+    sort?: string;
+  } = {},
 ): Promise<Post[]> {
   try {
     const url = new URL(`${BACKEND_URL}/posts`);
-    if (cropFilter && cropFilter !== "ALL") {
-      url.searchParams.set("crop", cropFilter);
+    if (filters.crop && filters.crop !== "all" && filters.crop !== "ALL") {
+      url.searchParams.set("crop", filters.crop);
     }
-    if (searchQuery && searchQuery.trim()) {
-      url.searchParams.set("q", searchQuery.trim());
+    if (filters.env && filters.env !== "all" && filters.env !== "ALL") {
+      url.searchParams.set("env", filters.env);
+    }
+    if (filters.plot && filters.plot !== "all" && filters.plot !== "ALL") {
+      url.searchParams.set("plot", filters.plot);
+    }
+    if (
+      filters.severity &&
+      filters.severity !== "all" &&
+      filters.severity !== "ALL"
+    ) {
+      url.searchParams.set("severity", filters.severity);
+    }
+    if (filters.q && filters.q.trim()) {
+      url.searchParams.set("q", filters.q.trim());
+    }
+    if (filters.sort) {
+      url.searchParams.set("sort", filters.sort);
     }
 
     const res = await fetch(url.toString(), {
@@ -165,11 +215,57 @@ export async function fetchPostFeed(
     if (res.ok) {
       return await res.json();
     }
-  } catch (err) {
+  } catch {
     // Silent offline catch
   }
 
   return [];
+}
+
+export async function fetchPostById(postId: string): Promise<Post | null> {
+  if (!postId) return null;
+
+  const res = await fetch(`${BACKEND_URL}/posts/${encodeURIComponent(postId)}`, {
+    headers: getAuthHeaders(),
+  }).catch(() => {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  });
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể tải bài đăng.");
+  }
+
+  return data as Post;
+}
+
+export async function createManualPostAPI(postData: {
+  cropType: string;
+  growthStage: GrowthStageId;
+  images?: string[];
+  plotId: string;
+  severity: SymptomSeverity;
+  symptomDescription: string;
+  weatherCode: number;
+}): Promise<Post> {
+  const res = await fetch(`${BACKEND_URL}/posts`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(postData),
+  }).catch(() => {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể đăng bài.");
+  }
+
+  return data as Post;
 }
 
 /**
@@ -177,19 +273,14 @@ export async function fetchPostFeed(
  */
 export async function fetchPlotsAPI(): Promise<PlotInfo[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/plots`, {
+    const res = await fetch(`${BACKEND_URL}/master-data/plots`, {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
       const plots = await res.json();
-      return plots.map((p: any) => ({
-        id: p._id || p.id,
-        code: p.code,
-        name: p.name,
-        areaSquareMeters: p.areaSquareMeters,
-      }));
+      return plots.map(mapPlot);
     }
-  } catch (err) {
+  } catch {
     // Silent offline catch
   }
   return [];
@@ -210,23 +301,47 @@ export async function createPlotAPI(
 
     if (res.ok) {
       const p = await res.json();
-      return {
-        id: p._id || p.id,
-        code: p.code,
-        name: p.name,
-        areaSquareMeters: p.areaSquareMeters,
-      };
+      return mapPlot(p);
     }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể tạo mã luống.");
   } catch (err) {
-    // Silent offline catch
+    throw err instanceof Error
+      ? err
+      : new Error("Không thể kết nối đến máy chủ.");
+  }
+}
+
+export async function updatePlotAPI(
+  plotId: string,
+  plot: Partial<Omit<PlotInfo, "id">>,
+): Promise<PlotInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/plots/${plotId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(plot),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật mã luống.");
   }
 
-  return {
-    id: `PLOT-${Date.now()}`,
-    code: plot.code,
-    name: plot.name,
-    areaSquareMeters: plot.areaSquareMeters,
-  };
+  return mapPlot(data);
+}
+
+export async function deactivatePlotAPI(plotId: string): Promise<PlotInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/plots/${plotId}/deactivate`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể ngừng sử dụng mã luống.");
+  }
+
+  return mapPlot(data);
 }
 
 /**
@@ -234,19 +349,14 @@ export async function createPlotAPI(
  */
 export async function fetchCropsAPI(): Promise<CropTypeInfo[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/crops`, {
+    const res = await fetch(`${BACKEND_URL}/master-data/crops`, {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
       const crops = await res.json();
-      return crops.map((c: any) => ({
-        id: c._id || c.id,
-        name: c.name,
-        category: c.category,
-        icon: c.icon,
-      }));
+      return crops.map(mapCrop);
     }
-  } catch (err) {
+  } catch {
     // Silent offline catch
   }
   return [];
@@ -267,23 +377,47 @@ export async function createCropAPI(
 
     if (res.ok) {
       const c = await res.json();
-      return {
-        id: c._id || c.id,
-        name: c.name,
-        category: c.category,
-        icon: c.icon,
-      };
+      return mapCrop(c);
     }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể tạo loại cây.");
   } catch (err) {
-    // Silent offline catch
+    throw err instanceof Error
+      ? err
+      : new Error("Không thể kết nối đến máy chủ.");
+  }
+}
+
+export async function updateCropAPI(
+  cropId: string,
+  crop: Partial<Omit<CropTypeInfo, "id">>,
+): Promise<CropTypeInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/crops/${cropId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(crop),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật loại cây.");
   }
 
-  return {
-    id: `CROP-${Date.now()}`,
-    name: crop.name,
-    category: crop.category,
-    icon: crop.icon,
-  };
+  return mapCrop(data);
+}
+
+export async function deactivateCropAPI(cropId: string): Promise<CropTypeInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/crops/${cropId}/deactivate`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể ngừng sử dụng loại cây.");
+  }
+
+  return mapCrop(data);
 }
 
 /**
@@ -300,10 +434,17 @@ export async function fetchUsersAPI(): Promise<User[]> {
         id: u._id || u.id,
         name: u.name,
         email: u.email,
+        username: u.username,
         role: u.role,
+        isRevoked: Boolean(u.isRevoked),
+        revokedAt: u.revokedAt,
+        createdByAdminId:
+          typeof u.createdByAdminId === "string"
+            ? u.createdByAdminId
+            : u.createdByAdminId?._id || u.createdByAdminId?.id,
       }));
     }
-  } catch (err) {
+  } catch {
     // Silent offline catch
   }
   return [];
@@ -314,7 +455,7 @@ export async function fetchUsersAPI(): Promise<User[]> {
  */
 export async function createUserAPI(userData: {
   name: string;
-  email: string;
+  username: string;
   password: string;
   role: string;
 }): Promise<User> {
@@ -331,17 +472,87 @@ export async function createUserAPI(userData: {
         id: u._id || u.id,
         name: u.name,
         email: u.email,
+        username: u.username,
         role: u.role,
+        isRevoked: Boolean(u.isRevoked),
+        revokedAt: u.revokedAt,
+        createdByAdminId:
+          typeof u.createdByAdminId === "string"
+            ? u.createdByAdminId
+            : u.createdByAdminId?._id || u.createdByAdminId?.id,
       };
     }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể tạo tài khoản.");
   } catch (err) {
-    // Silent offline catch
+    throw err instanceof Error
+      ? err
+      : new Error("Không thể kết nối đến máy chủ.");
+  }
+}
+
+/**
+ * Update Farmer account profile/password.
+ */
+export async function updateUserAPI(
+  userId: string,
+  userData: {
+    name?: string;
+    username?: string;
+    password?: string;
+  },
+): Promise<User> {
+  const res = await fetch(`${BACKEND_URL}/admin/users/${userId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(userData),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật tài khoản.");
   }
 
   return {
-    id: `USER-${Date.now()}`,
-    name: userData.name,
-    email: userData.email,
-    role: userData.role as any,
+    id: data._id || data.id,
+    name: data.name,
+    email: data.email,
+    username: data.username,
+    role: data.role,
+    isRevoked: Boolean(data.isRevoked),
+    revokedAt: data.revokedAt,
+    createdByAdminId:
+      typeof data.createdByAdminId === "string"
+        ? data.createdByAdminId
+        : data.createdByAdminId?._id || data.createdByAdminId?.id,
+  };
+}
+
+/**
+ * Revoke a farmer account. Revoked users can no longer log in or use existing JWTs.
+ */
+export async function revokeUserAPI(userId: string): Promise<User> {
+  const res = await fetch(`${BACKEND_URL}/admin/users/${userId}/revoke`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể thu hồi tài khoản.");
+  }
+
+  return {
+    id: data._id || data.id,
+    name: data.name,
+    email: data.email,
+    username: data.username,
+    role: data.role,
+    isRevoked: Boolean(data.isRevoked),
+    revokedAt: data.revokedAt,
+    createdByAdminId:
+      typeof data.createdByAdminId === "string"
+        ? data.createdByAdminId
+        : data.createdByAdminId?._id || data.createdByAdminId?.id,
   };
 }

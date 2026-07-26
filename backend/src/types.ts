@@ -3,20 +3,29 @@ export type RoleName = "FARMER" | "ADMIN";
 export interface UserAccount {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   username: string;
   passwordHash: string;
   role: RoleName;
 }
 
-export type GrowthStageId =
-  | "newly_planted"
-  | "vegetative"
-  | "flowering"
-  | "fruiting"
-  | "harvest";
+export const GROWTH_STAGE_IDS = [
+  "newly_planted",
+  "vegetative",
+  "flowering",
+  "fruiting",
+  "harvest",
+] as const;
+export type GrowthStageId = (typeof GROWTH_STAGE_IDS)[number];
 export type EnvMode = "outdoor" | "greenhouse";
-export type SymptomSeverity = "Chớm bệnh" | "Nhẹ" | "Vừa" | "Rất nặng";
+export const SYMPTOM_SEVERITY_VALUES = [
+  "Chớm bệnh",
+  "Nhẹ",
+  "Vừa",
+  "Nặng",
+  "Rất nặng",
+] as const;
+export type SymptomSeverity = (typeof SYMPTOM_SEVERITY_VALUES)[number];
 export type SessionStatus = "DRAFT" | "UPLOADING" | "COMPLETED" | "FAILED";
 export type PostStatus = "GENERATING" | "PUBLISHED" | "FAILED";
 
@@ -25,18 +34,38 @@ export interface WeatherCondition {
   lightUvIndex: number;
   windSpeed: number;
   co2Level: number;
+  humidity?: number;
+  weatherCode?: number;
+  soilPh?: string;
+  soilEc?: string;
+  soilDo?: string;
+  soilHumidity?: string;
+}
+
+export interface CaptureLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp?: string;
+  isMocked?: boolean;
+  name?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  formattedAddress?: string;
 }
 
 export interface CaptureSessionRecord {
   id: string;
   farmerId: string;
   farmerName: string;
-  farmerEmail: string;
+  farmerEmail?: string;
   images: string[];
   plotId?: string;
   cropType: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
+  captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
   localMeasurements?: WeatherCondition;
   symptomDescription: string;
@@ -51,13 +80,14 @@ export interface PostRecord {
   user: {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     role: RoleName;
   };
   cropType: string;
   plotId?: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
+  captureLocation?: CaptureLocation;
   symptomDescription: string;
   severity: SymptomSeverity;
   images: string[];
