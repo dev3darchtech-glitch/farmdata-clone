@@ -19,12 +19,14 @@ export function InputSelection({
   error,
   containerStyle,
   fieldStyle,
+  disabled,
   onPress,
   icon,
   testID,
 }: {
   containerStyle?: StyleProp<ViewStyle>;
   fieldStyle?: StyleProp<ViewStyle>;
+  disabled?: boolean;
   label: string;
   value?: string;
   placeholder: string;
@@ -38,9 +40,11 @@ export function InputSelection({
     <View style={[inputSelectionStyles.fieldStack, containerStyle]}>
       <FieldLabel required={required}>{label}</FieldLabel>
       <Pressable
+        disabled={disabled}
         testID={testID}
         style={[
           inputSelectionStyles.selectField,
+          disabled && inputSelectionStyles.disabledField,
           fieldStyle,
           error && inputSelectionStyles.invalidField,
         ]}
@@ -57,7 +61,7 @@ export function InputSelection({
             {value || placeholder}
           </Text>
         </View>
-        <ChevronDown size={20} color={COLORS.body} />
+        <ChevronDown size={20} color={disabled ? COLORS.muted : COLORS.body} />
       </Pressable>
       {error ? (
         <Text style={inputSelectionStyles.fieldErrorText}>{error}</Text>
@@ -83,6 +87,10 @@ const inputSelectionStyles = StyleSheet.create({
   },
   invalidField: {
     borderColor: COLORS.danger,
+  },
+  disabledField: {
+    backgroundColor: "#f9fafb",
+    opacity: 0.65,
   },
   valueRow: {
     flexDirection: "row",

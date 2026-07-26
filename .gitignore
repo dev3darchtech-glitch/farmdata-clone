@@ -46,3 +46,6 @@ app-example
 **/.env
 **/android/
 **/ios/
+backend/gcloud.service-account.json
+backend/gcloud.local.json
+backend/gcloud.*.local.json

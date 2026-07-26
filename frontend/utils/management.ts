@@ -38,6 +38,7 @@ export function getManagementItemLabel(
 ): string {
   if (!item) return "";
   if (variant === "accounts") return item.username || item.name || "";
+  if (variant === "diseases") return item.name || item.type || "";
   return item.code || item.name || "";
 }
 

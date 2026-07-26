@@ -10,9 +10,43 @@ import { notifyPostPublished } from "../services/pushNotificationService";
 import {
   GROWTH_STAGE_IDS,
   GrowthStageId,
+  PLANT_DISEASE_GROUPS,
+  PlantDiseaseGroup,
   SYMPTOM_SEVERITY_VALUES,
   SymptomSeverity,
 } from "../types";
+
+function normalizeDiseaseFields(req: Request, res: Response) {
+  const diseaseGroup =
+    typeof req.body?.diseaseGroup === "string"
+      ? req.body.diseaseGroup.trim()
+      : "";
+  const diseaseType =
+    typeof req.body?.diseaseType === "string"
+      ? req.body.diseaseType.trim()
+      : "";
+  const diseaseName =
+    typeof req.body?.diseaseName === "string"
+      ? req.body.diseaseName.trim()
+      : "";
+
+  if (!diseaseGroup && !diseaseType && !diseaseName) {
+    return {};
+  }
+
+  if (
+    !PLANT_DISEASE_GROUPS.includes(diseaseGroup as PlantDiseaseGroup) ||
+    !diseaseType ||
+    !diseaseName
+  ) {
+    res.status(400).json({
+      error: "diseaseGroup, diseaseType, and diseaseName are required",
+    });
+    return undefined;
+  }
+
+  return { diseaseGroup, diseaseType, diseaseName };
+}
 
 /**
  * GET /api/posts
@@ -146,6 +180,9 @@ export const createPost = async (req: Request, res: Response) => {
       driveFiles: session.driveFiles,
       stationMeasurements: session.stationMeasurements,
       localMeasurements: session.localMeasurements,
+      diseaseGroup: session.diseaseGroup,
+      diseaseType: session.diseaseType,
+      diseaseName: session.diseaseName,
       status: "PUBLISHED",
     });
 
@@ -158,7 +195,10 @@ export const createPost = async (req: Request, res: Response) => {
   if (!cropType || typeof cropType !== "string" || !cropType.trim()) {
     return res.status(400).json({ error: "cropType is required" });
   }
-  if (!growthStage || !GROWTH_STAGE_IDS.includes(growthStage as GrowthStageId)) {
+  if (
+    !growthStage ||
+    !GROWTH_STAGE_IDS.includes(growthStage as GrowthStageId)
+  ) {
     return res.status(400).json({ error: "growthStage is invalid" });
   }
   if (!severity || typeof severity !== "string") {
@@ -190,6 +230,10 @@ export const createPost = async (req: Request, res: Response) => {
     weatherCode: normalizedWeatherCode,
   };
   const cleanPlotId = plotId.trim().toUpperCase();
+  const normalizedDisease = normalizeDiseaseFields(req, res);
+  if (normalizedDisease === undefined) {
+    return;
+  }
   let postImages: string[] = [];
   let driveFiles;
 
@@ -211,6 +255,7 @@ export const createPost = async (req: Request, res: Response) => {
             growthStage,
             envMode: "outdoor",
             stationMeasurements,
+            ...normalizedDisease,
             symptomDescription: cleanSymptomDescription,
             severity: normalizedSeverity,
           },
@@ -228,7 +273,8 @@ export const createPost = async (req: Request, res: Response) => {
     const driveImageLinks = driveFiles
       .map((file) => file.webContentLink || file.webViewLink)
       .filter((link): link is string => Boolean(link));
-    postImages = driveImageLinks.length === images.length ? driveImageLinks : images;
+    postImages =
+      driveImageLinks.length === images.length ? driveImageLinks : images;
   }
 
   const post = await PostModel.create({
@@ -249,6 +295,7 @@ export const createPost = async (req: Request, res: Response) => {
     images: postImages,
     driveFiles,
     stationMeasurements,
+    ...normalizedDisease,
     status: "PUBLISHED",
   });
 

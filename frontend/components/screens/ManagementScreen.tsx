@@ -1,20 +1,30 @@
 import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import {
   addCropType,
+  addPlantDisease,
   addPlot,
   addUser,
   getCropTypes,
+  getPlantDiseases,
   getPlots,
   getUsers,
   restoreUser,
   revokeUser,
   setCropTypeActiveStatus,
+  setPlantDiseaseActiveStatus,
   setPlotActiveStatus,
   updateCropType,
+  updatePlantDisease,
   updatePlot,
   updateUser,
 } from "@/services/adminService";
-import { CropTypeInfo, PlotInfo, User } from "@/types";
+import {
+  CropTypeInfo,
+  PlantDiseaseGroup,
+  PlantDiseaseInfo,
+  PlotInfo,
+  User,
+} from "@/types";
 import {
   type CsvImportMode,
   type ManagementVariant,
@@ -49,6 +59,7 @@ import { ManagementPagination } from "../management/ManagementPagination";
 import {
   AccountManagementTable,
   CropManagementTable,
+  PlantDiseaseManagementTable,
   PlotManagementTable,
 } from "../management/ManagementTables";
 import { PlotFormSheet } from "../management/PlotFormSheet";
@@ -120,20 +131,39 @@ const DEFAULT_CROP_ICON_OPTIONS = [
   "🫚",
 ] as const;
 
+const PLANT_DISEASE_GROUP_OPTIONS: PlantDiseaseGroup[] = [
+  "Truyền nhiễm",
+  "Không truyền nhiễm",
+];
+
 export function ManagementScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
   const [variant, setVariant] = useState<ManagementVariant>("plots");
   const [query, setQuery] = useState("");
   const [plots, setPlots] = useState<PlotInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
+  const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [actionItem, setActionItem] = useState<any | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [cropIconPickerOpen, setCropIconPickerOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<ToastState>(null);
   const [cropForm, setCropForm] = useState({ name: "", icon: "" });
+  const [diseaseGroupPickerOpen, setDiseaseGroupPickerOpen] = useState(false);
+  const [diseaseForm, setDiseaseForm] = useState<{
+    group: PlantDiseaseGroup;
+    type: string;
+    name: string;
+  }>({
+    group: "Truyền nhiễm",
+    type: "",
+    name: "",
+  });
   const [editingPlot, setEditingPlot] = useState<PlotInfo | null>(null);
   const [editingCrop, setEditingCrop] = useState<CropTypeInfo | null>(null);
+  const [editingDisease, setEditingDisease] = useState<PlantDiseaseInfo | null>(
+    null,
+  );
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [accountForm, setAccountForm] = useState({
     name: "",
@@ -159,13 +189,15 @@ export function ManagementScreen() {
 
   const refresh = useCallback(async () => {
     try {
-      const [plotData, cropData, userData] = await Promise.all([
+      const [plotData, cropData, diseaseData, userData] = await Promise.all([
         getPlots(),
         getCropTypes(),
+        getPlantDiseases(),
         getUsers(),
       ]);
       setPlots(plotData);
       setCrops(cropData);
+      setPlantDiseases(diseaseData);
       setUsers(userData);
     } catch (error) {
       setSnackbar({
@@ -184,6 +216,7 @@ export function ManagementScreen() {
     if (
       params.tab === "plots" ||
       params.tab === "crops" ||
+      params.tab === "diseases" ||
       params.tab === "accounts"
     ) {
       setVariant(params.tab);
@@ -200,9 +233,17 @@ export function ManagementScreen() {
       ? "Mã số luống"
       : variant === "crops"
         ? "Loại cây"
-        : "Tài khoản";
+        : variant === "diseases"
+          ? "Bệnh cây"
+          : "Tài khoản";
   const rows =
-    variant === "plots" ? plots : variant === "crops" ? crops : users;
+    variant === "plots"
+      ? plots
+      : variant === "crops"
+        ? crops
+        : variant === "diseases"
+          ? plantDiseases
+          : users;
   const isAdminAccount = (item: any) =>
     String(item?.role || "").toUpperCase() === "ADMIN";
   const searchPlaceholder =
@@ -210,7 +251,9 @@ export function ManagementScreen() {
       ? "Tìm mã luống"
       : variant === "crops"
         ? "Tìm loại cây..."
-        : "Tìm kiếm username hoặc mã cấp...";
+        : variant === "diseases"
+          ? "Tìm nhóm, loại hoặc tên bệnh..."
+          : "Tìm kiếm username...";
   const filteredRows = rows.filter((item: any) =>
     [
       item.code,
@@ -219,6 +262,8 @@ export function ManagementScreen() {
       item.username,
       item.email,
       item.category,
+      item.group,
+      item.type,
     ]
       .filter(Boolean)
       .join(" ")
@@ -260,10 +305,13 @@ export function ManagementScreen() {
   const closeAddDrawer = () => {
     setAddOpen(false);
     setCropIconPickerOpen(false);
+    setDiseaseGroupPickerOpen(false);
     setEditingPlot(null);
     setEditingCrop(null);
+    setEditingDisease(null);
     setEditingUser(null);
     setCropForm({ name: "", icon: "" });
+    setDiseaseForm({ group: "Truyền nhiễm", type: "", name: "" });
     setPlotForm({
       code: "",
       zone: "",
@@ -275,8 +323,11 @@ export function ManagementScreen() {
   const openAddDrawer = () => {
     setEditingPlot(null);
     setEditingCrop(null);
+    setEditingDisease(null);
     setEditingUser(null);
     setCropForm({ name: "", icon: "" });
+    setDiseaseGroupPickerOpen(false);
+    setDiseaseForm({ group: "Truyền nhiễm", type: "", name: "" });
     setPlotForm({
       code: "",
       zone: "",
@@ -327,6 +378,22 @@ export function ManagementScreen() {
             icon: cropForm.icon.trim() || undefined,
           });
           setCrops((current) => [item, ...current]);
+        }
+      } else if (variant === "diseases") {
+        if (!diseaseForm.type.trim() || !diseaseForm.name.trim()) return;
+        const payload = {
+          group: diseaseForm.group,
+          type: diseaseForm.type.trim(),
+          name: diseaseForm.name.trim(),
+        };
+        if (editingDisease) {
+          const item = await updatePlantDisease(editingDisease.id, payload);
+          setPlantDiseases((current) =>
+            current.map((disease) => (disease.id === item.id ? item : disease)),
+          );
+        } else {
+          const item = await addPlantDisease(payload);
+          setPlantDiseases((current) => [item, ...current]);
         }
       } else {
         if (
@@ -393,6 +460,19 @@ export function ManagementScreen() {
       const crop = actionItem as CropTypeInfo;
       setEditingCrop(crop);
       setCropForm({ name: crop.name || "", icon: crop.icon || "" });
+      setActionItem(null);
+      setAddOpen(true);
+      return;
+    }
+
+    if (variant === "diseases") {
+      const disease = actionItem as PlantDiseaseInfo;
+      setEditingDisease(disease);
+      setDiseaseForm({
+        group: disease.group || "Truyền nhiễm",
+        type: disease.type || "",
+        name: disease.name || "",
+      });
       setActionItem(null);
       setAddOpen(true);
       return;
@@ -495,6 +575,15 @@ export function ManagementScreen() {
           current.map((crop) => (crop.id === item.id ? item : crop)),
         );
       }
+      if (variant === "diseases") {
+        const item = await setPlantDiseaseActiveStatus(
+          confirmItem.id,
+          nextIsActive,
+        );
+        setPlantDiseases((current) =>
+          current.map((disease) => (disease.id === item.id ? item : disease)),
+        );
+      }
       notify(
         nextIsActive ? "Đã hoạt động lại." : "Đã cập nhật trạng thái.",
         nextIsActive ? "success" : "warning",
@@ -561,14 +650,18 @@ export function ManagementScreen() {
               title={
                 cropIconPickerOpen
                   ? "Chọn Icon"
-                  : `${editingUser || editingCrop ? "Chỉnh sửa" : "Thêm"} ${title}`
+                  : diseaseGroupPickerOpen
+                    ? "Chọn nhóm bệnh cây"
+                    : `${editingUser || editingCrop || editingDisease ? "Chỉnh sửa" : "Thêm"} ${title}`
               }
               onClose={
                 cropIconPickerOpen
                   ? () => setCropIconPickerOpen(false)
-                  : closeAddDrawer
+                  : diseaseGroupPickerOpen
+                    ? () => setDiseaseGroupPickerOpen(false)
+                    : closeAddDrawer
               }
-              full={cropIconPickerOpen}
+              full={cropIconPickerOpen || diseaseGroupPickerOpen}
             >
               <TouchableWithoutFeedback
                 accessible={false}
@@ -599,6 +692,45 @@ export function ManagementScreen() {
                             style={managementScreenStyles.cropIconOptionText}
                           >
                             {icon}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                ) : diseaseGroupPickerOpen ? (
+                  <ScrollView
+                    contentContainerStyle={
+                      managementScreenStyles.managementEditDrawerContent
+                    }
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {PLANT_DISEASE_GROUP_OPTIONS.map((group) => {
+                      const selected = diseaseForm.group === group;
+                      return (
+                        <Pressable
+                          key={group}
+                          style={[
+                            managementScreenStyles.diseaseGroupOption,
+                            selected &&
+                              managementScreenStyles.diseaseGroupOptionActive,
+                          ]}
+                          onPress={() => {
+                            setDiseaseForm((current) => ({
+                              ...current,
+                              group,
+                            }));
+                            setDiseaseGroupPickerOpen(false);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              managementScreenStyles.diseaseGroupOptionText,
+                              selected &&
+                                managementScreenStyles.diseaseGroupOptionTextActive,
+                            ]}
+                          >
+                            {group}
                           </Text>
                         </Pressable>
                       );
@@ -660,6 +792,46 @@ export function ManagementScreen() {
                           }
                         />
                       </>
+                    ) : variant === "diseases" ? (
+                      <>
+                        <InputSelection
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Nhóm bệnh cây"
+                          value={diseaseForm.group}
+                          placeholder="Chọn nhóm bệnh cây"
+                          onPress={() => setDiseaseGroupPickerOpen(true)}
+                        />
+                        <InputText
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Loại bệnh cây"
+                          value={diseaseForm.type}
+                          onChangeText={(type) =>
+                            setDiseaseForm((current) => ({
+                              ...current,
+                              type,
+                            }))
+                          }
+                          placeholder="vd: Nấm, Vi khuẩn, Thiếu dinh dưỡng"
+                        />
+                        <InputText
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Tên bệnh cây"
+                          value={diseaseForm.name}
+                          onChangeText={(name) =>
+                            setDiseaseForm((current) => ({
+                              ...current,
+                              name,
+                            }))
+                          }
+                          placeholder="vd: Sương mai"
+                        />
+                      </>
                     ) : (
                       <>
                         <InputText
@@ -692,7 +864,10 @@ export function ManagementScreen() {
                           ? !accountForm.name.trim() ||
                             !accountForm.username.trim() ||
                             (!editingUser && !accountForm.password.trim())
-                          : !cropForm.name.trim()
+                          : variant === "diseases"
+                            ? !diseaseForm.type.trim() ||
+                              !diseaseForm.name.trim()
+                            : !cropForm.name.trim()
                       }
                     />
                   </ScrollView>
@@ -766,7 +941,7 @@ export function ManagementScreen() {
         </View>
       </View>
       <View style={managementScreenStyles.managementHiddenTabs}>
-        {(["plots", "crops", "accounts"] as const).map((id) => (
+        {(["plots", "crops", "diseases", "accounts"] as const).map((id) => (
           <Pressable
             key={id}
             testID={`admin-${id}`}
@@ -778,7 +953,9 @@ export function ManagementScreen() {
                 ? "Mã số luống"
                 : id === "crops"
                   ? "Loại cây"
-                  : "Tài khoản"}
+                  : id === "diseases"
+                    ? "Bệnh cây"
+                    : "Tài khoản"}
             </Text>
           </Pressable>
         ))}
@@ -797,6 +974,12 @@ export function ManagementScreen() {
         ) : variant === "crops" ? (
           <CropManagementTable
             rows={pagedRows as CropTypeInfo[]}
+            total={visibleRows.length}
+            onAction={setActionItem}
+          />
+        ) : variant === "diseases" ? (
+          <PlantDiseaseManagementTable
+            rows={pagedRows as PlantDiseaseInfo[]}
             total={visibleRows.length}
             onAction={setActionItem}
           />
@@ -936,5 +1119,29 @@ const managementScreenStyles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 28,
     textAlign: "center",
+  },
+  diseaseGroupOption: {
+    minHeight: 52,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  diseaseGroupOptionActive: {
+    borderColor: COLORS.green,
+    backgroundColor: "#f0f8ed",
+  },
+  diseaseGroupOptionText: {
+    color: COLORS.body,
+    fontSize: TYPOGRAPHY.label,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  diseaseGroupOptionTextActive: {
+    color: COLORS.green,
   },
 });

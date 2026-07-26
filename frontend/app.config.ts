@@ -8,7 +8,9 @@ const androidPackage =
 const cameraPermission =
   "Cho phép FarmData truy cập máy ảnh để chụp ảnh cây trồng.";
 const easProjectId =
-  process.env.EXPO_PUBLIC_EAS_PROJECT_ID || process.env.EAS_PROJECT_ID;
+  process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
+  process.env.EAS_PROJECT_ID ||
+  "5afc1153-301b-4028-bcc6-07679bdab415";
 
 const config: ExpoConfig = {
   name: "FarmData",

@@ -32,6 +32,9 @@ export interface IPostDocument extends Document {
   driveFiles?: IDriveFile[];
   stationMeasurements: WeatherCondition;
   localMeasurements?: WeatherCondition;
+  diseaseGroup?: string;
+  diseaseType?: string;
+  diseaseName?: string;
   status: PostStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -100,6 +103,9 @@ const PostSchema = new Schema<IPostDocument>(
       soilDo: { type: String },
       soilHumidity: { type: String },
     },
+    diseaseGroup: { type: String },
+    diseaseType: { type: String },
+    diseaseName: { type: String },
     status: {
       type: String,
       enum: ["GENERATING", "PUBLISHED", "FAILED"],

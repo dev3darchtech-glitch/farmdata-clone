@@ -57,11 +57,7 @@ export interface LocationData {
  * Standard 5 Growth Stage IDs.
  */
 export type GrowthStageId =
-  | "newly_planted"
-  | "vegetative"
-  | "flowering"
-  | "fruiting"
-  | "harvest";
+  "newly_planted" | "vegetative" | "flowering" | "fruiting" | "harvest";
 
 /**
  * Growth Stage Info metadata interface.
@@ -150,6 +146,12 @@ export const SYMPTOM_SEVERITY_VALUES = [
  */
 export type SymptomSeverity = (typeof SYMPTOM_SEVERITY_VALUES)[number];
 
+export const PLANT_DISEASE_GROUPS = [
+  "Truyền nhiễm",
+  "Không truyền nhiễm",
+] as const;
+export type PlantDiseaseGroup = (typeof PLANT_DISEASE_GROUPS)[number];
+
 /**
  * Symptom assessment data structure for M4.
  */
@@ -207,10 +209,7 @@ export interface StorageSaveResult {
  * State machine for Capture Session life cycle.
  */
 export type CaptureSessionStatus =
-  | "DRAFT"
-  | "UPLOADING"
-  | "COMPLETED"
-  | "FAILED";
+  "DRAFT" | "UPLOADING" | "COMPLETED" | "FAILED";
 
 /**
  * State machine for Post publishing life cycle.
@@ -248,6 +247,19 @@ export interface PlotInfo {
 }
 
 /**
+ * Metadata for plant diseases managed by admin.
+ */
+export interface PlantDiseaseInfo {
+  id: string;
+  group: PlantDiseaseGroup;
+  type: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+  status?: string;
+}
+
+/**
  * Farmer Photo Capture Session payload representing 1 capture session.
  */
 export interface CaptureSession {
@@ -264,6 +276,9 @@ export interface CaptureSession {
   captureLocation?: LocationData; // GPS position captured at photo time
   stationMeasurements: WeatherCondition; // Auto-fetched station data
   localMeasurements?: LocalWeatherMeasurement; // On-site measurement (Optional)
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
   symptomDescription: string; // Required
   severity: SymptomSeverity; // Required
   status: CaptureSessionStatus;
@@ -297,6 +312,9 @@ export interface Post {
   driveFiles?: DriveFile[];
   stationMeasurements: WeatherCondition;
   localMeasurements?: LocalWeatherMeasurement;
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
   status: PostStatus;
   createdAt: string;
 }

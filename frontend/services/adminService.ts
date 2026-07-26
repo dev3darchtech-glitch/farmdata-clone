@@ -1,17 +1,21 @@
 import { z } from "zod";
-import { CropTypeInfo, PlotInfo, User } from "@/types";
+import { CropTypeInfo, PlantDiseaseInfo, PlotInfo, User } from "@/types";
 import {
   createCropAPI,
+  createPlantDiseaseAPI,
   createPlotAPI,
   createUserAPI,
   fetchCropsAPI,
+  fetchPlantDiseasesAPI,
   fetchPlotsAPI,
   fetchUsersAPI,
   restoreUserAPI,
   revokeUserAPI,
   setCropActiveStatusAPI,
+  setPlantDiseaseActiveStatusAPI,
   setPlotActiveStatusAPI,
   updateCropAPI,
+  updatePlantDiseaseAPI,
   updatePlotAPI,
   updateUserAPI,
 } from "./apiClient";
@@ -47,6 +51,30 @@ export async function setCropTypeActiveStatus(
   isActive: boolean,
 ): Promise<CropTypeInfo> {
   return await setCropActiveStatusAPI(cropId, isActive);
+}
+
+export async function getPlantDiseases(): Promise<PlantDiseaseInfo[]> {
+  return await fetchPlantDiseasesAPI();
+}
+
+export async function addPlantDisease(
+  disease: Omit<PlantDiseaseInfo, "id">,
+): Promise<PlantDiseaseInfo> {
+  return await createPlantDiseaseAPI(disease);
+}
+
+export async function updatePlantDisease(
+  diseaseId: string,
+  disease: Partial<Omit<PlantDiseaseInfo, "id">>,
+): Promise<PlantDiseaseInfo> {
+  return await updatePlantDiseaseAPI(diseaseId, disease);
+}
+
+export async function setPlantDiseaseActiveStatus(
+  diseaseId: string,
+  isActive: boolean,
+): Promise<PlantDiseaseInfo> {
+  return await setPlantDiseaseActiveStatusAPI(diseaseId, isActive);
 }
 
 export async function getPlots(): Promise<PlotInfo[]> {

@@ -33,6 +33,9 @@ export interface ICaptureSessionDocument extends Document {
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
   localMeasurements?: WeatherCondition;
+  diseaseGroup?: string;
+  diseaseType?: string;
+  diseaseName?: string;
   symptomDescription: string;
   severity: SymptomSeverity;
   status: SessionStatus;
@@ -97,6 +100,9 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
       soilDo: { type: String },
       soilHumidity: { type: String },
     },
+    diseaseGroup: { type: String },
+    diseaseType: { type: String },
+    diseaseName: { type: String },
     symptomDescription: { type: String, required: true },
     severity: { type: String, enum: SYMPTOM_SEVERITY_VALUES, required: true },
     status: {

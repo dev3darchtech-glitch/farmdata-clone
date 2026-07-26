@@ -81,6 +81,9 @@ export interface CaptureImageDescriptionInput {
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
   localMeasurements?: Partial<WeatherCondition>;
+  diseaseGroup?: string;
+  diseaseType?: string;
+  diseaseName?: string;
   symptomDescription: string;
   severity: string;
 }
@@ -115,6 +118,11 @@ export function buildCaptureImageDescription(
     `Loại cây: ${metadata.cropType}`,
     `Giai đoạn sinh trưởng: ${metadata.growthStage}`,
     `Môi trường: ${metadata.envMode}`,
+    metadata.diseaseGroup
+      ? `Nhóm bệnh cây: ${metadata.diseaseGroup}`
+      : undefined,
+    metadata.diseaseType ? `Loại bệnh cây: ${metadata.diseaseType}` : undefined,
+    metadata.diseaseName ? `Tên bệnh cây: ${metadata.diseaseName}` : undefined,
     metadata.captureLocation?.formattedAddress
       ? `Vị trí: ${metadata.captureLocation.formattedAddress}`
       : undefined,
@@ -143,15 +151,9 @@ export function buildCaptureImageDescription(
     local
       ? `Độ ẩm nhập tay: ${formatMeasurementValue(local.humidity, "%")}`
       : undefined,
-    local
-      ? `pH đất: ${formatMeasurementValue(local.soilPh)}`
-      : undefined,
-    local
-      ? `EC đất: ${formatMeasurementValue(local.soilEc)}`
-      : undefined,
-    local
-      ? `DO đất: ${formatMeasurementValue(local.soilDo)}`
-      : undefined,
+    local ? `pH đất: ${formatMeasurementValue(local.soilPh)}` : undefined,
+    local ? `EC đất: ${formatMeasurementValue(local.soilEc)}` : undefined,
+    local ? `DO đất: ${formatMeasurementValue(local.soilDo)}` : undefined,
     local
       ? `Độ ẩm đất: ${formatMeasurementValue(local.soilHumidity)}`
       : undefined,

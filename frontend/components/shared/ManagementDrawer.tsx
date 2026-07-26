@@ -198,6 +198,7 @@ export function ManagementDrawer({
               {[
                 ["plots", "Mã số luống"],
                 ["crops", "Loại cây"],
+                ["diseases", "Bệnh cây"],
                 ["accounts", "Tài khoản"],
               ].map(([id, label]) => {
                 const subItemActive = managementActive && variant === id;

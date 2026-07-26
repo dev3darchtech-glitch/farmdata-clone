@@ -254,7 +254,12 @@ export function ConfirmStatusDialog({
   onConfirm: () => void;
 }) {
   if (!visible) return null;
-  const itemKind = variant === "plots" ? "mã luống" : "loại cây";
+  const itemKind =
+    variant === "plots"
+      ? "mã luống"
+      : variant === "diseases"
+        ? "bệnh cây"
+        : "loại cây";
   const actionLabel = isActivating ? "hoạt động lại" : "ngừng sử dụng";
 
   return (

@@ -28,6 +28,11 @@ export const SYMPTOM_SEVERITY_VALUES = [
 export type SymptomSeverity = (typeof SYMPTOM_SEVERITY_VALUES)[number];
 export type SessionStatus = "DRAFT" | "UPLOADING" | "COMPLETED" | "FAILED";
 export type PostStatus = "GENERATING" | "PUBLISHED" | "FAILED";
+export const PLANT_DISEASE_GROUPS = [
+  "Truyền nhiễm",
+  "Không truyền nhiễm",
+] as const;
+export type PlantDiseaseGroup = (typeof PLANT_DISEASE_GROUPS)[number];
 
 export interface WeatherCondition {
   temperature: number;
@@ -68,6 +73,9 @@ export interface CaptureSessionRecord {
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
   localMeasurements?: WeatherCondition;
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
   symptomDescription: string;
   severity: SymptomSeverity;
   status: SessionStatus;
@@ -93,6 +101,9 @@ export interface PostRecord {
   images: string[];
   stationMeasurements: WeatherCondition;
   localMeasurements?: WeatherCondition;
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
   status: PostStatus;
   createdAt: string;
 }

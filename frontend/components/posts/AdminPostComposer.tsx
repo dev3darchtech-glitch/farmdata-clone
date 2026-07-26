@@ -10,15 +10,19 @@ import {
   captureCropImage,
   pickCropImagesFromLibrary,
 } from "@/services/cameraService";
+import { getPlantDiseases } from "@/services/adminService";
 import { createManualPost } from "@/services/postService";
 import {
   CropTypeInfo,
   GrowthStageId,
+  PlantDiseaseGroup,
+  PlantDiseaseInfo,
+  PLANT_DISEASE_GROUPS,
   PlotInfo,
   SymptomSeverity,
 } from "@/types";
-import { X } from "lucide-react-native";
-import React, { useState } from "react";
+import { CircleCheck, X } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
@@ -37,7 +41,14 @@ import { BottomSheet } from "../shared/BottomSheet";
 import { InputSelection } from "../shared/InputSelection";
 import { PrimaryButton } from "../shared/PrimaryButton";
 
-type ComposerSheet = "crop" | "plot" | "stage" | "weather";
+type ComposerSheet =
+  | "crop"
+  | "plot"
+  | "stage"
+  | "weather"
+  | "diseaseGroup"
+  | "diseaseType"
+  | "diseaseName";
 
 export function AdminPostComposer({
   visible,
@@ -57,6 +68,12 @@ export function AdminPostComposer({
   const [growthStage, setGrowthStage] = useState<GrowthStageId | undefined>();
   const [images, setImages] = useState<string[]>([]);
   const [weatherCode, setWeatherCode] = useState(0);
+  const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
+  const [diseaseGroup, setDiseaseGroup] = useState<
+    PlantDiseaseGroup | undefined
+  >();
+  const [diseaseType, setDiseaseType] = useState<string | undefined>();
+  const [diseaseName, setDiseaseName] = useState<string | undefined>();
   const [severity, setSeverity] = useState<SymptomSeverity | undefined>();
   const [symptomDescription, setSymptomDescription] = useState("");
   const [isEditingSymptom, setIsEditingSymptom] = useState(true);
@@ -66,6 +83,32 @@ export function AdminPostComposer({
   const shouldShowSymptomDescription = Boolean(severity);
   const shouldShowInlineErrors = Boolean(error);
   const cleanSymptomDescription = symptomDescription.trim();
+  const activePlantDiseases = plantDiseases.filter(
+    (disease) => disease.isActive !== false,
+  );
+  const diseaseGroupOptions = Array.from(
+    new Set([
+      ...PLANT_DISEASE_GROUPS,
+      ...activePlantDiseases.map((disease) => disease.group),
+    ]),
+  );
+  const diseaseTypeOptions = Array.from(
+    new Set(
+      activePlantDiseases
+        .filter((disease) => disease.group === diseaseGroup)
+        .map((disease) => disease.type),
+    ),
+  );
+  const diseaseNameOptions = activePlantDiseases.filter(
+    (disease) => disease.group === diseaseGroup && disease.type === diseaseType,
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    getPlantDiseases()
+      .then(setPlantDiseases)
+      .catch(() => setPlantDiseases([]));
+  }, [visible]);
 
   const reset = () => {
     setPlotId("");
@@ -73,6 +116,9 @@ export function AdminPostComposer({
     setGrowthStage(undefined);
     setImages([]);
     setWeatherCode(0);
+    setDiseaseGroup(undefined);
+    setDiseaseType(undefined);
+    setDiseaseName(undefined);
     setSeverity(undefined);
     setSymptomDescription("");
     setIsEditingSymptom(true);
@@ -141,6 +187,9 @@ export function AdminPostComposer({
       !plotId ||
       !cropType ||
       !growthStage ||
+      !diseaseGroup ||
+      !diseaseType ||
+      !diseaseName ||
       !severity ||
       !cleanSymptomDescription
     ) {
@@ -156,6 +205,9 @@ export function AdminPostComposer({
         growthStage,
         images,
         plotId,
+        diseaseGroup,
+        diseaseType,
+        diseaseName,
         severity,
         symptomDescription: cleanSymptomDescription,
         weatherCode,
@@ -244,8 +296,27 @@ export function AdminPostComposer({
                 setSeverity(value);
                 setIsEditingSymptom(true);
               }}
+              onOpenDiseaseGroup={() => setSheet("diseaseGroup")}
+              onOpenDiseaseType={() => {
+                if (diseaseGroup) setSheet("diseaseType");
+              }}
+              onOpenDiseaseName={() => {
+                if (diseaseGroup && diseaseType) setSheet("diseaseName");
+              }}
               onSymptomDescriptionChange={setSymptomDescription}
               severity={severity}
+              diseaseGroup={diseaseGroup}
+              diseaseType={diseaseType}
+              diseaseName={diseaseName}
+              diseaseGroupError={
+                !diseaseGroup ? "Vui lòng chọn nhóm bệnh cây" : undefined
+              }
+              diseaseTypeError={
+                !diseaseType ? "Vui lòng chọn loại bệnh cây" : undefined
+              }
+              diseaseNameError={
+                !diseaseName ? "Vui lòng chọn tên bệnh cây" : undefined
+              }
               shouldShowInlineErrors={shouldShowInlineErrors}
               shouldShowSymptomDescription={shouldShowSymptomDescription}
               symptomDescription={symptomDescription}
@@ -274,6 +345,9 @@ export function AdminPostComposer({
               !plotId ||
               !cropType ||
               !growthStage ||
+              !diseaseGroup ||
+              !diseaseType ||
+              !diseaseName ||
               !severity ||
               !cleanSymptomDescription
             }
@@ -329,8 +403,134 @@ export function AdminPostComposer({
             onSelect={setWeatherCode}
           />
         </BottomSheet>
+
+        <BottomSheet
+          visible={sheet === "diseaseGroup"}
+          title="Chọn nhóm bệnh cây"
+          onClose={() => setSheet(null)}
+        >
+          <ComposerDiseaseOptions
+            emptyText="Chưa có nhóm bệnh cây"
+            options={diseaseGroupOptions.map((group) => ({
+              key: group,
+              label: group,
+              value: group,
+            }))}
+            selectedValue={diseaseGroup}
+            onSelect={(value) => {
+              setDiseaseGroup(value as PlantDiseaseGroup);
+              setDiseaseType(undefined);
+              setDiseaseName(undefined);
+              setSheet(null);
+            }}
+          />
+        </BottomSheet>
+
+        <BottomSheet
+          visible={sheet === "diseaseType"}
+          title="Chọn loại bệnh cây"
+          onClose={() => setSheet(null)}
+        >
+          <ComposerDiseaseOptions
+            emptyText="Chọn nhóm bệnh cây trước"
+            options={diseaseTypeOptions.map((type) => ({
+              key: type,
+              label: type,
+              value: type,
+            }))}
+            selectedValue={diseaseType}
+            onSelect={(value) => {
+              setDiseaseType(value);
+              setDiseaseName(undefined);
+              setSheet(null);
+            }}
+          />
+        </BottomSheet>
+
+        <BottomSheet
+          visible={sheet === "diseaseName"}
+          title="Chọn tên bệnh cây"
+          onClose={() => setSheet(null)}
+        >
+          <ComposerDiseaseOptions
+            emptyText="Chọn loại bệnh cây trước"
+            options={diseaseNameOptions.map((disease) => ({
+              key: disease.id || `${disease.type}-${disease.name}`,
+              label: disease.name,
+              value: disease.name,
+              description: disease.type,
+            }))}
+            selectedValue={diseaseName}
+            onSelect={(value) => {
+              setDiseaseName(value);
+              setSheet(null);
+            }}
+          />
+        </BottomSheet>
       </View>
     </Modal>
+  );
+}
+
+function ComposerDiseaseOptions({
+  emptyText,
+  onSelect,
+  options,
+  selectedValue,
+}: {
+  emptyText: string;
+  onSelect: (value: string) => void;
+  options: {
+    key: string;
+    label: string;
+    value: string;
+    description?: string;
+  }[];
+  selectedValue?: string;
+}) {
+  return (
+    <ScrollView
+      contentContainerStyle={postComposerStyles.diseaseListContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      {options.length > 0 ? (
+        options.map((option) => {
+          const selected = selectedValue === option.value;
+          return (
+            <Pressable
+              key={option.key}
+              style={[
+                postComposerStyles.diseaseOption,
+                selected && postComposerStyles.diseaseOptionSelected,
+              ]}
+              onPress={() => onSelect(option.value)}
+            >
+              <View style={postComposerStyles.diseaseOptionBody}>
+                <Text
+                  style={[
+                    postComposerStyles.diseaseOptionText,
+                    selected && postComposerStyles.diseaseOptionTextSelected,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                {option.description ? (
+                  <Text style={postComposerStyles.diseaseOptionMeta}>
+                    {option.description}
+                  </Text>
+                ) : null}
+              </View>
+              {selected ? <CircleCheck size={20} color={COLORS.green} /> : null}
+            </Pressable>
+          );
+        })
+      ) : (
+        <View style={postComposerStyles.diseaseEmpty}>
+          <Text style={postComposerStyles.diseaseEmptyText}>{emptyText}</Text>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
@@ -397,5 +597,54 @@ const postComposerStyles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#edf0ea",
+  },
+  diseaseListContent: {
+    paddingBottom: LAYOUT.sheetBottom,
+    gap: 8,
+  },
+  diseaseOption: {
+    minHeight: 54,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#fff",
+  },
+  diseaseOptionSelected: {
+    borderColor: COLORS.green,
+    backgroundColor: "#f0f8ed",
+  },
+  diseaseOptionBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  diseaseOptionText: {
+    color: COLORS.body,
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  diseaseOptionTextSelected: {
+    color: COLORS.green,
+  },
+  diseaseOptionMeta: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  diseaseEmpty: {
+    minHeight: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  diseaseEmptyText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

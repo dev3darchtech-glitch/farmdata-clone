@@ -2,6 +2,7 @@ import {
   CaptureSession,
   CropTypeInfo,
   PlotInfo,
+  PlantDiseaseInfo,
   Post,
   GrowthStageId,
   SymptomSeverity,
@@ -58,6 +59,18 @@ function mapCrop(c: any): CropTypeInfo {
     icon: c.icon,
     isActive: c.isActive !== false,
     status: c.status,
+  };
+}
+
+function mapPlantDisease(d: any): PlantDiseaseInfo {
+  return {
+    id: d._id || d.id,
+    group: d.group,
+    type: d.type,
+    name: d.name,
+    description: d.description,
+    isActive: d.isActive !== false,
+    status: d.status,
   };
 }
 
@@ -251,6 +264,9 @@ export async function createManualPostAPI(postData: {
   growthStage: GrowthStageId;
   images?: string[];
   plotId: string;
+  diseaseGroup?: PlantDiseaseInfo["group"];
+  diseaseType?: string;
+  diseaseName?: string;
   severity: SymptomSeverity;
   symptomDescription: string;
   weatherCode: number;
@@ -429,6 +445,83 @@ export async function setCropActiveStatusAPI(
   }
 
   return mapCrop(data);
+}
+
+/**
+ * Fetch plant diseases from master-data API.
+ */
+export async function fetchPlantDiseasesAPI(): Promise<PlantDiseaseInfo[]> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/master-data/plant-diseases`, {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      const diseases = await res.json();
+      return diseases.map(mapPlantDisease);
+    }
+  } catch {
+    // Silent offline catch
+  }
+  return [];
+}
+
+/**
+ * Create plant disease directly on backend API.
+ */
+export async function createPlantDiseaseAPI(
+  disease: Omit<PlantDiseaseInfo, "id">,
+): Promise<PlantDiseaseInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/plant-diseases`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(disease),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể tạo bệnh cây.");
+  }
+
+  return mapPlantDisease(data);
+}
+
+export async function updatePlantDiseaseAPI(
+  diseaseId: string,
+  disease: Partial<Omit<PlantDiseaseInfo, "id">>,
+): Promise<PlantDiseaseInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/plant-diseases/${diseaseId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(disease),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật bệnh cây.");
+  }
+
+  return mapPlantDisease(data);
+}
+
+export async function setPlantDiseaseActiveStatusAPI(
+  diseaseId: string,
+  isActive: boolean,
+): Promise<PlantDiseaseInfo> {
+  const res = await fetch(
+    `${BACKEND_URL}/admin/plant-diseases/${diseaseId}/deactivate`,
+    {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ isActive }),
+    },
+  );
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật trạng thái bệnh cây.");
+  }
+
+  return mapPlantDisease(data);
 }
 
 /**

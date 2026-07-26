@@ -8,9 +8,43 @@ import { notifyCaptureSessionCompleted } from "../services/pushNotificationServi
 import {
   GROWTH_STAGE_IDS,
   GrowthStageId,
+  PLANT_DISEASE_GROUPS,
+  PlantDiseaseGroup,
   SYMPTOM_SEVERITY_VALUES,
   SymptomSeverity,
 } from "../types";
+
+function normalizeDiseaseFields(req: Request, res: Response) {
+  const diseaseGroup =
+    typeof req.body?.diseaseGroup === "string"
+      ? req.body.diseaseGroup.trim()
+      : "";
+  const diseaseType =
+    typeof req.body?.diseaseType === "string"
+      ? req.body.diseaseType.trim()
+      : "";
+  const diseaseName =
+    typeof req.body?.diseaseName === "string"
+      ? req.body.diseaseName.trim()
+      : "";
+
+  if (!diseaseGroup && !diseaseType && !diseaseName) {
+    return {};
+  }
+
+  if (
+    !PLANT_DISEASE_GROUPS.includes(diseaseGroup as PlantDiseaseGroup) ||
+    !diseaseType ||
+    !diseaseName
+  ) {
+    res.status(400).json({
+      error: "diseaseGroup, diseaseType, and diseaseName are required",
+    });
+    return undefined;
+  }
+
+  return { diseaseGroup, diseaseType, diseaseName };
+}
 
 /**
  * POST /api/sessions
@@ -67,6 +101,10 @@ export const createSession = async (req: Request, res: Response) => {
     windSpeed: 10.0,
     co2Level: 400,
   };
+  const normalizedDisease = normalizeDiseaseFields(req, res);
+  if (normalizedDisease === undefined) {
+    return;
+  }
 
   const sessionId = `SESS-${Date.now()}`;
   const cleanPlotId =
@@ -84,6 +122,7 @@ export const createSession = async (req: Request, res: Response) => {
         captureLocation,
         stationMeasurements: normalizedStationMeasurements,
         localMeasurements,
+        ...normalizedDisease,
         symptomDescription: normalizedSymptomDescription,
         severity: normalizedSeverity,
       },
@@ -119,6 +158,7 @@ export const createSession = async (req: Request, res: Response) => {
     captureLocation,
     stationMeasurements: normalizedStationMeasurements,
     localMeasurements,
+    ...normalizedDisease,
     symptomDescription: normalizedSymptomDescription,
     severity: normalizedSeverity,
     status: "COMPLETED",

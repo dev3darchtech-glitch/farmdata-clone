@@ -10,13 +10,23 @@ import {
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
+  PlantDiseaseGroup,
+  PlantDiseaseInfo,
+  PLANT_DISEASE_GROUPS,
   PlotInfo,
   WeatherCondition,
 } from "@/types";
 import { SheetKind } from "@/utils/captureDisplay";
 import { getWeatherLabel } from "@/utils/weatherMetrics";
 import { router } from "expo-router";
-import { Check, ChevronDown, Cloud, Sprout, Sun } from "lucide-react-native";
+import {
+  Check,
+  ChevronDown,
+  CircleCheck,
+  Cloud,
+  Sprout,
+  Sun,
+} from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomSheet } from "../shared/BottomSheet";
@@ -34,9 +44,13 @@ type SelectionSheetsProps = {
   setSheet: (sheet: SheetKind | null) => void;
   plots: PlotInfo[];
   crops: CropTypeInfo[];
+  plantDiseases: PlantDiseaseInfo[];
   plotId?: string;
   cropType: string;
   growthStage?: GrowthStageId;
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
   stationWeather: WeatherCondition;
   stationUpdatedAt?: string;
   stationLatitude?: number;
@@ -45,6 +59,9 @@ type SelectionSheetsProps = {
   onPlot: (value?: string) => void;
   onCrop: (value: string) => void;
   onStage: (value: GrowthStageId) => void;
+  onDiseaseGroup: (value: PlantDiseaseGroup) => void;
+  onDiseaseType: (value: string) => void;
+  onDiseaseName: (value: string) => void;
   localMeasurements?: LocalWeatherMeasurement;
   onMeasurements: (value: LocalWeatherMeasurement) => void;
   error: string;
@@ -94,6 +111,28 @@ export function SelectionSheets(props: SelectionSheetsProps) {
       soilHumidity: initial?.soilHumidity || "",
     };
   });
+
+  const activePlantDiseases = props.plantDiseases.filter(
+    (disease) => disease.isActive !== false,
+  );
+  const diseaseGroupOptions = Array.from(
+    new Set([
+      ...PLANT_DISEASE_GROUPS,
+      ...activePlantDiseases.map((disease) => disease.group),
+    ]),
+  );
+  const diseaseTypeOptions = Array.from(
+    new Set(
+      activePlantDiseases
+        .filter((disease) => disease.group === props.diseaseGroup)
+        .map((disease) => disease.type),
+    ),
+  );
+  const diseaseNameOptions = activePlantDiseases.filter(
+    (disease) =>
+      disease.group === props.diseaseGroup &&
+      disease.type === props.diseaseType,
+  );
 
   useEffect(() => {
     if (props.sheet === "measurement") {
@@ -171,6 +210,64 @@ export function SelectionSheets(props: SelectionSheetsProps) {
         <CaptureStageOptions
           growthStage={props.growthStage}
           onSelect={props.onStage}
+        />
+      </BottomSheet>
+      <BottomSheet
+        visible={props.sheet === "diseaseGroup"}
+        title="Chọn nhóm bệnh cây"
+        onClose={close}
+      >
+        <DiseaseOptionList
+          emptyText="Chưa có nhóm bệnh cây"
+          options={diseaseGroupOptions.map((group) => ({
+            key: group,
+            label: group,
+            value: group,
+          }))}
+          selectedValue={props.diseaseGroup}
+          onSelect={(value) => {
+            props.onDiseaseGroup(value as PlantDiseaseGroup);
+            close();
+          }}
+        />
+      </BottomSheet>
+      <BottomSheet
+        visible={props.sheet === "diseaseType"}
+        title="Chọn loại bệnh cây"
+        onClose={close}
+      >
+        <DiseaseOptionList
+          emptyText="Chọn nhóm bệnh cây trước"
+          options={diseaseTypeOptions.map((type) => ({
+            key: type,
+            label: type,
+            value: type,
+          }))}
+          selectedValue={props.diseaseType}
+          onSelect={(value) => {
+            props.onDiseaseType(value);
+            close();
+          }}
+        />
+      </BottomSheet>
+      <BottomSheet
+        visible={props.sheet === "diseaseName"}
+        title="Chọn tên bệnh cây"
+        onClose={close}
+      >
+        <DiseaseOptionList
+          emptyText="Chọn loại bệnh cây trước"
+          options={diseaseNameOptions.map((disease) => ({
+            key: disease.id || `${disease.type}-${disease.name}`,
+            label: disease.name,
+            value: disease.name,
+            description: disease.type,
+          }))}
+          selectedValue={props.diseaseName}
+          onSelect={(value) => {
+            props.onDiseaseName(value);
+            close();
+          }}
         />
       </BottomSheet>
       <BottomSheet
@@ -481,6 +578,68 @@ export function SelectionSheets(props: SelectionSheetsProps) {
   );
 }
 
+function DiseaseOptionList({
+  emptyText,
+  onSelect,
+  options,
+  selectedValue,
+}: {
+  emptyText: string;
+  onSelect: (value: string) => void;
+  options: {
+    key: string;
+    label: string;
+    value: string;
+    description?: string;
+  }[];
+  selectedValue?: string;
+}) {
+  return (
+    <ScrollView
+      contentContainerStyle={selectionSheetStyles.diseaseListContent}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
+      {options.length > 0 ? (
+        options.map((option) => {
+          const selected = selectedValue === option.value;
+          return (
+            <Pressable
+              key={option.key}
+              style={[
+                selectionSheetStyles.diseaseOption,
+                selected && selectionSheetStyles.diseaseOptionSelected,
+              ]}
+              onPress={() => onSelect(option.value)}
+            >
+              <View style={selectionSheetStyles.diseaseOptionBody}>
+                <Text
+                  style={[
+                    selectionSheetStyles.diseaseOptionText,
+                    selected && selectionSheetStyles.diseaseOptionTextSelected,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                {option.description ? (
+                  <Text style={selectionSheetStyles.diseaseOptionMeta}>
+                    {option.description}
+                  </Text>
+                ) : null}
+              </View>
+              {selected ? <CircleCheck size={20} color={COLORS.green} /> : null}
+            </Pressable>
+          );
+        })
+      ) : (
+        <View style={selectionSheetStyles.diseaseEmpty}>
+          <Text style={selectionSheetStyles.diseaseEmptyText}>{emptyText}</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
 function MeasurementInput({
   label,
   value,
@@ -516,6 +675,55 @@ function MeasurementInput({
 const selectionSheetStyles = StyleSheet.create({
   measurementSheetContent: {
     flex: 1,
+  },
+  diseaseListContent: {
+    paddingBottom: LAYOUT.sheetBottom,
+    gap: 8,
+  },
+  diseaseOption: {
+    minHeight: 54,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#fff",
+  },
+  diseaseOptionSelected: {
+    borderColor: COLORS.green,
+    backgroundColor: "#f0f8ed",
+  },
+  diseaseOptionBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  diseaseOptionText: {
+    color: COLORS.body,
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 20,
+  },
+  diseaseOptionTextSelected: {
+    color: COLORS.green,
+  },
+  diseaseOptionMeta: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  diseaseEmpty: {
+    minHeight: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  diseaseEmptyText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    lineHeight: 20,
   },
   measurementSheetSubtitle: {
     color: COLORS.body,

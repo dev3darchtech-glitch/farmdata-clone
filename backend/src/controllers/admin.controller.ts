@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
 import { CropModel } from "../models/Crop";
+import { PlantDiseaseModel } from "../models/PlantDisease";
 import { PlotModel } from "../models/Plot";
 import { UserModel } from "../models/User";
+import { PLANT_DISEASE_GROUPS, PlantDiseaseGroup } from "../types";
 
 function isCreatedByCurrentAdmin(
   target: { createdByAdminId?: unknown },
@@ -18,6 +20,17 @@ function readRequestedActiveStatus(req: Request, res: Response) {
   }
 
   return req.body.isActive as boolean;
+}
+
+function isPlantDiseaseGroup(value: unknown): value is PlantDiseaseGroup {
+  return (
+    typeof value === "string" &&
+    PLANT_DISEASE_GROUPS.includes(value as PlantDiseaseGroup)
+  );
+}
+
+function normalizeRequiredText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 /**
@@ -220,6 +233,133 @@ export const deactivateCrop = async (req: Request, res: Response) => {
   const target = await CropModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Crop not found" });
+  }
+
+  target.isActive = requestedIsActive;
+  await target.save();
+  return res.json(target);
+};
+
+/**
+ * GET /api/admin/plant-diseases
+ */
+export const getPlantDiseases = async (req: Request, res: Response) => {
+  const diseases = await PlantDiseaseModel.find().sort({
+    group: 1,
+    type: 1,
+    name: 1,
+  });
+  return res.json(diseases);
+};
+
+/**
+ * POST /api/admin/plant-diseases
+ */
+export const createPlantDisease = async (req: Request, res: Response) => {
+  const group = req.body?.group;
+  const type = normalizeRequiredText(req.body?.type);
+  const name = normalizeRequiredText(req.body?.name);
+  const description = normalizeRequiredText(req.body?.description);
+
+  if (!isPlantDiseaseGroup(group)) {
+    return res.status(400).json({ error: "group is invalid" });
+  }
+  if (!type || !name) {
+    return res.status(400).json({ error: "type and name are required" });
+  }
+
+  const existing = await PlantDiseaseModel.findOne({ group, type, name });
+  if (existing) {
+    return res.status(400).json({
+      error: `Plant disease '${name}' already exists in '${type}'`,
+    });
+  }
+
+  const newDisease = await PlantDiseaseModel.create({
+    group,
+    type,
+    name,
+    description: description || undefined,
+  });
+
+  return res.status(201).json(newDisease);
+};
+
+/**
+ * PATCH /api/admin/plant-diseases/:id
+ */
+export const updatePlantDisease = async (req: Request, res: Response) => {
+  const target = await PlantDiseaseModel.findById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Plant disease not found" });
+  }
+
+  const { group, type, name, description, isActive } = req.body;
+  if (
+    group === undefined &&
+    type === undefined &&
+    name === undefined &&
+    description === undefined &&
+    isActive === undefined
+  ) {
+    return res.status(400).json({
+      error: "group, type, name, description, or isActive is required",
+    });
+  }
+
+  const nextGroup = group === undefined ? target.group : group;
+  const nextType =
+    type === undefined ? target.type : normalizeRequiredText(type);
+  const nextName =
+    name === undefined ? target.name : normalizeRequiredText(name);
+
+  if (!isPlantDiseaseGroup(nextGroup)) {
+    return res.status(400).json({ error: "group is invalid" });
+  }
+  if (!nextType || !nextName) {
+    return res.status(400).json({ error: "type and name are required" });
+  }
+
+  const existing = await PlantDiseaseModel.findOne({
+    group: nextGroup,
+    type: nextType,
+    name: nextName,
+    _id: { $ne: target._id },
+  });
+  if (existing) {
+    return res.status(400).json({
+      error: `Plant disease '${nextName}' already exists in '${nextType}'`,
+    });
+  }
+
+  target.group = nextGroup;
+  target.type = nextType;
+  target.name = nextName;
+  if (description !== undefined) {
+    const cleanDescription = normalizeRequiredText(description);
+    target.description = cleanDescription || undefined;
+  }
+  if (typeof isActive === "boolean") {
+    target.isActive = isActive;
+  }
+
+  await target.save();
+  return res.json(target);
+};
+
+/**
+ * PATCH /api/admin/plant-diseases/:id/deactivate
+ * Body: { isActive: boolean }
+ */
+export const deactivatePlantDisease = async (req: Request, res: Response) => {
+  const requestedIsActive = readRequestedActiveStatus(req, res);
+  if (requestedIsActive === undefined) {
+    return;
+  }
+
+  const target = await PlantDiseaseModel.findById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Plant disease not found" });
   }
 
   target.isActive = requestedIsActive;

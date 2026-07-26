@@ -1,16 +1,20 @@
 import { Router } from "express";
 import {
   createCrop,
+  createPlantDisease,
   createPlot,
   createUser,
   deactivateCrop,
+  deactivatePlantDisease,
   deactivatePlot,
   getCrops,
+  getPlantDiseases,
   getPlots,
   getUsers,
   restoreUser,
   revokeUser,
   updateCrop,
+  updatePlantDisease,
   updatePlot,
   updateUser,
 } from "../controllers/admin.controller";
@@ -60,6 +64,26 @@ router.patch("/crops/:id", updateCrop);
  * PATCH /api/admin/crops/:id/deactivate
  */
 router.patch("/crops/:id/deactivate", deactivateCrop);
+
+/**
+ * GET /api/admin/plant-diseases
+ */
+router.get("/plant-diseases", getPlantDiseases);
+
+/**
+ * POST /api/admin/plant-diseases
+ */
+router.post("/plant-diseases", createPlantDisease);
+
+/**
+ * PATCH /api/admin/plant-diseases/:id
+ */
+router.patch("/plant-diseases/:id", updatePlantDisease);
+
+/**
+ * PATCH /api/admin/plant-diseases/:id/deactivate
+ */
+router.patch("/plant-diseases/:id/deactivate", deactivatePlantDisease);
 
 /**
  * GET /api/admin/users

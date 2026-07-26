@@ -1,11 +1,12 @@
 import { COLORS } from "@/constants/theme";
-import { SymptomSeverity } from "@/types";
+import { PlantDiseaseGroup, SymptomSeverity } from "@/types";
 import { severityLabel } from "@/utils/captureDisplay";
 import { CaptureSectionOrder, formatSectionTitle } from "@/utils/sectionTitle";
 import { Info } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { FieldLabel } from "../shared/FieldLabel";
+import { InputSelection } from "../shared/InputSelection";
 import { InputText } from "../shared/InputText";
 
 const SEVERITY_OPTIONS: { value: SymptomSeverity; label: string }[] = [
@@ -22,9 +23,18 @@ export function SymptomSection({
   isEditingSymptom,
   onEditSymptom,
   onSelectSeverity,
+  onOpenDiseaseGroup,
+  onOpenDiseaseType,
+  onOpenDiseaseName,
   onSymptomDescriptionChange,
   order,
   severity,
+  diseaseGroup,
+  diseaseType,
+  diseaseName,
+  diseaseGroupError,
+  diseaseTypeError,
+  diseaseNameError,
   shouldShowInlineErrors,
   shouldShowSymptomDescription,
   symptomDescription,
@@ -33,9 +43,18 @@ export function SymptomSection({
   isEditingSymptom: boolean;
   onEditSymptom: (editing: boolean) => void;
   onSelectSeverity: (severity: SymptomSeverity) => void;
+  onOpenDiseaseGroup: () => void;
+  onOpenDiseaseType: () => void;
+  onOpenDiseaseName: () => void;
   onSymptomDescriptionChange: (value: string) => void;
   order?: CaptureSectionOrder;
   severity?: SymptomSeverity;
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
+  diseaseGroupError?: string;
+  diseaseTypeError?: string;
+  diseaseNameError?: string;
   shouldShowInlineErrors: boolean;
   shouldShowSymptomDescription: boolean;
   symptomDescription: string;
@@ -47,6 +66,32 @@ export function SymptomSection({
         {formatSectionTitle("Tình trạng", order)}
       </FieldLabel>
       <View style={symptomStyles.symptomEditStack}>
+        <InputSelection
+          label="Nhóm bệnh cây"
+          required
+          value={diseaseGroup}
+          placeholder="Chọn nhóm bệnh cây"
+          onPress={onOpenDiseaseGroup}
+          error={shouldShowInlineErrors ? diseaseGroupError : undefined}
+        />
+        <InputSelection
+          label="Loại bệnh cây"
+          required
+          value={diseaseType}
+          placeholder="Chọn loại bệnh cây"
+          onPress={onOpenDiseaseType}
+          disabled={!diseaseGroup}
+          error={shouldShowInlineErrors ? diseaseTypeError : undefined}
+        />
+        <InputSelection
+          label="Tên bệnh cây"
+          required
+          value={diseaseName}
+          placeholder="Chọn tên bệnh cây"
+          onPress={onOpenDiseaseName}
+          disabled={!diseaseGroup || !diseaseType}
+          error={shouldShowInlineErrors ? diseaseNameError : undefined}
+        />
         <FieldLabel required>Mức độ</FieldLabel>
         <View style={symptomStyles.severityList}>
           {SEVERITY_OPTIONS.map((item, index) => (

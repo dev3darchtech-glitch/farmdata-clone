@@ -61,13 +61,27 @@ export function validateCaptureSession(
 
   if (!session.severity) {
     errors.severity = "Vui lòng chọn mức độ triệu chứng";
-  } else if (!SYMPTOM_SEVERITY_VALUES.some((value) => value === session.severity)) {
+  } else if (
+    !SYMPTOM_SEVERITY_VALUES.some((value) => value === session.severity)
+  ) {
     errors.severity = "Mức độ triệu chứng không hợp lệ";
   } else if (
     !session.symptomDescription ||
     session.symptomDescription.trim() === ""
   ) {
     errors.symptomDescription = "Vui lòng nhập mô tả triệu chứng";
+  }
+
+  if (!session.diseaseGroup) {
+    errors.diseaseGroup = "Vui lòng chọn nhóm bệnh cây";
+  }
+
+  if (!session.diseaseType || session.diseaseType.trim() === "") {
+    errors.diseaseType = "Vui lòng chọn loại bệnh cây";
+  }
+
+  if (!session.diseaseName || session.diseaseName.trim() === "") {
+    errors.diseaseName = "Vui lòng chọn tên bệnh cây";
   }
 
   return {
@@ -124,6 +138,9 @@ export async function createManualPost(postData: {
   growthStage: CaptureSession["growthStage"];
   images?: string[];
   plotId: string;
+  diseaseGroup?: CaptureSession["diseaseGroup"];
+  diseaseType?: string;
+  diseaseName?: string;
   severity: CaptureSession["severity"];
   symptomDescription: string;
   weatherCode: number;

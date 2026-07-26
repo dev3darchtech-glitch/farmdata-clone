@@ -1,6 +1,10 @@
 import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
-import { getCropTypes, getPlots } from "@/services/adminService";
+import {
+  getCropTypes,
+  getPlantDiseases,
+  getPlots,
+} from "@/services/adminService";
 import { captureImageWithMetadata } from "@/services/cameraService";
 import { getCurrentLocation } from "@/services/locationService";
 import {
@@ -17,6 +21,8 @@ import {
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
+  PlantDiseaseGroup,
+  PlantDiseaseInfo,
   PlotInfo,
   SymptomSeverity,
   WeatherCondition,
@@ -56,6 +62,9 @@ type CaptureScreenDraft = {
   stationLatitude?: number;
   stationLongitude?: number;
   localMeasurements?: LocalWeatherMeasurement;
+  diseaseGroup?: PlantDiseaseGroup;
+  diseaseType?: string;
+  diseaseName?: string;
   symptomDescription: string;
   severity?: SymptomSeverity;
   isEditingSymptom: boolean;
@@ -69,6 +78,9 @@ function hasMeaningfulCaptureDraft(draft: CaptureScreenDraft) {
     draft.growthStage ||
     draft.envMode !== "outdoor" ||
     draft.localMeasurements ||
+    draft.diseaseGroup ||
+    draft.diseaseType ||
+    draft.diseaseName ||
     draft.symptomDescription.trim() ||
     draft.severity,
   );
@@ -116,6 +128,7 @@ export function CaptureScreen() {
   const [images, setImages] = useState<string[]>([]);
   const [plots, setPlots] = useState<PlotInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
+  const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
   const [plotId, setPlotId] = useState<string | undefined>();
   const [cropType, setCropType] = useState("");
   const [growthStage, setGrowthStage] = useState<GrowthStageId | undefined>();
@@ -139,6 +152,11 @@ export function CaptureScreen() {
     LocalWeatherMeasurement | undefined
   >();
   const [symptomDescription, setSymptomDescription] = useState("");
+  const [diseaseGroup, setDiseaseGroup] = useState<
+    PlantDiseaseGroup | undefined
+  >();
+  const [diseaseType, setDiseaseType] = useState<string | undefined>();
+  const [diseaseName, setDiseaseName] = useState<string | undefined>();
   const [severity, setSeverity] = useState<SymptomSeverity | undefined>();
   const [isEditingSymptom, setIsEditingSymptom] = useState(true);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
@@ -213,6 +231,13 @@ export function CaptureScreen() {
         if (draft.localMeasurements !== undefined) {
           setLocalMeasurements(draft.localMeasurements);
         }
+        if (draft.diseaseGroup) setDiseaseGroup(draft.diseaseGroup);
+        if (typeof draft.diseaseType === "string") {
+          setDiseaseType(draft.diseaseType);
+        }
+        if (typeof draft.diseaseName === "string") {
+          setDiseaseName(draft.diseaseName);
+        }
         if (typeof draft.symptomDescription === "string") {
           setSymptomDescription(draft.symptomDescription);
         }
@@ -230,13 +255,16 @@ export function CaptureScreen() {
         }
       });
 
-    Promise.all([getPlots(), getCropTypes()]).then(([plotData, cropData]) => {
-      try {
-        if (!isMounted) return;
-        setPlots(plotData);
-        setCrops(cropData);
-      } catch {}
-    });
+    Promise.all([getPlots(), getCropTypes(), getPlantDiseases()]).then(
+      ([plotData, cropData, diseaseData]) => {
+        try {
+          if (!isMounted) return;
+          setPlots(plotData);
+          setCrops(cropData);
+          setPlantDiseases(diseaseData);
+        } catch {}
+      },
+    );
 
     console.log(
       "JEST CHECK:",
@@ -323,6 +351,9 @@ export function CaptureScreen() {
       stationLatitude,
       stationLongitude,
       localMeasurements,
+      diseaseGroup,
+      diseaseType,
+      diseaseName,
       symptomDescription,
       severity,
       isEditingSymptom,
@@ -330,6 +361,9 @@ export function CaptureScreen() {
     [
       captureLocation,
       cropType,
+      diseaseGroup,
+      diseaseName,
+      diseaseType,
       envMode,
       growthStage,
       images,
@@ -379,6 +413,9 @@ export function CaptureScreen() {
     captureLocation,
     stationMeasurements: stationWeather,
     localMeasurements,
+    diseaseGroup,
+    diseaseType,
+    diseaseName,
     symptomDescription,
     severity,
   };
@@ -438,6 +475,9 @@ export function CaptureScreen() {
       setCropType("");
       setGrowthStage(undefined);
       setSymptomDescription("");
+      setDiseaseGroup(undefined);
+      setDiseaseType(undefined);
+      setDiseaseName(undefined);
       setSeverity(undefined);
       setIsEditingSymptom(true);
       setLocalMeasurements(undefined);
@@ -474,9 +514,13 @@ export function CaptureScreen() {
             setSheet={setSheet}
             plots={plots}
             crops={crops}
+            plantDiseases={plantDiseases}
             plotId={plotId}
             cropType={cropType}
             growthStage={growthStage}
+            diseaseGroup={diseaseGroup}
+            diseaseType={diseaseType}
+            diseaseName={diseaseName}
             stationWeather={stationWeather}
             stationUpdatedAt={stationUpdatedAt}
             stationLatitude={stationLatitude}
@@ -485,6 +529,16 @@ export function CaptureScreen() {
             onPlot={setPlotId}
             onCrop={setCropType}
             onStage={setGrowthStage}
+            onDiseaseGroup={(value) => {
+              setDiseaseGroup(value);
+              setDiseaseType(undefined);
+              setDiseaseName(undefined);
+            }}
+            onDiseaseType={(value) => {
+              setDiseaseType(value);
+              setDiseaseName(undefined);
+            }}
+            onDiseaseName={setDiseaseName}
             localMeasurements={localMeasurements}
             onMeasurements={setLocalMeasurements}
             error={error}
@@ -550,9 +604,22 @@ export function CaptureScreen() {
             setSeverity(value);
             setIsEditingSymptom(true);
           }}
+          onOpenDiseaseGroup={() => setSheet("diseaseGroup")}
+          onOpenDiseaseType={() => {
+            if (diseaseGroup) setSheet("diseaseType");
+          }}
+          onOpenDiseaseName={() => {
+            if (diseaseGroup && diseaseType) setSheet("diseaseName");
+          }}
           onSymptomDescriptionChange={setSymptomDescription}
           order={6}
           severity={severity}
+          diseaseGroup={diseaseGroup}
+          diseaseType={diseaseType}
+          diseaseName={diseaseName}
+          diseaseGroupError={validation.errors.diseaseGroup}
+          diseaseTypeError={validation.errors.diseaseType}
+          diseaseNameError={validation.errors.diseaseName}
           shouldShowInlineErrors={shouldShowInlineErrors}
           shouldShowSymptomDescription={shouldShowSymptomDescription}
           symptomDescription={symptomDescription}

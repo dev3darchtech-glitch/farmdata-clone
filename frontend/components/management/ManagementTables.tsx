@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/theme";
-import { CropTypeInfo, PlotInfo, User } from "@/types";
+import { CropTypeInfo, PlantDiseaseInfo, PlotInfo, User } from "@/types";
 import { cropIcon, getCropBgColor, getCropColor } from "@/utils/captureDisplay";
 import { MoreVertical } from "lucide-react-native";
 import React from "react";
@@ -128,6 +128,66 @@ export function AccountManagementTable({
               {item.username || item.name}
             </Text>
             <View style={tableStyles.accountStatusCell}>
+              <ManagementStatus item={item} />
+            </View>
+            <Pressable
+              style={tableStyles.accountMoreCell}
+              onPress={() => onAction(item)}
+            >
+              <MoreVertical size={20} color={COLORS.text} />
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+export function PlantDiseaseManagementTable({
+  rows,
+  total,
+  onAction,
+}: {
+  rows: PlantDiseaseInfo[];
+  total: number;
+  onAction: (item: PlantDiseaseInfo) => void;
+}) {
+  return (
+    <View>
+      <Text style={tableStyles.summary}>Tổng số: {total}</Text>
+      <View style={tableStyles.cardTable}>
+        <View style={tableStyles.diseaseHeader}>
+          <Text style={[tableStyles.headerText, tableStyles.diseaseGroupCell]}>
+            NHÓM
+          </Text>
+          <Text style={[tableStyles.headerText, tableStyles.diseaseNameCell]}>
+            BỆNH CÂY
+          </Text>
+          <Text style={[tableStyles.headerText, tableStyles.diseaseStatusCell]}>
+            TRẠNG THÁI
+          </Text>
+          <View style={tableStyles.accountMoreCell} />
+        </View>
+        {rows.map((item) => (
+          <View
+            key={item.id || `${item.group}-${item.type}-${item.name}`}
+            style={tableStyles.diseaseRow}
+          >
+            <Text
+              style={[tableStyles.diseaseGroupCell, tableStyles.rowPrimary]}
+              numberOfLines={2}
+            >
+              {item.group}
+            </Text>
+            <View style={tableStyles.diseaseNameCell}>
+              <Text style={tableStyles.cropName} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text style={tableStyles.diseaseTypeText} numberOfLines={1}>
+                {item.type}
+              </Text>
+            </View>
+            <View style={tableStyles.diseaseStatusCell}>
               <ManagementStatus item={item} />
             </View>
             <Pressable
@@ -302,5 +362,39 @@ const tableStyles = StyleSheet.create({
     height: 24,
     alignItems: "center",
     justifyContent: "center",
+  },
+  diseaseHeader: {
+    minHeight: 46,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#f9fafb",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  diseaseRow: {
+    minHeight: 68,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#fff",
+    ...sharedRowBorder,
+  },
+  diseaseGroupCell: {
+    width: 104,
+  },
+  diseaseNameCell: {
+    flex: 1,
+    minWidth: 0,
+  },
+  diseaseStatusCell: {
+    width: 116,
+  },
+  diseaseTypeText: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
