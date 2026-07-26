@@ -74,6 +74,13 @@ function mapPlantDisease(d: any): PlantDiseaseInfo {
   };
 }
 
+export interface PaginatedPlantDiseases {
+  items: PlantDiseaseInfo[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 /**
  * Log in to backend API to retrieve JWT token and user profile.
  */
@@ -463,6 +470,63 @@ export async function fetchPlantDiseasesAPI(): Promise<PlantDiseaseInfo[]> {
     // Silent offline catch
   }
   return [];
+}
+
+export async function fetchPlantDiseasesPageAPI({
+  page,
+  limit,
+  query,
+}: {
+  page: number;
+  limit: number;
+  query?: string;
+}): Promise<PaginatedPlantDiseases> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (query?.trim()) {
+    params.set("q", query.trim());
+  }
+
+  const res = await fetch(
+    `${BACKEND_URL}/master-data/plant-diseases?${params.toString()}`,
+    {
+      headers: getAuthHeaders(),
+    },
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể tải danh sách bệnh cây.");
+  }
+
+  if (Array.isArray(data)) {
+    const filteredItems = query?.trim()
+      ? data.filter((item: any) =>
+          [item.group, item.type, item.name]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(query.trim().toLowerCase()),
+        )
+      : data;
+    const start = (page - 1) * limit;
+    const items = filteredItems.slice(start, start + limit);
+
+    return {
+      items: items.map(mapPlantDisease),
+      total: filteredItems.length,
+      page,
+      totalPages: Math.max(1, Math.ceil(filteredItems.length / limit)),
+    };
+  }
+
+  return {
+    items: Array.isArray(data.items) ? data.items.map(mapPlantDisease) : [],
+    total: Number(data.total) || 0,
+    page: Number(data.page) || page,
+    totalPages: Number(data.totalPages) || 1,
+  };
 }
 
 /**

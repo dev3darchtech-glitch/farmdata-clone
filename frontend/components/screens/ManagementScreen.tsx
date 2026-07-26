@@ -5,7 +5,7 @@ import {
   addPlot,
   addUser,
   getCropTypes,
-  getPlantDiseases,
+  getPlantDiseasesPage,
   getPlots,
   getUsers,
   restoreUser,
@@ -135,6 +135,9 @@ const PLANT_DISEASE_GROUP_OPTIONS: PlantDiseaseGroup[] = [
   "Truyền nhiễm",
   "Không truyền nhiễm",
 ];
+const PLOT_PAGE_SIZE = 6;
+const PLANT_DISEASE_PAGE_SIZE = 5;
+const DEFAULT_PAGE_SIZE = 7;
 
 export function ManagementScreen() {
   const params = useLocalSearchParams<{ tab?: string }>();
@@ -143,6 +146,7 @@ export function ManagementScreen() {
   const [plots, setPlots] = useState<PlotInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
   const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
+  const [plantDiseaseTotal, setPlantDiseaseTotal] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
   const [actionItem, setActionItem] = useState<any | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -185,19 +189,52 @@ export function ManagementScreen() {
   });
   const [confirmItem, setConfirmItem] = useState<any | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = variant === "plots" ? 6 : 7;
+  const pageSize =
+    variant === "plots"
+      ? PLOT_PAGE_SIZE
+      : variant === "diseases"
+        ? PLANT_DISEASE_PAGE_SIZE
+        : DEFAULT_PAGE_SIZE;
+
+  const loadPlantDiseasePage = useCallback(
+    async (nextPage: number, nextQuery: string) => {
+      try {
+        const diseaseData = await getPlantDiseasesPage({
+          page: nextPage,
+          limit: PLANT_DISEASE_PAGE_SIZE,
+          query: nextQuery,
+        });
+        setPlantDiseases(diseaseData.items);
+        setPlantDiseaseTotal(diseaseData.total);
+      } catch (error) {
+        setSnackbar({
+          type: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Không thể tải danh sách bệnh cây.",
+        });
+      }
+    },
+    [],
+  );
 
   const refresh = useCallback(async () => {
     try {
       const [plotData, cropData, diseaseData, userData] = await Promise.all([
         getPlots(),
         getCropTypes(),
-        getPlantDiseases(),
+        getPlantDiseasesPage({
+          page: 1,
+          limit: PLANT_DISEASE_PAGE_SIZE,
+          query: "",
+        }),
         getUsers(),
       ]);
       setPlots(plotData);
       setCrops(cropData);
-      setPlantDiseases(diseaseData);
+      setPlantDiseases(diseaseData.items);
+      setPlantDiseaseTotal(diseaseData.total);
       setUsers(userData);
     } catch (error) {
       setSnackbar({
@@ -228,6 +265,12 @@ export function ManagementScreen() {
     setPage(1);
   }, [query, variant]);
 
+  useEffect(() => {
+    if (variant === "diseases") {
+      void loadPlantDiseasePage(page, query);
+    }
+  }, [loadPlantDiseasePage, page, query, variant]);
+
   const title =
     variant === "plots"
       ? "Mã số luống"
@@ -255,20 +298,22 @@ export function ManagementScreen() {
           ? "Tìm nhóm, loại hoặc tên bệnh..."
           : "Tìm kiếm username...";
   const filteredRows = rows.filter((item: any) =>
-    [
-      item.code,
-      item.farmerCode,
-      item.name,
-      item.username,
-      item.email,
-      item.category,
-      item.group,
-      item.type,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase()
-      .includes(query.toLowerCase()),
+    variant === "diseases"
+      ? true
+      : [
+          item.code,
+          item.farmerCode,
+          item.name,
+          item.username,
+          item.email,
+          item.category,
+          item.group,
+          item.type,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query.toLowerCase()),
   );
   const visibleRows =
     variant === "accounts"
@@ -283,11 +328,13 @@ export function ManagementScreen() {
       new Set([...existingIcons, ...DEFAULT_CROP_ICON_OPTIONS]),
     );
   }, [crops]);
-  const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+  const totalItems =
+    variant === "diseases" ? plantDiseaseTotal : visibleRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, totalPages);
   const pagedRows = visibleRows.slice(
-    (safePage - 1) * pageSize,
-    safePage * pageSize,
+    variant === "diseases" ? 0 : (safePage - 1) * pageSize,
+    variant === "diseases" ? visibleRows.length : safePage * pageSize,
   );
   useEffect(() => {
     if (page > totalPages) {
@@ -387,13 +434,12 @@ export function ManagementScreen() {
           name: diseaseForm.name.trim(),
         };
         if (editingDisease) {
-          const item = await updatePlantDisease(editingDisease.id, payload);
-          setPlantDiseases((current) =>
-            current.map((disease) => (disease.id === item.id ? item : disease)),
-          );
+          await updatePlantDisease(editingDisease.id, payload);
+          await loadPlantDiseasePage(safePage, query);
         } else {
-          const item = await addPlantDisease(payload);
-          setPlantDiseases((current) => [item, ...current]);
+          await addPlantDisease(payload);
+          setPage(1);
+          await loadPlantDiseasePage(1, query);
         }
       } else {
         if (
@@ -980,7 +1026,7 @@ export function ManagementScreen() {
         ) : variant === "diseases" ? (
           <PlantDiseaseManagementTable
             rows={pagedRows as PlantDiseaseInfo[]}
-            total={visibleRows.length}
+            total={totalItems}
             onAction={setActionItem}
           />
         ) : (
@@ -994,7 +1040,7 @@ export function ManagementScreen() {
       <ManagementPagination
         page={safePage}
         totalPages={totalPages}
-        totalItems={visibleRows.length}
+        totalItems={totalItems}
         onPageChange={setPage}
       />
     </AppScreenLayout>

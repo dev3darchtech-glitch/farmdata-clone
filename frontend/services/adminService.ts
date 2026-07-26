@@ -4,6 +4,7 @@ import {
   createCropAPI,
   createPlantDiseaseAPI,
   createPlotAPI,
+  fetchPlantDiseasesPageAPI,
   createUserAPI,
   fetchCropsAPI,
   fetchPlantDiseasesAPI,
@@ -55,6 +56,14 @@ export async function setCropTypeActiveStatus(
 
 export async function getPlantDiseases(): Promise<PlantDiseaseInfo[]> {
   return await fetchPlantDiseasesAPI();
+}
+
+export async function getPlantDiseasesPage(params: {
+  page: number;
+  limit: number;
+  query?: string;
+}) {
+  return await fetchPlantDiseasesPageAPI(params);
 }
 
 export async function addPlantDisease(

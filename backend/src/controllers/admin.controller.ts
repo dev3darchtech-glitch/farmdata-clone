@@ -244,11 +244,47 @@ export const deactivateCrop = async (req: Request, res: Response) => {
  * GET /api/admin/plant-diseases
  */
 export const getPlantDiseases = async (req: Request, res: Response) => {
-  const diseases = await PlantDiseaseModel.find().sort({
+  const page = Number(req.query.page);
+  const limit = Number(req.query.limit);
+  const query = normalizeRequiredText(req.query.q);
+  const shouldPaginate =
+    Number.isInteger(page) &&
+    Number.isInteger(limit) &&
+    page > 0 &&
+    limit > 0;
+  const filter = query
+    ? {
+        $or: [
+          { group: { $regex: query, $options: "i" } },
+          { type: { $regex: query, $options: "i" } },
+          { name: { $regex: query, $options: "i" } },
+        ],
+      }
+    : {};
+  const sort = {
     group: 1,
     type: 1,
     name: 1,
-  });
+  } as const;
+
+  if (shouldPaginate) {
+    const safeLimit = Math.min(limit, 50);
+    const skip = (page - 1) * safeLimit;
+    const [diseases, total] = await Promise.all([
+      PlantDiseaseModel.find(filter).sort(sort).skip(skip).limit(safeLimit),
+      PlantDiseaseModel.countDocuments(filter),
+    ]);
+
+    return res.json({
+      items: diseases,
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit)),
+    });
+  }
+
+  const diseases = await PlantDiseaseModel.find(filter).sort(sort);
   return res.json(diseases);
 };
 

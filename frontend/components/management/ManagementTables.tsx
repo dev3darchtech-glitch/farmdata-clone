@@ -163,9 +163,6 @@ export function PlantDiseaseManagementTable({
           <Text style={[tableStyles.headerText, tableStyles.diseaseNameCell]}>
             BỆNH CÂY
           </Text>
-          <Text style={[tableStyles.headerText, tableStyles.diseaseStatusCell]}>
-            TRẠNG THÁI
-          </Text>
           <View style={tableStyles.accountMoreCell} />
         </View>
         {rows.map((item) => (
@@ -186,9 +183,6 @@ export function PlantDiseaseManagementTable({
               <Text style={tableStyles.diseaseTypeText} numberOfLines={1}>
                 {item.type}
               </Text>
-            </View>
-            <View style={tableStyles.diseaseStatusCell}>
-              <ManagementStatus item={item} />
             </View>
             <Pressable
               style={tableStyles.accountMoreCell}
@@ -388,9 +382,6 @@ const tableStyles = StyleSheet.create({
   diseaseNameCell: {
     flex: 1,
     minWidth: 0,
-  },
-  diseaseStatusCell: {
-    width: 116,
   },
   diseaseTypeText: {
     color: COLORS.muted,
