@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import {
   Camera,
   Check,
@@ -108,7 +108,7 @@ const captureResultStyles = StyleSheet.create({
     width: 319,
     borderRadius: 24,
     backgroundColor: "#fff",
-    padding: 32,
+    padding: LAYOUT.modalY,
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.25,
@@ -119,7 +119,7 @@ const captureResultStyles = StyleSheet.create({
   captureSuccessIconWrap: {
     width: 80,
     height: 104,
-    paddingBottom: 24,
+    paddingBottom: LAYOUT.modalY,
     alignItems: "center",
   },
   captureSuccessIconCircle: {
@@ -141,21 +141,21 @@ const captureResultStyles = StyleSheet.create({
   captureSuccessTitle: {
     paddingBottom: 8,
     color: "#2b2b2b",
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.title,
+    lineHeight: TYPOGRAPHY.titleLine,
     fontWeight: "700",
     textAlign: "center",
   },
   captureSuccessDescription: {
-    paddingBottom: 32,
+    paddingBottom: LAYOUT.screenGap,
     color: "#2b2b2b",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     textAlign: "center",
   },
   captureSuccessActions: {
     width: "100%",
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   captureSuccessPrimaryButton: {
     height: 48,
@@ -173,7 +173,7 @@ const captureResultStyles = StyleSheet.create({
   },
   captureSuccessPrimaryText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     lineHeight: 16,
     fontWeight: "600",
   },
@@ -190,7 +190,7 @@ const captureResultStyles = StyleSheet.create({
   },
   captureSuccessSecondaryText: {
     color: "#2b2b2b",
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     lineHeight: 16,
     fontWeight: "600",
   },
@@ -199,9 +199,9 @@ const captureResultStyles = StyleSheet.create({
     minHeight: 303,
     borderRadius: 16,
     backgroundColor: "#fff",
-    paddingHorizontal: 32,
-    paddingTop: 32,
-    paddingBottom: 32,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingTop: LAYOUT.modalY,
+    paddingBottom: LAYOUT.modalY,
     alignItems: "center",
     boxShadow: "0 8px 24px rgba(0, 0, 0, 0.16)",
     elevation: 8,
@@ -214,8 +214,8 @@ const captureResultStyles = StyleSheet.create({
   },
   captureErrorTitle: {
     color: COLORS.text,
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.title,
+    lineHeight: TYPOGRAPHY.titleLine,
     fontWeight: "700",
     textAlign: "center",
   },
@@ -223,7 +223,7 @@ const captureResultStyles = StyleSheet.create({
     marginTop: 8,
     minHeight: 47,
     color: COLORS.body,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     lineHeight: 23,
     textAlign: "center",
   },
@@ -240,7 +240,7 @@ const captureResultStyles = StyleSheet.create({
   },
   captureErrorButtonText: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     lineHeight: 16,
     fontWeight: "600",
   },

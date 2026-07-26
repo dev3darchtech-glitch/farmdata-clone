@@ -1,3 +1,4 @@
+import { LAYOUT } from "@/constants/theme";
 import { WifiOff, X } from "lucide-react-native";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -65,9 +66,9 @@ const postStateStyles = StyleSheet.create({
     marginTop: 16,
   },
   postsLoadingContent: {
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.screenX,
     paddingBottom: 100,
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   postsSearchSkeleton: {
     height: 44,
@@ -147,7 +148,7 @@ const postStateStyles = StyleSheet.create({
   postsCenteredState: {
     flex: 1,
     alignItems: "center",
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.screenX,
     paddingTop: 104,
     paddingBottom: 96,
   },

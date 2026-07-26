@@ -1,5 +1,5 @@
 import farmLogo from "@/assets/images/logo-farmdata.png";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import { User } from "@/types";
 import { ManagementVariant } from "@/types/ui";
 import {
@@ -16,7 +16,7 @@ import {
   FileText,
   LayoutDashboardIcon,
   LogOut,
-  Plus,
+  PlusCircle,
   UserIcon,
 } from "lucide-react-native";
 import React, { useEffect, useRef } from "react";
@@ -273,7 +273,7 @@ export function ManagementDrawer({
                 style={drawerStyles.drawerPublishRow}
                 onPress={createPostFromDrawer}
               >
-                <Plus size={18} color={COLORS.green} />
+                <PlusCircle size={18} color={COLORS.green} />
                 <Text style={drawerStyles.drawerPublishText}>Đăng bài</Text>
               </Pressable>
             ) : null}
@@ -301,9 +301,9 @@ const drawerStyles = StyleSheet.create({
   drawer: {
     width: 288,
     backgroundColor: "#fff",
-    paddingHorizontal: 35,
-    paddingTop: 26,
-    paddingBottom: 24,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
+    paddingBottom: LAYOUT.screenTop,
     borderRightWidth: 1,
     borderRightColor: "#e5e7eb",
   },
@@ -312,7 +312,7 @@ const drawerStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 16,
+    marginBottom: LAYOUT.sectionGap,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
@@ -369,8 +369,8 @@ const drawerStyles = StyleSheet.create({
     marginTop: "auto",
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
-    paddingTop: 16,
-    gap: 24,
+    paddingTop: LAYOUT.sectionGap,
+    gap: LAYOUT.screenGap,
   },
   drawerPublishRow: {
     flexDirection: "row",

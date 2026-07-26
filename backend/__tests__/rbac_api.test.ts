@@ -127,6 +127,86 @@ describe("FarmData Backend API & RBAC Suite", () => {
       expect(res.status).toBe(201);
       expect(res.body.code).toBe("L-009");
     });
+
+    it("toggles plot and crop active status through boolean deactivate endpoint bodies", async () => {
+      const plotRes = await request(app)
+        .post("/api/admin/plots")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ code: "L-010", name: "Luống 10 - Toggle Test" });
+      expect(plotRes.status).toBe(201);
+      const plotId = plotRes.body._id || plotRes.body.id;
+
+      const inactivePlotRes = await request(app)
+        .patch(`/api/admin/plots/${plotId}/deactivate`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ isActive: false });
+      expect(inactivePlotRes.status).toBe(200);
+      expect(inactivePlotRes.body.isActive).toBe(false);
+
+      const activePlotRes = await request(app)
+        .patch(`/api/admin/plots/${plotId}/deactivate`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ isActive: true });
+      expect(activePlotRes.status).toBe(200);
+      expect(activePlotRes.body.isActive).toBe(true);
+
+      const cropRes = await request(app)
+        .post("/api/admin/crops")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ name: "Dưa lưới toggle", category: "Master Data" });
+      expect(cropRes.status).toBe(201);
+      const cropId = cropRes.body._id || cropRes.body.id;
+
+      const inactiveCropRes = await request(app)
+        .patch(`/api/admin/crops/${cropId}/deactivate`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ isActive: false });
+      expect(inactiveCropRes.status).toBe(200);
+      expect(inactiveCropRes.body.isActive).toBe(false);
+
+      const activeCropRes = await request(app)
+        .patch(`/api/admin/crops/${cropId}/deactivate`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ isActive: true });
+      expect(activeCropRes.status).toBe(200);
+      expect(activeCropRes.body.isActive).toBe(true);
+
+      const invalidRes = await request(app)
+        .patch(`/api/admin/crops/${cropId}/deactivate`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({});
+      expect(invalidRes.status).toBe(400);
+      expect(invalidRes.body.error).toContain("isActive");
+    });
+
+    it("allows ADMIN to lock and unlock a farmer account they created", async () => {
+      const username = `farmerlock${Date.now()}`;
+      const createRes = await request(app)
+        .post("/api/admin/users")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          name: "Farmer Lock Test",
+          username,
+          password: "123456",
+          role: "FARMER",
+        });
+      expect(createRes.status).toBe(201);
+      const userId = createRes.body._id || createRes.body.id;
+
+      const revokeRes = await request(app)
+        .patch(`/api/admin/users/${userId}/revoke`)
+        .set("Authorization", `Bearer ${adminToken}`);
+      expect(revokeRes.status).toBe(200);
+      expect(revokeRes.body.isRevoked).toBe(true);
+      expect(revokeRes.body.revokedAt).toBeDefined();
+
+      const restoreRes = await request(app)
+        .patch(`/api/admin/users/${userId}/restore`)
+        .set("Authorization", `Bearer ${adminToken}`);
+      expect(restoreRes.status).toBe(200);
+      expect(restoreRes.body.isRevoked).toBe(false);
+      expect(restoreRes.body.revokedAt).toBeUndefined();
+    });
   });
 
   describe("3. Capture Session and Admin Post Publishing Workflow", () => {
@@ -275,12 +355,7 @@ describe("FarmData Backend API & RBAC Suite", () => {
         expect(post.envMode).toBe("greenhouse");
         expect(post.severity).toBe("Vừa");
         expect(
-          [
-            post.cropType,
-            post.plotId,
-            post.symptomDescription,
-            post.user?.name,
-          ]
+          [post.cropType, post.plotId, post.symptomDescription, post.user?.name]
             .filter(Boolean)
             .join(" "),
         ).toMatch(/Vàng/i);

@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { getPosts } from "@/services/postService";
 import { ManagementVariant } from "@/types/ui";
@@ -115,8 +115,8 @@ const profileScreenStyles = StyleSheet.create({
     flex: 1,
   },
   profileContent: {
-    paddingHorizontal: 35,
-    paddingTop: 24,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
     paddingBottom: 108,
     gap: 18,
   },

@@ -4,7 +4,7 @@ import {
   CapturePlotOptions,
   CaptureStageOptions,
 } from "@/components/shared/CaptureFormParts";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import {
   CropTypeInfo,
   GrowthStageId,
@@ -84,6 +84,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
     ),
   );
   const [showWeatherDropdown, setShowWeatherDropdown] = useState(false);
+  const [isAdjustingTemperature, setIsAdjustingTemperature] = useState(false);
   const [soilMeasurements, setSoilMeasurements] = useState(() => {
     const initial = props.localMeasurements;
     return {
@@ -176,6 +177,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
         visible={props.sheet === "station"}
         title="Chi tiết dữ liệu trạm"
         onClose={close}
+        full
       >
         <StationDetail
           data={props.stationWeather}
@@ -198,7 +200,10 @@ export function SelectionSheets(props: SelectionSheetsProps) {
           <ScrollView
             style={selectionSheetStyles.measurementFieldsScroll}
             contentContainerStyle={selectionSheetStyles.measurementFormContent}
+            keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+            scrollEnabled={!isAdjustingTemperature}
             showsVerticalScrollIndicator={false}
           >
             <View style={selectionSheetStyles.measurementSection}>
@@ -255,8 +260,9 @@ export function SelectionSheets(props: SelectionSheetsProps) {
                 {showWeatherDropdown ? (
                   <ScrollView
                     style={selectionSheetStyles.weatherDropdown}
+                    keyboardDismissMode="on-drag"
                     keyboardShouldPersistTaps="handled"
-                    nestedScrollEnabled={true}
+                    nestedScrollEnabled
                     showsVerticalScrollIndicator={true}
                   >
                     {CAPTURE_WEATHER_OPTIONS.map((option) => {
@@ -311,6 +317,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
               </View>
               <TemperatureSlider
                 value={measurement.temperature ?? 0}
+                onSlidingChange={setIsAdjustingTemperature}
                 onChange={(value) =>
                   setMeasurement((current) => ({
                     ...current,
@@ -514,17 +521,17 @@ const selectionSheetStyles = StyleSheet.create({
     color: COLORS.body,
     fontSize: 16,
     lineHeight: 20,
-    marginBottom: 20,
+    marginBottom: LAYOUT.sectionGap,
   },
   measurementFieldsScroll: {
     flex: 1,
   },
   measurementFormContent: {
-    gap: 24,
-    paddingBottom: 32,
+    gap: LAYOUT.screenGap,
+    paddingBottom: LAYOUT.sheetBottom,
   },
   measurementSection: {
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   measurementSectionTitleRow: {
     flexDirection: "row",
@@ -540,10 +547,13 @@ const selectionSheetStyles = StyleSheet.create({
   measurementGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 20,
+    columnGap: 12,
+    rowGap: 16,
   },
   measurementInputStack: {
-    width: "48%",
+    flexBasis: "47%",
+    flexGrow: 1,
+    maxWidth: "48%",
     gap: 7,
   },
   measurementInputStackFull: {
@@ -615,8 +625,8 @@ const selectionSheetStyles = StyleSheet.create({
   measurementActionArea: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: LAYOUT.sectionGap,
+    paddingBottom: LAYOUT.sectionGap,
     flexDirection: "row",
     gap: 22,
     backgroundColor: "#fff",

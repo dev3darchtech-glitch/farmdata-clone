@@ -225,9 +225,12 @@ export async function fetchPostFeed(
 export async function fetchPostById(postId: string): Promise<Post | null> {
   if (!postId) return null;
 
-  const res = await fetch(`${BACKEND_URL}/posts/${encodeURIComponent(postId)}`, {
-    headers: getAuthHeaders(),
-  }).catch(() => {
+  const res = await fetch(
+    `${BACKEND_URL}/posts/${encodeURIComponent(postId)}`,
+    {
+      headers: getAuthHeaders(),
+    },
+  ).catch(() => {
     throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
   });
 
@@ -330,15 +333,19 @@ export async function updatePlotAPI(
   return mapPlot(data);
 }
 
-export async function deactivatePlotAPI(plotId: string): Promise<PlotInfo> {
+export async function setPlotActiveStatusAPI(
+  plotId: string,
+  isActive: boolean,
+): Promise<PlotInfo> {
   const res = await fetch(`${BACKEND_URL}/admin/plots/${plotId}/deactivate`, {
     method: "PATCH",
     headers: getAuthHeaders(),
+    body: JSON.stringify({ isActive }),
   });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || "Không thể ngừng sử dụng mã luống.");
+    throw new Error(data.error || "Không thể cập nhật trạng thái mã luống.");
   }
 
   return mapPlot(data);
@@ -406,15 +413,19 @@ export async function updateCropAPI(
   return mapCrop(data);
 }
 
-export async function deactivateCropAPI(cropId: string): Promise<CropTypeInfo> {
+export async function setCropActiveStatusAPI(
+  cropId: string,
+  isActive: boolean,
+): Promise<CropTypeInfo> {
   const res = await fetch(`${BACKEND_URL}/admin/crops/${cropId}/deactivate`, {
     method: "PATCH",
     headers: getAuthHeaders(),
+    body: JSON.stringify({ isActive }),
   });
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || "Không thể ngừng sử dụng loại cây.");
+    throw new Error(data.error || "Không thể cập nhật trạng thái loại cây.");
   }
 
   return mapCrop(data);
@@ -540,6 +551,35 @@ export async function revokeUserAPI(userId: string): Promise<User> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data.error || "Không thể thu hồi tài khoản.");
+  }
+
+  return {
+    id: data._id || data.id,
+    name: data.name,
+    email: data.email,
+    username: data.username,
+    role: data.role,
+    isRevoked: Boolean(data.isRevoked),
+    revokedAt: data.revokedAt,
+    createdByAdminId:
+      typeof data.createdByAdminId === "string"
+        ? data.createdByAdminId
+        : data.createdByAdminId?._id || data.createdByAdminId?.id,
+  };
+}
+
+/**
+ * Restore a revoked farmer account.
+ */
+export async function restoreUserAPI(userId: string): Promise<User> {
+  const res = await fetch(`${BACKEND_URL}/admin/users/${userId}/restore`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể mở khóa tài khoản.");
   }
 
   return {

@@ -1,5 +1,5 @@
 import { GROWTH_STAGES } from "@/constants/growthStages";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import {
   CropTypeInfo,
   GrowthStageId,
@@ -361,21 +361,23 @@ export function CaptureStageOptions({
               />
             </View>
             <View style={captureFormStyles.stageOptionBody}>
-              <Text style={captureFormStyles.stageOptionTitle}>
+              <Text
+                style={[
+                  captureFormStyles.stageOptionTitle,
+                  selected && captureFormStyles.stageOptionTitleSelected,
+                ]}
+              >
                 {stageSheetName(stage.id)}
               </Text>
               <Text style={captureFormStyles.stageOptionMeta}>
                 {stageSheetDescription(stage.id, stage.description)}
               </Text>
             </View>
-            <View
-              style={[
-                captureFormStyles.stageRadio,
-                selected && captureFormStyles.stageRadioSelected,
-              ]}
-            >
-              {selected ? <Check size={14} color="#fff" /> : null}
-            </View>
+            {selected ? (
+              <View style={captureFormStyles.selectionCheck}>
+                <Check size={12} color="#fff" />
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -424,21 +426,23 @@ export function CaptureWeatherOptions({
               />
             </View>
             <View style={captureFormStyles.stageOptionBody}>
-              <Text style={captureFormStyles.stageOptionTitle}>
+              <Text
+                style={[
+                  captureFormStyles.stageOptionTitle,
+                  selected && captureFormStyles.stageOptionTitleSelected,
+                ]}
+              >
                 {option.label}
               </Text>
               <Text style={captureFormStyles.stageOptionMeta}>
                 Mã thời tiết {option.code}
               </Text>
             </View>
-            <View
-              style={[
-                captureFormStyles.stageRadio,
-                selected && captureFormStyles.stageRadioSelected,
-              ]}
-            >
-              {selected ? <Check size={14} color="#fff" /> : null}
-            </View>
+            {selected ? (
+              <View style={captureFormStyles.selectionCheck}>
+                <Check size={12} color="#fff" />
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -481,12 +485,10 @@ export function CaptureSeverityOptions({
             />
             <View style={{ flex: 1, gap: 3 }}>
               <Text
-                style={{
-                  color: COLORS.body,
-                  fontSize: 16,
-                  fontWeight: "600",
-                  lineHeight: 20,
-                }}
+                style={[
+                  captureFormStyles.severityTitle,
+                  selected && captureFormStyles.severityTitleSelected,
+                ]}
               >
                 {item.label}
               </Text>
@@ -494,16 +496,11 @@ export function CaptureSeverityOptions({
                 {item.description}
               </Text>
             </View>
-            <View
-              style={[
-                captureFormStyles.radioMark,
-                selected && captureFormStyles.radioMarkActive,
-              ]}
-            >
-              {selected ? (
-                <View style={captureFormStyles.radioMarkDot} />
-              ) : null}
-            </View>
+            {selected ? (
+              <View style={captureFormStyles.selectionCheck}>
+                <Check size={12} color="#fff" />
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -513,13 +510,13 @@ export function CaptureSeverityOptions({
 
 const captureFormStyles = StyleSheet.create({
   cropSheetContent: {
-    marginHorizontal: -24,
+    marginHorizontal: -LAYOUT.sheetX,
     flexGrow: 1,
   },
   cropSearchWrap: {
     height: 50,
-    marginHorizontal: 35,
-    marginBottom: 16,
+    marginHorizontal: LAYOUT.sheetContentX,
+    marginBottom: LAYOUT.sectionGap,
     borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: "row",
@@ -530,15 +527,15 @@ const captureFormStyles = StyleSheet.create({
   cropSearchInput: {
     flex: 1,
     color: COLORS.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.label,
+    lineHeight: TYPOGRAPHY.bodyLine,
     paddingVertical: 0,
   },
   cropListScroll: {
     height: 430,
   },
   cropListContent: {
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.sheetContentX,
     paddingVertical: 8,
     gap: 4,
   },
@@ -550,7 +547,7 @@ const captureFormStyles = StyleSheet.create({
   },
   cropSearchEmptyText: {
     color: COLORS.muted,
-    fontSize: 15,
+    fontSize: TYPOGRAPHY.label,
     textAlign: "center",
   },
   plotOption: {
@@ -572,8 +569,8 @@ const captureFormStyles = StyleSheet.create({
   },
   plotOptionCode: {
     color: COLORS.body,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     fontWeight: "500",
   },
   plotOptionCodeSelected: {
@@ -581,10 +578,18 @@ const captureFormStyles = StyleSheet.create({
   },
   plotOptionMeta: {
     color: COLORS.body,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   plotOptionCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectionCheck: {
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -599,7 +604,7 @@ const captureFormStyles = StyleSheet.create({
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   cropOptionSelected: {
     backgroundColor: "rgba(234,242,157,0.5)",
@@ -615,8 +620,8 @@ const captureFormStyles = StyleSheet.create({
   cropOptionText: {
     flex: 1,
     color: COLORS.body,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   cropOptionTextSelected: {
     color: COLORS.green,
@@ -624,9 +629,9 @@ const captureFormStyles = StyleSheet.create({
   cropActionArea: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingHorizontal: 35,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingHorizontal: LAYOUT.sheetContentX,
+    paddingTop: LAYOUT.sheetTop,
+    paddingBottom: LAYOUT.sheetTop,
   },
   sheetOutlineAction: {
     height: 48,
@@ -638,25 +643,25 @@ const captureFormStyles = StyleSheet.create({
   },
   sheetOutlineActionText: {
     color: COLORS.green,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   stageSheetList: {
-    marginHorizontal: -24,
+    marginHorizontal: -LAYOUT.sheetX,
+    paddingHorizontal: LAYOUT.sheetContentX,
+    gap: 4,
   },
   stageOption: {
     minHeight: 80,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    paddingHorizontal: 35,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     paddingVertical: 20,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   stageOptionSelected: {
     backgroundColor: "rgba(234,242,157,0.5)",
-    paddingVertical: 16,
   },
   stageOptionIcon: {
     width: 40,
@@ -674,27 +679,17 @@ const captureFormStyles = StyleSheet.create({
   },
   stageOptionTitle: {
     color: COLORS.body,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     fontWeight: "500",
+  },
+  stageOptionTitleSelected: {
+    color: COLORS.green,
   },
   stageOptionMeta: {
     color: COLORS.body,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  stageRadio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stageRadioSelected: {
-    borderWidth: 0,
-    backgroundColor: COLORS.green,
+    fontSize: TYPOGRAPHY.label,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   severityList: {
     gap: 8,
@@ -711,36 +706,21 @@ const captureFormStyles = StyleSheet.create({
     gap: 12,
   },
   severityActive: {
-    backgroundColor: "rgba(185,240,189,0.2)",
-    borderColor: COLORS.green,
-    borderWidth: 2,
+    backgroundColor: "rgba(234,242,157,0.5)",
+    borderColor: "transparent",
   },
   severityDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
   },
-  radioMark: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
+  severityTitle: {
+    color: COLORS.body,
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "600",
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
-  radioMarkActive: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderColor: COLORS.green,
-    backgroundColor: COLORS.green,
-  },
-  radioMarkDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#fff",
+  severityTitleSelected: {
+    color: COLORS.green,
   },
 });

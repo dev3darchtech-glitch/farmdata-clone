@@ -8,6 +8,7 @@ import {
   getCrops,
   getPlots,
   getUsers,
+  restoreUser,
   revokeUser,
   updateCrop,
   updatePlot,
@@ -79,5 +80,10 @@ router.patch("/users/:id", updateUser);
  * PATCH /api/admin/users/:id/revoke
  */
 router.patch("/users/:id/revoke", revokeUser);
+
+/**
+ * PATCH /api/admin/users/:id/restore
+ */
+router.patch("/users/:id/restore", restoreUser);
 
 export default router;

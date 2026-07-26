@@ -1,7 +1,7 @@
-import { DrawerSheet } from "@/components/shared/DrawerSheet";
+import { BottomSheet } from "@/components/shared/BottomSheet";
 import { InputSelection } from "@/components/shared/InputSelection";
 import { InputText } from "@/components/shared/InputText";
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import { PLOT_ZONE_OPTIONS } from "@/utils/management";
 import { Check } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -38,12 +38,10 @@ export function PlotFormSheet({
   }, [visible]);
 
   return (
-    <DrawerSheet
+    <BottomSheet
       visible={visible}
       title={`${editing ? "Chỉnh sửa" : "Thêm"} mã số luống`}
       onClose={onClose}
-      contentStyle={plotSheetStyles.sheet}
-      showHandle={false}
     >
       <ScrollView
         contentContainerStyle={plotSheetStyles.body}
@@ -128,24 +126,15 @@ export function PlotFormSheet({
           <Text style={plotSheetStyles.saveText}>Lưu</Text>
         </Pressable>
       </View>
-    </DrawerSheet>
+    </BottomSheet>
   );
 }
 
 const plotSheetStyles = StyleSheet.create({
-  sheet: {
-    maxHeight: 795,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 0,
-    paddingBottom: 0,
-    overflow: "hidden",
-  },
   body: {
-    paddingHorizontal: 35,
-    paddingTop: 24,
-    paddingBottom: 88,
-    gap: 24,
+    paddingTop: 4,
+    paddingBottom: LAYOUT.sheetTop,
+    gap: LAYOUT.sectionGap,
   },
   field: {
     gap: 10,
@@ -157,13 +146,13 @@ const plotSheetStyles = StyleSheet.create({
     borderRadius: 8,
   },
   footer: {
-    paddingHorizontal: 35,
-    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     flexDirection: "row",
     gap: 22,
     backgroundColor: "#fff",
+    paddingTop: LAYOUT.sectionGap,
+    paddingBottom: LAYOUT.sectionGap,
   },
   cancelButton: {
     width: 115,

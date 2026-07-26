@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -94,9 +94,9 @@ const loadingDialogStyles = StyleSheet.create({
     minHeight: 330,
     borderRadius: 12,
     backgroundColor: "#faf9f5",
-    paddingHorizontal: 32,
-    paddingTop: 32,
-    paddingBottom: 28,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingTop: LAYOUT.modalY,
+    paddingBottom: LAYOUT.modalY,
     alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.25,
@@ -118,7 +118,7 @@ const loadingDialogStyles = StyleSheet.create({
   },
   loadingPercentText: {
     color: "#2b2b2b",
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.title,
     lineHeight: 28,
     fontWeight: "600",
   },
@@ -128,8 +128,8 @@ const loadingDialogStyles = StyleSheet.create({
   },
   loadingTitle: {
     color: "#2b2b2b",
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.title,
+    lineHeight: TYPOGRAPHY.titleLine,
     fontWeight: "700",
     textAlign: "center",
   },
@@ -141,8 +141,8 @@ const loadingDialogStyles = StyleSheet.create({
   },
   loadingDetail: {
     color: "#2b2b2b",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
     textAlign: "center",
   },
   loadingBarTrack: {
@@ -161,8 +161,8 @@ const loadingDialogStyles = StyleSheet.create({
   loadingHint: {
     marginTop: 10,
     color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.helper,
+    lineHeight: TYPOGRAPHY.bodyLine,
     textAlign: "center",
   },
 });

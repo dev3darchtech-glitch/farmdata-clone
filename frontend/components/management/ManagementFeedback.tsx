@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import {
   type CsvImportMode,
   type ManagementVariant,
@@ -9,6 +9,7 @@ import {
   CircleCheck,
   KeyRound,
   Lock,
+  LockOpen,
   Pencil,
   TriangleAlert,
   Upload,
@@ -21,9 +22,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { BottomSheet } from "../shared/BottomSheet";
 
 export function CsvImportModal({
   mode,
@@ -145,6 +146,7 @@ export function ManagementActionMenu({
   onDeactivate,
   onActivate,
   onRevoke,
+  onRestore,
   onResetPassword,
 }: {
   visible: boolean;
@@ -155,97 +157,105 @@ export function ManagementActionMenu({
   onDeactivate: () => void;
   onActivate: () => void;
   onRevoke?: () => void;
+  onRestore?: () => void;
   onResetPassword: () => void;
 }) {
   if (!visible) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={feedbackStyles.scrim}>
-          <TouchableWithoutFeedback>
-            <View style={feedbackStyles.actionMenuCard}>
-              {!inactive ? (
-                <Pressable
-                  style={feedbackStyles.actionMenuRow}
-                  onPress={onEdit || onClose}
-                >
-                  <Pencil size={20} color="#374151" />
-                  <Text style={feedbackStyles.actionMenuText}>Chỉnh sửa</Text>
-                </Pressable>
-              ) : null}
-              {variant !== "accounts" ? (
-                <Pressable
-                  style={[
-                    feedbackStyles.actionMenuRow,
-                    feedbackStyles.actionMenuRowLast,
-                  ]}
-                  onPress={inactive ? onActivate : onDeactivate}
-                >
-                  {inactive ? (
-                    <CircleCheck size={20} color={COLORS.green} />
-                  ) : (
-                    <TriangleAlert size={20} color="#f97316" />
-                  )}
-                  <Text
-                    style={
-                      inactive
-                        ? feedbackStyles.actionMenuText
-                        : feedbackStyles.actionMenuWarningText
-                    }
-                  >
-                    {inactive ? "Hoạt động lại" : "Ngừng sử dụng"}
-                  </Text>
-                </Pressable>
-              ) : null}
-              {variant === "accounts" ? (
-                <>
-                  <Pressable
-                    style={feedbackStyles.actionMenuRow}
-                    onPress={onRevoke || onDeactivate}
-                  >
-                    <Lock size={20} color="#dc2626" />
-                    <Text style={feedbackStyles.actionMenuDangerText}>
-                      Khóa tài khoản
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      feedbackStyles.actionMenuRow,
-                      feedbackStyles.actionMenuRowLast,
-                    ]}
-                    onPress={onResetPassword}
-                  >
-                    <KeyRound size={20} color="#374151" />
-                    <Text style={feedbackStyles.actionMenuText}>
-                      Đặt lại mật khẩu
-                    </Text>
-                  </Pressable>
-                </>
-              ) : null}
-            </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </Modal>
+    <BottomSheet visible={visible} title="Thao tác" onClose={onClose}>
+      <View style={feedbackStyles.actionSheetContent}>
+        {variant !== "accounts" ? (
+          <Pressable
+            style={feedbackStyles.actionMenuRow}
+            onPress={onEdit || onClose}
+          >
+            <Pencil size={20} color="#374151" />
+            <Text style={feedbackStyles.actionMenuText}>Chỉnh sửa</Text>
+          </Pressable>
+        ) : null}
+        {variant !== "accounts" ? (
+          <Pressable
+            style={[
+              feedbackStyles.actionMenuRow,
+              feedbackStyles.actionMenuRowLast,
+            ]}
+            onPress={inactive ? onActivate : onDeactivate}
+          >
+            {inactive ? (
+              <CircleCheck size={20} color={COLORS.green} />
+            ) : (
+              <TriangleAlert size={20} color="#f97316" />
+            )}
+            <Text
+              style={
+                inactive
+                  ? feedbackStyles.actionMenuText
+                  : feedbackStyles.actionMenuWarningText
+              }
+            >
+              {inactive ? "Hoạt động lại" : "Ngừng sử dụng"}
+            </Text>
+          </Pressable>
+        ) : null}
+        {variant === "accounts" ? (
+          <>
+            <Pressable
+              style={feedbackStyles.actionMenuRow}
+              onPress={inactive ? onRestore || onClose : onRevoke || onClose}
+            >
+              {inactive ? (
+                <LockOpen size={20} color={COLORS.green} />
+              ) : (
+                <Lock size={20} color="#dc2626" />
+              )}
+              <Text
+                style={
+                  inactive
+                    ? feedbackStyles.actionMenuText
+                    : feedbackStyles.actionMenuDangerText
+                }
+              >
+                {inactive ? "Mở khóa tài khoản" : "Khóa tài khoản"}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                feedbackStyles.actionMenuRow,
+                feedbackStyles.actionMenuRowLast,
+              ]}
+              onPress={onResetPassword}
+            >
+              <KeyRound size={20} color="#374151" />
+              <Text style={feedbackStyles.actionMenuText}>
+                Đặt lại mật khẩu
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </View>
+    </BottomSheet>
   );
 }
 
-export function ConfirmDeactivateDialog({
+export function ConfirmStatusDialog({
   visible,
   itemLabel,
+  isActivating,
   variant,
   onCancel,
   onConfirm,
 }: {
   visible: boolean;
   itemLabel: string;
+  isActivating: boolean;
   variant: ManagementVariant;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   if (!visible) return null;
   const itemKind = variant === "plots" ? "mã luống" : "loại cây";
+  const actionLabel = isActivating ? "hoạt động lại" : "ngừng sử dụng";
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
@@ -253,11 +263,14 @@ export function ConfirmDeactivateDialog({
         <View style={feedbackStyles.confirmCard}>
           <View style={feedbackStyles.confirmBody}>
             <View style={feedbackStyles.confirmIconArea}>
-              <TriangleAlert size={64} color="#f97316" />
+              <CircleCheck size={64} color={COLORS.green} />
             </View>
-            <Text style={feedbackStyles.confirmTitle}>Ngừng sử dụng?</Text>
+            <Text style={feedbackStyles.confirmTitle}>
+              {isActivating ? "Hoạt động lại?" : "Ngừng sử dụng?"}
+            </Text>
             <Text style={feedbackStyles.confirmDescription}>
-              Bạn có chắc chắn muốn{"\n"}ngừng sử dụng {itemKind} {itemLabel}?
+              Bạn có chắc chắn muốn{"\n"}
+              {actionLabel} {itemKind} {itemLabel}?
             </Text>
           </View>
           <View style={feedbackStyles.confirmFooter}>
@@ -328,7 +341,7 @@ const modalShadow = Platform.select({
 const feedbackStyles = StyleSheet.create({
   scrim: {
     flex: 1,
-    paddingHorizontal: 35,
+    paddingHorizontal: LAYOUT.modalX,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
@@ -350,13 +363,13 @@ const feedbackStyles = StyleSheet.create({
   },
   modalTitle: {
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   modalBody: {
-    padding: 24,
-    gap: 24,
+    padding: LAYOUT.modalY,
+    gap: LAYOUT.screenGap,
   },
   uploadArea: {
     minHeight: 195,
@@ -368,18 +381,18 @@ const feedbackStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    padding: 32,
+    padding: LAYOUT.modalY,
   },
   uploadTitle: {
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   uploadSubtitle: {
     color: "#9ca3af",
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.label,
+    lineHeight: TYPOGRAPHY.bodyLine,
     textAlign: "center",
   },
   constraintBlock: {
@@ -387,12 +400,12 @@ const feedbackStyles = StyleSheet.create({
   },
   constraintText: {
     color: "#9ca3af",
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   modalFooter: {
-    paddingHorizontal: 35,
-    paddingVertical: 24,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingVertical: LAYOUT.modalY,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     backgroundColor: "#fff",
@@ -407,8 +420,8 @@ const feedbackStyles = StyleSheet.create({
   },
   outlineButtonText: {
     color: COLORS.green,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   loadingCard: {
     width: "100%",
@@ -425,17 +438,17 @@ const feedbackStyles = StyleSheet.create({
     justifyContent: "center",
   },
   loadingContent: {
-    paddingHorizontal: 32,
+    paddingHorizontal: LAYOUT.modalX,
     paddingTop: 8,
     paddingBottom: 64,
-    gap: 16,
+    gap: LAYOUT.sectionGap,
     alignItems: "center",
   },
   loadingTitle: {
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   progressTrack: {
     width: "100%",
@@ -451,35 +464,28 @@ const feedbackStyles = StyleSheet.create({
   },
   progressText: {
     color: COLORS.text,
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   resultBody: {
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingVertical: LAYOUT.modalY,
     alignItems: "center",
     gap: 14,
   },
   resultTitle: {
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   resultRows: {
     alignSelf: "stretch",
     gap: 4,
   },
-  actionMenuCard: {
-    width: "100%",
-    maxWidth: 320,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
-    overflow: "hidden",
-    paddingVertical: 8,
-    ...modalShadow,
+  actionSheetContent: {
+    paddingTop: 4,
+    paddingBottom: 12,
   },
   actionMenuRow: {
     height: 56,
@@ -487,7 +493,7 @@ const feedbackStyles = StyleSheet.create({
     paddingRight: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: LAYOUT.sectionGap,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
@@ -496,18 +502,18 @@ const feedbackStyles = StyleSheet.create({
   },
   actionMenuText: {
     color: "#374151",
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   actionMenuWarningText: {
     color: "#f97316",
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   actionMenuDangerText: {
     color: "#dc2626",
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   confirmCard: {
     width: "100%",
@@ -519,11 +525,11 @@ const feedbackStyles = StyleSheet.create({
     overflow: "hidden",
   },
   confirmBody: {
-    paddingHorizontal: 33,
-    paddingTop: 33,
-    paddingBottom: 24,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingTop: LAYOUT.modalY,
+    paddingBottom: LAYOUT.modalY,
     alignItems: "center",
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
   confirmIconArea: {
     width: 64,
@@ -533,20 +539,20 @@ const feedbackStyles = StyleSheet.create({
   },
   confirmTitle: {
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "500",
-    lineHeight: 20,
+    lineHeight: TYPOGRAPHY.bodyLine,
     textAlign: "center",
   },
   confirmDescription: {
     color: COLORS.body,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
     textAlign: "center",
   },
   confirmFooter: {
-    paddingHorizontal: 35,
-    paddingVertical: 16,
+    paddingHorizontal: LAYOUT.modalX,
+    paddingVertical: LAYOUT.sectionGap,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     flexDirection: "row",
@@ -572,19 +578,19 @@ const feedbackStyles = StyleSheet.create({
   },
   confirmCancelText: {
     color: COLORS.green,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   confirmSubmitText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "600",
-    lineHeight: 24,
+    lineHeight: TYPOGRAPHY.relaxedLine,
   },
   toast: {
     position: "absolute",
-    left: 35,
-    right: 35,
+    left: LAYOUT.screenX,
+    right: LAYOUT.screenX,
     bottom: 150,
     minHeight: 56,
     borderRadius: 8,
@@ -616,7 +622,7 @@ const feedbackStyles = StyleSheet.create({
   toastText: {
     flex: 1,
     color: "#fff",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.body,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
 });

@@ -1,49 +1,104 @@
 import { COLORS } from "@/constants/theme";
 import { metricLabel } from "@/utils/weatherMetrics";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, StyleSheet, Text, View } from "react-native";
 import { FieldLabel } from "../shared/FieldLabel";
 
 export function TemperatureSlider({
   value,
   onChange,
+  onSlidingChange,
 }: {
   value: number;
   onChange: (value: number) => void;
+  onSlidingChange?: (isSliding: boolean) => void;
 }) {
   const [trackWidth, setTrackWidth] = useState(0);
-  const clampedValue = Math.min(40, Math.max(0, value || 0));
+  const [dragValue, setDragValue] = useState(() =>
+    Math.min(40, Math.max(0, value || 0)),
+  );
+  const trackRef = useRef<View>(null);
+  const trackWidthRef = useRef(0);
+  const trackPageXRef = useRef(0);
+  const lastValueRef = useRef(dragValue);
+  const isSlidingRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  const onSlidingChangeRef = useRef(onSlidingChange);
+  const clampedValue = Math.min(40, Math.max(0, dragValue || 0));
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    onSlidingChangeRef.current = onSlidingChange;
+  }, [onSlidingChange]);
+
+  useEffect(() => {
+    if (isSlidingRef.current) return;
+    const nextValue = Math.min(40, Math.max(0, value || 0));
+    lastValueRef.current = nextValue;
+    setDragValue(nextValue);
+  }, [value]);
 
   const paddingX = 11;
   const activeWidth = trackWidth ? trackWidth - paddingX * 2 : 0;
   const progress = activeWidth ? (clampedValue / 40) * activeWidth : 0;
 
-  const updateFromX = useCallback(
-    (x: number) => {
-      if (!trackWidth) return;
-      const clampedX = Math.min(trackWidth - paddingX, Math.max(paddingX, x));
-      const activeX = clampedX - paddingX;
-      const next = (activeX / (trackWidth - paddingX * 2)) * 40;
-      onChange(Math.round(next));
-    },
-    [onChange, trackWidth],
-  );
+  const updateFromPageX = (pageX: number) => {
+    const width = trackWidthRef.current;
+    if (!width) return;
+
+    const localX = pageX - trackPageXRef.current;
+    const clampedX = Math.min(width - paddingX, Math.max(paddingX, localX));
+    const activeRange = width - paddingX * 2;
+    if (!activeRange) return;
+
+    const activeX = clampedX - paddingX;
+    const next = Math.round((activeX / activeRange) * 40);
+    if (next === lastValueRef.current) return;
+
+    lastValueRef.current = next;
+    setDragValue(next);
+    onChangeRef.current(next);
+  };
+
+  const measureTrack = () => {
+    trackRef.current?.measureInWindow((x, _y, width) => {
+      trackPageXRef.current = x;
+      trackWidthRef.current = width || trackWidthRef.current;
+    });
+  };
+
+  const setSliding = (next: boolean) => {
+    if (isSlidingRef.current === next) return;
+    isSlidingRef.current = next;
+    onSlidingChangeRef.current?.(next);
+  };
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (event) => {
-          updateFromX(event.nativeEvent.locationX);
+          setSliding(true);
+          measureTrack();
+          updateFromPageX(event.nativeEvent.pageX);
         },
         onPanResponderMove: (event) => {
-          updateFromX(event.nativeEvent.locationX);
+          updateFromPageX(event.nativeEvent.pageX);
         },
-        onPanResponderTerminationRequest: () => false,
+        onPanResponderRelease: () => {
+          setSliding(false);
+        },
+        onPanResponderTerminate: () => {
+          setSliding(false);
+        },
         onShouldBlockNativeResponder: () => true,
       }),
-    [updateFromX],
+    [],
   );
 
   return (
@@ -53,8 +108,14 @@ export function TemperatureSlider({
         <Text style={temperatureSliderStyles.sliderValue}>{clampedValue}</Text>
       </View>
       <View
+        ref={trackRef}
         style={temperatureSliderStyles.sliderTrack}
-        onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+        onLayout={(event) => {
+          const width = event.nativeEvent.layout.width;
+          trackWidthRef.current = width;
+          setTrackWidth(width);
+          measureTrack();
+        }}
         {...panResponder.panHandlers}
       >
         <View

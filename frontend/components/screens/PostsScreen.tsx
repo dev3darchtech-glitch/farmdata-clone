@@ -1,4 +1,4 @@
-import { COLORS } from "@/constants/theme";
+import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { getCropTypes, getPlots } from "@/services/adminService";
 import { getPosts } from "@/services/postService";
@@ -310,7 +310,7 @@ export function PostsScreen() {
 const postLocalStyles = StyleSheet.create({
   floatingPublishButton: {
     position: "absolute",
-    right: 24,
+    right: LAYOUT.sheetX,
     bottom: 96,
     width: 58,
     height: 58,
@@ -328,9 +328,9 @@ const postLocalStyles = StyleSheet.create({
 
 const postsScreenStyles = StyleSheet.create({
   listHeader: {
-    paddingHorizontal: 35,
-    paddingTop: 13,
-    gap: 16,
+    paddingHorizontal: LAYOUT.screenX,
+    paddingTop: LAYOUT.screenTop,
+    gap: LAYOUT.sectionGap,
   },
   searchFilterRow: {
     flexDirection: "row",
@@ -350,7 +350,7 @@ const postsScreenStyles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: COLORS.body,
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.label,
     padding: 0,
   },
   filterButton: {
@@ -367,8 +367,8 @@ const postsScreenStyles = StyleSheet.create({
   },
   filterText: {
     color: "#414940",
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.label,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   filterChipRow: {
     flexDirection: "row",
@@ -393,8 +393,8 @@ const postsScreenStyles = StyleSheet.create({
   },
   chipText: {
     color: COLORS.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.label,
+    lineHeight: TYPOGRAPHY.bodyLine,
   },
   chipTextActive: {
     color: "#fff",
@@ -417,9 +417,9 @@ const postsScreenStyles = StyleSheet.create({
     marginBottom: 16,
   },
   postListContent: {
-    paddingTop: 16,
-    paddingHorizontal: 35,
+    paddingTop: LAYOUT.sectionGap,
+    paddingHorizontal: LAYOUT.screenX,
     paddingBottom: 12,
-    gap: 16,
+    gap: LAYOUT.sectionGap,
   },
 });
