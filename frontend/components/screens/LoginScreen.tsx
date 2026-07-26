@@ -106,10 +106,7 @@ export function LoginScreen() {
 
     try {
       setIsGoogleSubmitting(true);
-      const redirectUri =
-        Platform.OS === "web"
-          ? Linking.createURL("auth-callback")
-          : "capturedata://auth-callback";
+      const redirectUri = Linking.createURL("auth-callback");
       const authUrl = `${
         process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api"
       }/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;

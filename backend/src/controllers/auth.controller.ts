@@ -58,8 +58,8 @@ function getGoogleAppCallbackUrl(req: Request) {
 
 function isAllowedAppRedirectUri(value: string) {
   return (
-    value.startsWith("capturedata://") ||
-    value.startsWith("exp://") ||
+    value.startsWith("capturedata:") ||
+    value.startsWith("exp:") ||
     value.startsWith("http://localhost") ||
     value.startsWith("http://127.0.0.1") ||
     value.startsWith("https://localhost")
@@ -311,7 +311,10 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
       return res.redirect(finalRedirectUrl);
     }
 
-    return res.send(`
+    return res
+      .status(302)
+      .setHeader("Location", finalRedirectUrl)
+      .send(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -333,9 +336,7 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
     <a href="${finalRedirectUrl}" class="btn">Mở ứng dụng FarmData</a>
   </div>
   <script>
-    setTimeout(function() {
-      window.location.href = "${finalRedirectUrl}";
-    }, 100);
+    window.location.href = "${finalRedirectUrl}";
   </script>
 </body>
 </html>
