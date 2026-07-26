@@ -1,4 +1,4 @@
-import farmLogo from "@/assets/images/logo-farmdata.png";
+import farmLogo from "@/assets/images/logo.png";
 import React from "react";
 import { Image, StyleSheet, View } from "react-native";
 

@@ -4,7 +4,11 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { env } from "../configs/env";
 import { JWT_SECRET } from "../middleware/rbac";
-import { IUserDocument, UserModel } from "../models/User";
+import {
+  createUsernameFromEmail,
+  IUserDocument,
+  UserModel,
+} from "../models/User";
 import {
   getAdminGoogleAuthUrl,
   linkAdminGoogleAccount,
@@ -71,6 +75,19 @@ async function verifyGoogleIdToken(idToken: string) {
   return ticket.getPayload();
 }
 
+async function buildUniqueUsername(email: string) {
+  const baseUsername = createUsernameFromEmail(email);
+  let username = baseUsername;
+  let suffix = 1;
+
+  while (await UserModel.exists({ username })) {
+    suffix += 1;
+    username = `${baseUsername}${suffix}`;
+  }
+
+  return username;
+}
+
 async function findOrCreateGoogleUser(payload: {
   email?: string;
   email_verified?: boolean;
@@ -92,7 +109,14 @@ async function findOrCreateGoogleUser(payload: {
     return existingUser;
   }
 
-  throw new Error("Account must be created by an admin before Google sign-in.");
+  return await UserModel.create({
+    name: payload.name?.trim() || email,
+    email,
+    username: await buildUniqueUsername(email),
+    passwordHash: bcrypt.hashSync(`${payload.sub || email}:${Date.now()}`, 8),
+    role: "ADMIN",
+    isRevoked: false,
+  });
 }
 
 async function updateUserGoogleTokens(

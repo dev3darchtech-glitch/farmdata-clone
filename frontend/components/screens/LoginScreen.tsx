@@ -19,6 +19,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
@@ -201,7 +202,12 @@ export function LoginScreen() {
           behavior={Platform.select({ ios: "padding", default: undefined })}
           style={loginScreenStyles.flex}
         >
-          <View style={loginScreenStyles.loginContent}>
+          <ScrollView
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={loginScreenStyles.loginContent}
+          >
             <View style={loginScreenStyles.loginBrand}>
               <AppLogo />
               <Text style={loginScreenStyles.loginTitle}>FARMDATA</Text>
@@ -343,7 +349,7 @@ export function LoginScreen() {
                 </Pressable>
               </View>
             </View>
-          </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </View>
     </TouchableWithoutFeedback>
@@ -368,7 +374,7 @@ const loginScreenStyles = StyleSheet.create({
     aspectRatio: 390 / 725,
   },
   loginContent: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: LAYOUT.screenX,
     paddingTop: 70,
     paddingBottom: 28,

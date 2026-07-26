@@ -1,4 +1,4 @@
-import farmLogo from "@/assets/images/logo-farmdata.png";
+import farmLogo from "@/assets/images/logo.png";
 import { COLORS, LAYOUT } from "@/constants/theme";
 import { User } from "@/types";
 import { ManagementVariant } from "@/types/ui";
