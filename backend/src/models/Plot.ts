@@ -4,6 +4,7 @@ export interface IPlotDocument extends Document {
   code: string;
   name: string;
   areaSquareMeters?: number;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +20,7 @@ const PlotSchema = new Schema<IPlotDocument>(
     },
     name: { type: String, required: true, trim: true },
     areaSquareMeters: { type: Number },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

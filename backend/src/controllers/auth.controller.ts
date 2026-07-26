@@ -21,10 +21,25 @@ function toAuthUser(user: IUserDocument) {
   return {
     id: user._id.toString(),
     name: user.name,
-    email: user.email,
+    email: user.email || "",
     username: user.username,
     role: user.role,
   };
+}
+
+function signAuthTokens(user: IUserDocument) {
+  const payload = toAuthUser(user);
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+  const refreshToken = jwt.sign(
+    {
+      ...payload,
+      tokenUse: "refresh",
+    },
+    JWT_SECRET,
+    { expiresIn: "30d" },
+  );
+
+  return { payload, token, refreshToken };
 }
 
 const googleSignInAudiences = [env.googleClientId].filter(Boolean);
@@ -71,22 +86,13 @@ async function findOrCreateGoogleUser(payload: {
     await UserModel.findOne({ email }).select("-passwordHash"),
   );
   if (existingUser) {
+    if (existingUser.isRevoked) {
+      throw new Error("Account has been revoked.");
+    }
     return existingUser;
   }
 
-  const passwordHash = bcrypt.hashSync(
-    `google:${payload.sub || email}:${Date.now()}`,
-    10,
-  );
-
-  const createdUser = await UserModel.create({
-    name: payload.name?.trim() || email,
-    email,
-    passwordHash,
-    role: "FARMER",
-  });
-
-  return ensureUsername(createdUser);
+  throw new Error("Account must be created by an admin before Google sign-in.");
 }
 
 async function updateUserGoogleTokens(
@@ -139,6 +145,9 @@ export const login = async (req: Request, res: Response) => {
       .status(401)
       .json({ error: "Tên đăng nhập hoặc mật khẩu không đúng" });
   }
+  if (user.isRevoked) {
+    return res.status(403).json({ error: "Tài khoản đã bị thu hồi" });
+  }
 
   const isMatch = bcrypt.compareSync(password, user.passwordHash);
   if (!isMatch) {
@@ -147,12 +156,11 @@ export const login = async (req: Request, res: Response) => {
       .json({ error: "Tên đăng nhập hoặc mật khẩu không đúng" });
   }
 
-  const payload = toAuthUser(user);
-
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+  const { payload, token, refreshToken } = signAuthTokens(user);
 
   return res.json({
     token,
+    refreshToken,
     user: {
       ...payload,
       isGoogleDriveLinked: Boolean(user.googleTokens?.isLinked),
@@ -191,9 +199,7 @@ export const getGoogleAppAuthUrl = async (req: Request, res: Response) => {
     `?client_id=${encodeURIComponent(env.googleClientId)}` +
     `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
     `&response_type=code` +
-    `&scope=${encodeURIComponent(
-      "openid email profile https://www.googleapis.com/auth/drive.file",
-    )}` +
+    `&scope=${encodeURIComponent("openid email profile")}` +
     `&access_type=offline` +
     `&prompt=select_account` +
     `&state=${encodeURIComponent(redirectUri)}`;
@@ -268,17 +274,63 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(500).send("Unable to create Google user.");
     }
-    await updateUserGoogleTokens(user, tokenData, payload.email || undefined);
+    if (user.role === "ADMIN") {
+      await updateUserGoogleTokens(user, tokenData, payload.email || undefined);
+    }
 
-    const authPayload = toAuthUser(user);
-    const token = jwt.sign(authPayload, JWT_SECRET, { expiresIn: "24h" });
+    const { token, refreshToken } = signAuthTokens(user);
     const separator = state.includes("?") ? "&" : "?";
 
     return res.redirect(
-      `${state}${separator}accessToken=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(token)}`,
+      `${state}${separator}accessToken=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`,
     );
   } catch (err: any) {
     return res.status(401).send(err?.message || "Google sign-in failed.");
+  }
+};
+
+/**
+ * POST /api/auth/refresh
+ */
+export const refreshAuthToken = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken || typeof refreshToken !== "string") {
+    return res.status(400).json({ error: "Refresh token is required" });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as {
+      id?: string;
+      tokenUse?: string;
+    };
+
+    if (!decoded.id || decoded.tokenUse !== "refresh") {
+      return res.status(403).json({ error: "Invalid refresh token" });
+    }
+
+    const user = await ensureUsername(
+      await UserModel.findById(decoded.id).select("-passwordHash"),
+    );
+    if (!user) {
+      return res.status(403).json({ error: "Forbidden: User not found" });
+    }
+    if (user.isRevoked) {
+      return res.status(403).json({ error: "Forbidden: Account revoked" });
+    }
+
+    const tokens = signAuthTokens(user);
+    return res.json({
+      token: tokens.token,
+      refreshToken: tokens.refreshToken,
+      expiresIn: 86400,
+      user: {
+        ...tokens.payload,
+        isGoogleDriveLinked: Boolean(user.googleTokens?.isLinked),
+      },
+    });
+  } catch {
+    return res.status(403).json({ error: "Invalid or expired refresh token" });
   }
 };
 
@@ -300,6 +352,68 @@ export const getMe = async (req: Request, res: Response) => {
       googleDriveEmail: user.googleTokens?.email,
     },
   });
+};
+
+function isExpoPushToken(token: string) {
+  return /^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$/.test(token);
+}
+
+export const registerPushToken = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const { platform, token } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (platform !== "android" && platform !== "ios") {
+    return res.status(400).json({ error: "platform is invalid" });
+  }
+  if (!token || typeof token !== "string" || !isExpoPushToken(token)) {
+    return res.status(400).json({ error: "push token is invalid" });
+  }
+
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  const now = new Date();
+  user.pushTokens = user.pushTokens || [];
+  const existingToken = user.pushTokens.find((item) => item.token === token);
+  if (existingToken) {
+    existingToken.platform = platform;
+    existingToken.updatedAt = now;
+  } else {
+    user.pushTokens.push({
+      token,
+      platform,
+      provider: "expo",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await user.save();
+  return res.json({ ok: true });
+};
+
+export const unregisterPushToken = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  const { token } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (!token || typeof token !== "string") {
+    return res.status(400).json({ error: "push token is required" });
+  }
+
+  await UserModel.updateOne(
+    { _id: userId },
+    { $pull: { pushTokens: { token } } },
+  );
+
+  return res.json({ ok: true });
 };
 
 /**

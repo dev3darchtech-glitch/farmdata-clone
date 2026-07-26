@@ -4,6 +4,7 @@ import { env } from "./configs/env";
 import { connectMongoDB } from "./db/connect";
 import adminRoutes from "./routes/admin.routes";
 import authRoutes from "./routes/auth.routes";
+import masterDataRoutes from "./routes/masterData.routes";
 import postRoutes from "./routes/post.routes";
 import sessionRoutes from "./routes/session.routes";
 
@@ -23,6 +24,7 @@ app.get("/health", (req, res) => {
 
 // API Route mounts
 app.use("/api/auth", authRoutes);
+app.use("/api/master-data", masterDataRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/admin", adminRoutes);
@@ -34,9 +36,9 @@ app.use((req, res) => {
 
 if (env.nodeEnv !== "test") {
   connectMongoDB().then(() => {
-    app.listen(env.port, () => {
+    app.listen(env.port, "0.0.0.0", () => {
       console.log(
-        `🚀 FarmData Backend API running at http://localhost:${env.port}`,
+        `🚀 FarmData Backend API running at http://${"0.0.0.0"}:${env.port}`,
       );
       console.log(
         `📡 Ready for MongoDB, RBAC, and Admin Google Drive uploads.`,

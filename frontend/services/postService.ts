@@ -2,9 +2,15 @@ import {
   CaptureSession,
   CaptureSessionValidationResult,
   Post,
+  SYMPTOM_SEVERITY_VALUES,
   UserRole,
 } from "@/types";
-import { fetchPostFeed, submitCaptureSession } from "./apiClient";
+import {
+  fetchPostById,
+  fetchPostFeed,
+  createManualPostAPI,
+  submitCaptureSession,
+} from "./apiClient";
 
 /**
  * Validates whether a capture session has all mandatory fields filled
@@ -55,9 +61,11 @@ export function validateCaptureSession(
 
   if (!session.severity) {
     errors.severity = "Vui lòng chọn mức độ triệu chứng";
+  } else if (!SYMPTOM_SEVERITY_VALUES.some((value) => value === session.severity)) {
+    errors.severity = "Mức độ triệu chứng không hợp lệ";
   } else if (
-    session.severity !== "Khỏe mạnh" &&
-    (!session.symptomDescription || session.symptomDescription.trim() === "")
+    !session.symptomDescription ||
+    session.symptomDescription.trim() === ""
   ) {
     errors.symptomDescription = "Vui lòng nhập mô tả triệu chứng";
   }
@@ -71,10 +79,10 @@ export function validateCaptureSession(
 /**
  * Submits capture session directly to backend API.
  */
-export async function completeCaptureSessionAndAutoPost(
+export async function completeCaptureSession(
   sessionData: Omit<CaptureSession, "id" | "status" | "createdAt">,
   onProgress?: (stepMessage: string, current: number, total: number) => void,
-): Promise<{ session: CaptureSession; post: Post }> {
+): Promise<{ session: CaptureSession }> {
   // 1. Validate data
   const validation = validateCaptureSession(sessionData);
   if (!validation.isValid) {
@@ -92,16 +100,33 @@ export async function completeCaptureSessionAndAutoPost(
 export async function getPosts(
   role: UserRole = "farmer",
   farmerId?: string,
-  cropFilter?: string,
-  searchQuery?: string,
+  filters: {
+    crop?: string;
+    env?: string;
+    plot?: string;
+    q?: string;
+    severity?: string;
+    sort?: string;
+  } = {},
 ): Promise<Post[]> {
-  return await fetchPostFeed(role, cropFilter, searchQuery);
+  return await fetchPostFeed(role, filters);
 }
 
 /**
  * Retrieve single post details by ID directly from backend API.
  */
 export async function getPostById(postId: string): Promise<Post | null> {
-  const posts = await getPosts("admin");
-  return posts.find((p) => p.id === postId || (p as any)._id === postId) || null;
+  return await fetchPostById(postId);
+}
+
+export async function createManualPost(postData: {
+  cropType: string;
+  growthStage: CaptureSession["growthStage"];
+  images?: string[];
+  plotId: string;
+  severity: CaptureSession["severity"];
+  symptomDescription: string;
+  weatherCode: number;
+}): Promise<Post> {
+  return await createManualPostAPI(postData);
 }

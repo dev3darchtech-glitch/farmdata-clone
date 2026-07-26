@@ -1,5 +1,5 @@
 import { LocationData } from "@/types";
-import { CameraView } from "expo-camera";
+import { Camera, CameraView } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { generateIsoTimestamp, getCurrentLocation } from "./locationService";
 
@@ -9,6 +9,18 @@ export interface CameraCaptureMetadataResult {
   timestamp: string;
 }
 
+function toJpegDataUri(base64?: string | null): string | undefined {
+  return base64 ? `data:image/jpeg;base64,${base64}` : undefined;
+}
+
+async function requestDeviceCameraPermission(): Promise<void> {
+  const permission = await Camera.requestCameraPermissionsAsync();
+
+  if (!permission.granted) {
+    throw new Error("Vui lòng cấp quyền máy ảnh để chụp ảnh cây trồng.");
+  }
+}
+
 /**
  * Captures image URI using camera view ref or image picker fallback.
  * Interface contract matching PROJECT.md.
@@ -16,14 +28,19 @@ export interface CameraCaptureMetadataResult {
 export async function captureCropImage(
   cameraRef?: React.RefObject<CameraView | null>,
 ): Promise<string> {
+  await requestDeviceCameraPermission();
+
   try {
     if (cameraRef && cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8 });
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        base64: true,
+      });
       if (photo && photo.uri) {
-        return photo.uri;
+        return toJpegDataUri(photo.base64) || photo.uri;
       }
     }
-  } catch (error) {
+  } catch {
     // Fall back to ImagePicker if cameraRef fails or unsupported
   }
 
@@ -31,13 +48,40 @@ export async function captureCropImage(
     mediaTypes: ["images"],
     quality: 0.8,
     allowsEditing: true,
+    base64: true,
   });
 
   if (!result.canceled && result.assets && result.assets.length > 0) {
-    return result.assets[0].uri;
+    return toJpegDataUri(result.assets[0].base64) || result.assets[0].uri;
   }
 
   throw new Error("Image capture canceled");
+}
+
+export async function pickCropImagesFromLibrary(): Promise<string[]> {
+  let result: ImagePicker.ImagePickerResult;
+  try {
+    result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+      allowsEditing: false,
+      allowsMultipleSelection: true,
+      base64: true,
+    });
+  } catch (error: any) {
+    throw new Error(
+      error?.message ||
+        "Không thể mở thư viện ảnh. Vui lòng kiểm tra quyền ảnh của ứng dụng.",
+    );
+  }
+
+  if (result.canceled || !result.assets?.length) {
+    return [];
+  }
+
+  return result.assets
+    .map((asset) => toJpegDataUri(asset.base64) || asset.uri)
+    .filter((uri): uri is string => Boolean(uri));
 }
 
 /**

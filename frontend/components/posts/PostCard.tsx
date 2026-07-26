@@ -1,83 +1,257 @@
+import { getCaptureWeatherLabel } from "@/components/shared/CaptureFormParts";
+import { COLORS } from "@/constants/theme";
 import { Post } from "@/types";
+import {
+  envName,
+  formatPostDate,
+  severityDotColor,
+  stagePostName,
+} from "@/utils/captureDisplay";
+import { Calendar, Image as ImageIcon } from "lucide-react-native";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
-
-const SEVERITY_COLORS = [
-  "#22c55e", // Khỏe mạnh
-  "#facc15", // Chớm bệnh
-  "#fb923c", // Nhẹ
-  "#ea580c", // Vừa
-  "#ef4444", // Nặng
-  "#991b1b", // Rất nặng
-];
-
-const SEVERITY_ORDER = ["Khỏe mạnh", "Chớm bệnh", "Nhẹ", "Vừa", "Nặng", "Rất nặng"];
-
-function getSeverityColor(severity: string): string {
-  const idx = SEVERITY_ORDER.indexOf(severity);
-  return idx >= 0 ? SEVERITY_COLORS[idx] : "#94a3b8";
-}
+import {
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export function PostCard({
   post,
-  onPressImage,
-  isAdmin,
+  admin,
+  onImage,
 }: {
   post: Post;
-  onPressImage?: (images: string[], index: number) => void;
-  isAdmin?: boolean;
+  admin?: boolean;
+  onImage: (index?: number) => void;
 }) {
-  const hasImages = post.images && post.images.length > 0;
-  const img1 = hasImages ? post.images[0] : null;
-  const img2 = post.images && post.images.length > 1 ? post.images[1] : null;
-  const extraCount = post.images ? Math.max(post.images.length - 2, 0) : 0;
+  const imageCount = post.images.length;
+  const visibleImages = post.images.slice(0, Math.min(imageCount, 4));
+  const extraImageCount = Math.max(imageCount - 4, 0);
 
   return (
-    <View testID={`post-card-${post.id}`}>
-      {/* Two thumbnail buttons */}
-      <TouchableOpacity
-        disabled={!img1}
-        onPress={() => img1 && onPressImage?.(post.images, 0)}
+    <View style={postCardStyles.postCard} testID={`post-card-${post.id}`}>
+      <View
+        style={[
+          postCardStyles.postImageGrid,
+          imageCount <= 1 && postCardStyles.postImageGridSingle,
+        ]}
       >
-        {img1 ? <Text>{img1}</Text> : null}
-      </TouchableOpacity>
-      <TouchableOpacity
-        disabled={!img2}
-        onPress={() => img2 && onPressImage?.(post.images, 1)}
-      >
-        {img2 ? (
-          <View>
-            <Text>{img2}</Text>
-            {extraCount > 0 ? <Text>+{extraCount}</Text> : null}
+        {visibleImages.length > 0 ? (
+          visibleImages.map((image, index) => (
+            <Pressable
+              key={`${image}-${index}`}
+              onPress={() => onImage(index)}
+              style={[
+                postCardStyles.postImageCell,
+                imageCount === 1 && postCardStyles.postImageCellSingle,
+                imageCount === 2 && postCardStyles.postImageCellHalf,
+              ]}
+            >
+              <Image
+                source={{ uri: image }}
+                style={postCardStyles.postThumbImage}
+              />
+              {index === 3 && extraImageCount > 0 ? (
+                <View style={postCardStyles.imageCountBadge}>
+                  <Text style={postCardStyles.imageCountText}>
+                    +{extraImageCount}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ))
+        ) : (
+          <View
+            style={[
+              postCardStyles.postThumbPlaceholder,
+              postCardStyles.postImageCellSingle,
+            ]}
+          >
+            <ImageIcon size={20} color={COLORS.muted} />
           </View>
+        )}
+      </View>
+      <View style={postCardStyles.postInfo}>
+        <View style={postCardStyles.postTitleRow}>
+          {post.plotId ? (
+            <View style={postCardStyles.plotBadge}>
+              <Text style={postCardStyles.plotBadgeText}>{post.plotId}</Text>
+            </View>
+          ) : null}
+          <Text style={postCardStyles.postTitle} numberOfLines={1}>
+            {post.cropType} - {stagePostName(post.growthStage)}
+          </Text>
+        </View>
+        <Text style={postCardStyles.postMeta} numberOfLines={1}>
+          {post.stationMeasurements?.weatherCode !== undefined
+            ? getCaptureWeatherLabel(post.stationMeasurements.weatherCode)
+            : envName(post.envMode)}
+        </Text>
+        <View style={postCardStyles.symptomRow}>
+          <View
+            style={[
+              postCardStyles.symptomDot,
+              { backgroundColor: severityDotColor(post.severity) },
+            ]}
+          />
+          <Text style={postCardStyles.symptomText} numberOfLines={1}>
+            {post.symptomDescription} - Mức độ {post.severity}
+          </Text>
+        </View>
+        {admin ? (
+          <Text style={postCardStyles.postMeta} numberOfLines={1}>
+            Người gửi: {post.user.name}
+          </Text>
         ) : null}
-      </TouchableOpacity>
-
-      {/* Title: cropType - growthStage */}
-      <Text numberOfLines={1}>{post.cropType}{" - "}{post.growthStage}</Text>
-
-      {/* Plot badge — only when plotId exists */}
-      {post.plotId ? (
-        <View>
-          <Text>{post.plotId}</Text>
+        <View style={postCardStyles.postDateRow}>
+          <Calendar size={12} color="#9ca3af" />
+          <Text style={postCardStyles.postDate}>
+            {formatPostDate(post.createdAt)}
+          </Text>
         </View>
-      ) : null}
-
-      {/* Severity dot */}
-      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: getSeverityColor(post.severity) }} />
-      <Text>{post.severity}</Text>
-
-      {/* Admin action buttons */}
-      {isAdmin ? (
-        <View>
-          <TouchableOpacity onPress={() => {}}>
-            <Text>Xem</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {}}>
-            <Text>Gắn nhãn</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+      </View>
     </View>
   );
 }
+
+const postCardStyles = StyleSheet.create({
+  postCard: {
+    minHeight: 124,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    padding: 12,
+    ...(Platform.OS === "web"
+      ? { boxShadow: "0 0 8px rgba(0, 0, 0, 0.14)" }
+      : {
+          shadowColor: "#000",
+          shadowOpacity: 0.14,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 0 },
+        }),
+    elevation: 4,
+  },
+  postImageGrid: {
+    width: 96,
+    height: 100,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+  },
+  postImageGridSingle: {
+    flexWrap: "nowrap",
+  },
+  postImageCell: {
+    width: 46,
+    height: 48,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  postImageCellSingle: {
+    width: 96,
+    height: 100,
+  },
+  postImageCellHalf: {
+    width: 46,
+    height: 100,
+  },
+  postThumbImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 6,
+    backgroundColor: COLORS.field,
+  },
+  postThumbPlaceholder: {
+    width: 96,
+    height: 100,
+    borderRadius: 6,
+    backgroundColor: COLORS.field,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageCountBadge: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 6,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageCountText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  postInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
+  },
+  postTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  plotBadge: {
+    height: 21,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  plotBadgeText: {
+    color: "#6b7280",
+    fontSize: 10,
+    lineHeight: 15,
+    fontWeight: "700",
+  },
+  postTitle: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "800",
+  },
+  postMeta: {
+    color: "#6b7280",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  symptomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  symptomDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  symptomText: {
+    flex: 1,
+    color: "#374151",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  postDateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  postDate: {
+    color: "#9ca3af",
+    fontSize: 10,
+    lineHeight: 15,
+  },
+});

@@ -1,3 +1,3 @@
-import { ManagementScreen } from "@/components/farm/FarmDataScreens";
+import { ManagementScreen } from "@/components/screens/ManagementScreen";
 
 export default ManagementScreen;

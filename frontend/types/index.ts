@@ -15,14 +15,16 @@ export interface AuthTokens {
  */
 export interface User {
   id: string;
-  email: string;
+  email?: string;
   username?: string;
   name: string;
   photo?: string;
   picture?: string;
   role?: UserRole | string;
+  isRevoked?: boolean;
+  revokedAt?: string;
+  createdByAdminId?: string;
 }
-
 
 /**
  * Global authentication state contract.
@@ -130,21 +132,23 @@ export interface EnvironmentalValidationResult {
   errors: Record<string, string>;
 }
 
+export const SYMPTOM_SEVERITY_VALUES = [
+  "Chớm bệnh",
+  "Nhẹ",
+  "Vừa",
+  "Nặng",
+  "Rất nặng",
+] as const;
+
 /**
  * Disease symptom severity classification.
- * - 'Khỏe mạnh': no visible disease symptom
  * - 'Chớm bệnh': <= 10%
  * - 'Nhẹ': <= 25% (and > 10%)
  * - 'Vừa': <= 50% (and > 25%)
- * - 'Rất nặng': > 50% (including >= 75%)
+ * - 'Nặng': <= 75% (and > 50%)
+ * - 'Rất nặng': > 75%
  */
-export type SymptomSeverity =
-  | "Khỏe mạnh"
-  | "Chớm bệnh"
-  | "Nhẹ"
-  | "Vừa"
-  | "Nặng"
-  | "Rất nặng";
+export type SymptomSeverity = (typeof SYMPTOM_SEVERITY_VALUES)[number];
 
 /**
  * Symptom assessment data structure for M4.
@@ -209,7 +213,7 @@ export type CaptureSessionStatus =
   | "FAILED";
 
 /**
- * State machine for automatically generated Post life cycle.
+ * State machine for Post publishing life cycle.
  */
 export type PostStatus = "GENERATING" | "PUBLISHED" | "FAILED";
 
@@ -226,6 +230,8 @@ export interface CropTypeInfo {
   name: string;
   category: string;
   icon?: string;
+  isActive?: boolean;
+  status?: string;
 }
 
 /**
@@ -237,6 +243,8 @@ export interface PlotInfo {
   name: string;
   areaSquareMeters?: number;
   description?: string;
+  isActive?: boolean;
+  status?: string;
 }
 
 /**
@@ -248,6 +256,7 @@ export interface CaptureSession {
   farmerName: string;
   farmerEmail?: string;
   images: string[]; // At least 1 image URI
+  driveFiles?: DriveFile[];
   plotId?: string; // Optional plot/bed code
   cropType: string; // e.g. "Cà chua" (Required)
   growthStage: GrowthStageId; // Required
@@ -255,7 +264,7 @@ export interface CaptureSession {
   captureLocation?: LocationData; // GPS position captured at photo time
   stationMeasurements: WeatherCondition; // Auto-fetched station data
   localMeasurements?: LocalWeatherMeasurement; // On-site measurement (Optional)
-  symptomDescription: string; // Required when severity is not "Khỏe mạnh"
+  symptomDescription: string; // Required
   severity: SymptomSeverity; // Required
   status: CaptureSessionStatus;
   createdAt: string; // ISO timestamp
@@ -273,7 +282,7 @@ export interface Post {
   user: {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     avatar?: string;
     role: UserRole;
   };
@@ -281,13 +290,24 @@ export interface Post {
   plotId?: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
+  captureLocation?: LocationData;
   symptomDescription: string;
   severity: SymptomSeverity;
   images: string[]; // Photos belonging to the session
+  driveFiles?: DriveFile[];
   stationMeasurements: WeatherCondition;
   localMeasurements?: LocalWeatherMeasurement;
   status: PostStatus;
   createdAt: string;
+}
+
+export interface DriveFile {
+  fileId: string;
+  webViewLink?: string;
+  webContentLink?: string;
+  fileName?: string;
+  folderPath?: string;
+  description?: string;
 }
 
 /**

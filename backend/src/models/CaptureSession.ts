@@ -1,8 +1,11 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import {
   EnvMode,
+  CaptureLocation,
+  GROWTH_STAGE_IDS,
   GrowthStageId,
   SessionStatus,
+  SYMPTOM_SEVERITY_VALUES,
   SymptomSeverity,
   WeatherCondition,
 } from "../types";
@@ -10,20 +13,24 @@ import {
 export interface IDriveFile {
   fileId: string;
   webViewLink?: string;
+  webContentLink?: string;
   fileName?: string;
+  folderPath?: string;
+  description?: string;
 }
 
 export interface ICaptureSessionDocument extends Document {
   sessionId: string;
   farmerId: string;
   farmerName: string;
-  farmerEmail: string;
+  farmerEmail?: string;
   images: string[];
   driveFiles?: IDriveFile[];
   plotId?: string;
   cropType: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
+  captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
   localMeasurements?: WeatherCondition;
   symptomDescription: string;
@@ -38,33 +45,60 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
     sessionId: { type: String, required: true, unique: true },
     farmerId: { type: String, required: true },
     farmerName: { type: String, required: true },
-    farmerEmail: { type: String, required: true },
+    farmerEmail: { type: String },
     images: [{ type: String, required: true }],
     driveFiles: [
       {
         fileId: { type: String },
         webViewLink: { type: String },
+        webContentLink: { type: String },
         fileName: { type: String },
+        folderPath: { type: String },
+        description: { type: String },
       },
     ],
     plotId: { type: String },
     cropType: { type: String, required: true },
-    growthStage: { type: String, required: true },
+    growthStage: { type: String, enum: GROWTH_STAGE_IDS, required: true },
     envMode: { type: String, required: true },
+    captureLocation: {
+      latitude: { type: Number },
+      longitude: { type: Number },
+      accuracy: { type: Number },
+      timestamp: { type: String },
+      isMocked: { type: Boolean },
+      name: { type: String },
+      city: { type: String },
+      region: { type: String },
+      country: { type: String },
+      formattedAddress: { type: String },
+    },
     stationMeasurements: {
       temperature: { type: Number, required: true },
       lightUvIndex: { type: Number, required: true },
       windSpeed: { type: Number, required: true },
       co2Level: { type: Number, required: true },
+      humidity: { type: Number },
+      weatherCode: { type: Number },
+      soilPh: { type: String },
+      soilEc: { type: String },
+      soilDo: { type: String },
+      soilHumidity: { type: String },
     },
     localMeasurements: {
       temperature: { type: Number },
       lightUvIndex: { type: Number },
       windSpeed: { type: Number },
       co2Level: { type: Number },
+      humidity: { type: Number },
+      weatherCode: { type: Number },
+      soilPh: { type: String },
+      soilEc: { type: String },
+      soilDo: { type: String },
+      soilHumidity: { type: String },
     },
     symptomDescription: { type: String, required: true },
-    severity: { type: String, required: true },
+    severity: { type: String, enum: SYMPTOM_SEVERITY_VALUES, required: true },
     status: {
       type: String,
       enum: ["DRAFT", "UPLOADING", "COMPLETED", "FAILED"],

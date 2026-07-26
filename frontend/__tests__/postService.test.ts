@@ -1,15 +1,24 @@
 import {
-  completeCaptureSessionAndAutoPost,
+  completeCaptureSession,
   validateCaptureSession,
 } from "../services/postService";
 import { CaptureSession } from "../types";
+import { submitCaptureSession } from "../services/apiClient";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn().mockResolvedValue(null),
   setItem: jest.fn().mockResolvedValue(undefined),
 }));
 
-describe("postService validation and auto post workflow", () => {
+jest.mock("../services/apiClient", () => ({
+  submitCaptureSession: jest.fn(),
+}));
+
+const submitCaptureSessionMock = submitCaptureSession as jest.MockedFunction<
+  typeof submitCaptureSession
+>;
+
+describe("postService validation and capture session workflow", () => {
   const validSessionDraft: Omit<CaptureSession, "id" | "status" | "createdAt"> =
     {
       farmerId: "FARMER-01",
@@ -69,7 +78,7 @@ describe("postService validation and auto post workflow", () => {
     expect(res.errors.severity).toBeDefined();
   });
 
-  it("requires symptom description for unhealthy severity levels", () => {
+  it("requires symptom description for all severity levels", () => {
     const invalidSession = {
       ...validSessionDraft,
       symptomDescription: "",
@@ -80,32 +89,44 @@ describe("postService validation and auto post workflow", () => {
     expect(res.errors.symptomDescription).toBeDefined();
   });
 
-  it("allows empty symptom description when severity is healthy", () => {
-    const healthySession = {
+  it("rejects unknown severity values", () => {
+    const legacySession = {
       ...validSessionDraft,
-      symptomDescription: "",
-      severity: "Khỏe mạnh" as const,
+      symptomDescription: "Không có triệu chứng",
+      severity: "Không hợp lệ",
     };
-    const res = validateCaptureSession(healthySession);
-    expect(res.isValid).toBe(true);
-    expect(res.errors.symptomDescription).toBeUndefined();
+    const res = validateCaptureSession(legacySession as any);
+    expect(res.isValid).toBe(false);
+    expect(res.errors.severity).toBeDefined();
   });
 
-  it("completes session and automatically generates a linked post in PUBLISHED status", async () => {
+  it("completes session without automatically generating a post", async () => {
     const progressSpy = jest.fn();
-    const result = await completeCaptureSessionAndAutoPost(
+    submitCaptureSessionMock.mockImplementationOnce(async (session, onProgress) => {
+      onProgress?.("Đang tải ảnh", 1, session.images.length);
+
+      return {
+        session: {
+          ...session,
+          id: "SESS-TEST-001",
+          status: "COMPLETED",
+          createdAt: new Date().toISOString(),
+        } as CaptureSession,
+      };
+    });
+
+    const result = await completeCaptureSession(
       validSessionDraft,
       progressSpy,
     );
 
+    expect(submitCaptureSessionMock).toHaveBeenCalledWith(
+      validSessionDraft,
+      progressSpy,
+    );
     expect(progressSpy).toHaveBeenCalled();
     expect(result.session.status).toBe("COMPLETED");
     expect(result.session.id).toBeDefined();
-
-    expect(result.post.status).toBe("PUBLISHED");
-    expect(result.post.sessionId).toBe(result.session.id);
-    expect(result.post.cropType).toBe("Cà chua");
-    expect(result.post.plotId).toBe("L-001");
-    expect(result.post.images).toEqual(["https://example.com/photo1.jpg"]);
+    expect((result as any).post).toBeUndefined();
   });
 });

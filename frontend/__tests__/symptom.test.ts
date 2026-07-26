@@ -6,7 +6,7 @@ import {
 } from "@/services/symptomService";
 
 describe("Disease Symptom Assessment Engine Tests (M4)", () => {
-  describe("classifySymptomSeverity (4-Tier Boundary Math)", () => {
+  describe("classifySymptomSeverity (5-Tier Boundary Math)", () => {
     it('classifies <= 10% as "Chớm bệnh"', () => {
       expect(classifySymptomSeverity(0)).toBe("Chớm bệnh");
       expect(classifySymptomSeverity(5)).toBe("Chớm bệnh");
@@ -25,9 +25,13 @@ describe("Disease Symptom Assessment Engine Tests (M4)", () => {
       expect(classifySymptomSeverity(50)).toBe("Vừa");
     });
 
-    it('classifies > 50% (including >= 75%) as "Rất nặng"', () => {
-      expect(classifySymptomSeverity(50.1)).toBe("Rất nặng");
-      expect(classifySymptomSeverity(75)).toBe("Rất nặng");
+    it('classifies 50.1% to 75% as "Nặng"', () => {
+      expect(classifySymptomSeverity(50.1)).toBe("Nặng");
+      expect(classifySymptomSeverity(75)).toBe("Nặng");
+    });
+
+    it('classifies > 75% as "Rất nặng"', () => {
+      expect(classifySymptomSeverity(75.1)).toBe("Rất nặng");
       expect(classifySymptomSeverity(100)).toBe("Rất nặng");
     });
   });

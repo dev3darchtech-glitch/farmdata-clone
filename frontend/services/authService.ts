@@ -1,7 +1,12 @@
 import { AuthTokens, User } from "@/types";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { fetchCurrentUserProfile, loginBackend, setAuthToken } from "./apiClient";
+import {
+  BACKEND_URL,
+  fetchCurrentUserProfile,
+  loginBackend,
+  setAuthToken,
+} from "./apiClient";
 
 export const TOKENS_KEY = "auth_tokens";
 export const USER_KEY = "auth_user";
@@ -75,21 +80,14 @@ export async function refreshToken(
     throw new Error("Refresh token is required");
   }
 
-  const clientId =
-    process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "MOCK_CLIENT_ID";
   const endpoint =
-    process.env.EXPO_PUBLIC_OAUTH_TOKEN_ENDPOINT || GOOGLE_TOKEN_ENDPOINT;
-
-  const bodyParams = new URLSearchParams({
-    client_id: clientId,
-    grant_type: "refresh_token",
-    refresh_token: refreshTokenStr,
-  });
+    process.env.EXPO_PUBLIC_AUTH_REFRESH_ENDPOINT ||
+    `${BACKEND_URL}/auth/refresh`;
 
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: bodyParams.toString(),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken: refreshTokenStr }),
   });
 
   if (!response.ok) {
@@ -98,16 +96,23 @@ export async function refreshToken(
   }
 
   const data = await response.json();
+  const accessToken = data.token || data.access_token;
+  const nextRefreshToken = data.refreshToken || data.refresh_token;
+  if (!accessToken) {
+    await logout();
+    throw new Error("Failed to refresh access token. Session expired.");
+  }
+
   const updatedTokens: AuthTokens = {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token || refreshTokenStr,
+    accessToken,
+    refreshToken: nextRefreshToken || refreshTokenStr,
     idToken: data.id_token,
     tokenType: data.token_type || "Bearer",
-    expiresIn: data.expires_in || 3600,
+    expiresIn: data.expiresIn || data.expires_in || 86400,
     issuedAt: Date.now(),
   };
 
-  const storedUser = await getStoredUser();
+  const storedUser = data.user || (await getStoredUser());
   if (storedUser) {
     await saveAuthData(updatedTokens, storedUser);
   } else {
@@ -172,16 +177,16 @@ export async function loginWithCredentials(
   const data = await loginBackend(normalizedEmail, password);
   const user: User = {
     id: data.user.id || (data.user as any)._id,
-    name: data.user.name || data.user.email,
+    name: data.user.name || data.user.username || data.user.email || "",
     email: data.user.email,
     username: data.user.username,
     role: data.user.role,
   };
   const tokens: AuthTokens = {
     accessToken: data.token,
-    refreshToken: data.token,
+    refreshToken: data.refreshToken || data.token,
     tokenType: "Bearer",
-    expiresIn: 86400,
+    expiresIn: data.expiresIn || 86400,
     issuedAt: Date.now(),
   };
 
@@ -200,7 +205,7 @@ export async function loginWithGoogle(
   }
 
   const user: User = {
-    id: providedUser.id || "FARMER-01",
+    id: providedUser.id || providedUser.username || providedUser.email,
     name: providedUser.name || providedUser.email,
     email: providedUser.email,
     username: providedUser.username,

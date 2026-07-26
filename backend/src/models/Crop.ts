@@ -4,6 +4,7 @@ export interface ICropDocument extends Document {
   name: string;
   category: string;
   icon?: string;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,6 +14,7 @@ const CropSchema = new Schema<ICropDocument>(
     name: { type: String, required: true, trim: true },
     category: { type: String, required: true, trim: true },
     icon: { type: String, default: "🌱" },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

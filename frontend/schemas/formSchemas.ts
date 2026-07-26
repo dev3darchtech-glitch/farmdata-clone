@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SYMPTOM_SEVERITY_VALUES } from "@/types";
 
 /**
  * Login Form Validation Schema
@@ -40,12 +41,9 @@ export const captureSessionFormSchema = z
     localTemp: z.string().optional(),
     localCo2: z.string().optional(),
     symptomDescription: z.string().optional(),
-    severity: z.enum(
-      ["Khỏe mạnh", "Chớm bệnh", "Nhẹ", "Vừa", "Nặng", "Rất nặng"],
-      {
-        message: "Vui lòng chọn mức độ triệu chứng",
-      },
-    ),
+    severity: z.enum(SYMPTOM_SEVERITY_VALUES, {
+      message: "Vui lòng chọn mức độ triệu chứng",
+    }),
   })
   .refine(
     (data) => {
@@ -61,7 +59,6 @@ export const captureSessionFormSchema = z
   )
   .refine(
     (data) => {
-      if (data.severity === "Khỏe mạnh") return true;
       return Boolean(
         data.symptomDescription && data.symptomDescription.trim().length > 0,
       );

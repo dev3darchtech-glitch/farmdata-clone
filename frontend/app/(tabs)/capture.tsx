@@ -1,3 +1,3 @@
-import { CaptureScreen } from "@/components/farm/FarmDataScreens";
+import { CaptureScreen } from "@/components/screens/CaptureScreen";
 
 export default CaptureScreen;

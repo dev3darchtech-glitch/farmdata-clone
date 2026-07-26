@@ -6,6 +6,9 @@ import {
   getMe,
   linkGoogleAccount,
   login,
+  registerPushToken,
+  refreshAuthToken,
+  unregisterPushToken,
 } from "../controllers/auth.controller";
 import { authenticateToken, requireRole } from "../middleware/rbac";
 
@@ -15,6 +18,11 @@ const router = Router();
  * POST /api/auth/login
  */
 router.post("/login", login);
+
+/**
+ * POST /api/auth/refresh
+ */
+router.post("/refresh", refreshAuthToken);
 
 /**
  * GET /api/auth/google
@@ -30,6 +38,16 @@ router.get("/google/callback", getGoogleAppCallback);
  * GET /api/auth/me
  */
 router.get("/me", authenticateToken, getMe);
+
+/**
+ * POST /api/auth/push-token
+ */
+router.post("/push-token", authenticateToken, registerPushToken);
+
+/**
+ * DELETE /api/auth/push-token
+ */
+router.delete("/push-token", authenticateToken, unregisterPushToken);
 
 /**
  * GET /api/auth/google/url

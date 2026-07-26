@@ -48,25 +48,6 @@ replace_once(
 )
 
 replace_once(
-    '''                    onPress={() => {
-                      setSeverity(item.value);
-                      if (item.value === "Khỏe mạnh") {
-                        setSymptomDescription("");
-                      }
-                    }}''',
-    '''                    onPress={() => {
-                      setSeverity(item.value);
-                      if (item.value === "Khỏe mạnh") {
-                        setSymptomDescription("");
-                        setIsEditingSymptom(false);
-                      } else {
-                        setIsEditingSymptom(true);
-                      }
-                    }}''',
-    "keep symptom editor active after severity changes",
-)
-
-replace_once(
     '''                    <TextInput
                       multiline
                       maxLength={300}
