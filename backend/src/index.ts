@@ -10,6 +10,7 @@ import sessionRoutes from "./routes/session.routes";
 
 export const app = express();
 
+app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 

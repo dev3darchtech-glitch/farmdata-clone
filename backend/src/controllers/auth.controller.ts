@@ -49,10 +49,11 @@ function signAuthTokens(user: IUserDocument) {
 const googleSignInAudiences = [env.googleClientId].filter(Boolean);
 
 function getGoogleAppCallbackUrl(req: Request) {
-  return (
-    env.googleRedirectUri ||
-    `${req.protocol}://${req.get("host")}/api/auth/google/callback`
-  );
+  if (env.googleRedirectUri) {
+    return env.googleRedirectUri;
+  }
+  const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
+  return `${protocol}://${req.get("host")}/api/auth/google/callback`;
 }
 
 function isAllowedAppRedirectUri(value: string) {
@@ -304,10 +305,41 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
 
     const { token, refreshToken } = signAuthTokens(user);
     const separator = state.includes("?") ? "&" : "?";
+    const finalRedirectUrl = `${state}${separator}accessToken=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`;
 
-    return res.redirect(
-      `${state}${separator}accessToken=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`,
-    );
+    if (state.startsWith("http://") || state.startsWith("https://")) {
+      return res.redirect(finalRedirectUrl);
+    }
+
+    return res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Đang chuyển hướng về ứng dụng FarmData...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 40px 20px; background-color: #f4f6f8; color: #1f2937; }
+    .card { background: #ffffff; padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 380px; margin: 0 auto; }
+    .title { font-size: 20px; font-weight: 700; color: #1b4d2e; margin-bottom: 8px; }
+    .text { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
+    .btn { display: inline-block; padding: 14px 28px; background-color: #1b4d2e; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">Đăng nhập thành công!</div>
+    <div class="text">Đang tự động chuyển hướng về ứng dụng FarmData...</div>
+    <a href="${finalRedirectUrl}" class="btn">Mở ứng dụng FarmData</a>
+  </div>
+  <script>
+    setTimeout(function() {
+      window.location.href = "${finalRedirectUrl}";
+    }, 100);
+  </script>
+</body>
+</html>
+    `);
   } catch (err: any) {
     return res.status(401).send(err?.message || "Google sign-in failed.");
   }
