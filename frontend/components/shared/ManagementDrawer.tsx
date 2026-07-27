@@ -14,9 +14,9 @@ import {
   Camera,
   ChevronDown,
   FileText,
+  FolderOpen,
   LayoutDashboardIcon,
   LogOut,
-  PlusCircle,
   UserIcon,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -24,6 +24,7 @@ import {
   Animated,
   Easing,
   Image,
+  Linking,
   Modal,
   Pressable,
   StyleSheet,
@@ -138,20 +139,12 @@ export function ManagementDrawer({
 
   const createPostFromDrawer = () => {
     handleClose();
-    if (onAdminCreatePost) {
-      onAdminCreatePost();
-      return;
-    }
-
     const direction = tabDirectionForTarget(
       drawerTabItems,
       currentTabId,
-      "posts",
+      "capture",
     );
-    router.navigate({
-      pathname: "/(tabs)/posts",
-      params: { compose: "1", tabDirection: direction },
-    } as any);
+    router.navigate(tabHrefWithDirection("/(tabs)/capture", direction) as any);
   };
 
   const translateX = anim.interpolate({
@@ -322,16 +315,43 @@ export function ManagementDrawer({
             </Text>
           </Pressable>
 
-          <View style={drawerStyles.drawerFooter}>
-            {role === "admin" ? (
+          {role === "admin" ? (
+            <>
               <Pressable
-                style={drawerStyles.drawerPublishRow}
+                style={[
+                  drawerStyles.drawerItem,
+                  captureActive && drawerStyles.drawerItemActive,
+                ]}
                 onPress={createPostFromDrawer}
               >
-                <PlusCircle size={18} color={COLORS.green} />
-                <Text style={drawerStyles.drawerPublishText}>Đăng bài</Text>
+                <Camera
+                  size={20}
+                  color={captureActive ? COLORS.green : COLORS.body}
+                />
+                <Text
+                  style={[
+                    drawerStyles.drawerText,
+                    captureActive && drawerStyles.drawerTextActive,
+                  ]}
+                >
+                  Đăng bài
+                </Text>
               </Pressable>
-            ) : null}
+
+              <Pressable
+                style={drawerStyles.drawerItem}
+                onPress={() => {
+                  handleClose();
+                  Linking.openURL("https://drive.google.com/drive/my-drive");
+                }}
+              >
+                <FolderOpen size={20} color={COLORS.body} />
+                <Text style={drawerStyles.drawerText}>Mở kho lưu trữ</Text>
+              </Pressable>
+            </>
+          ) : null}
+
+          <View style={drawerStyles.drawerFooter}>
             <Pressable style={drawerStyles.logoutRow} onPress={logout}>
               <LogOut size={18} color={COLORS.danger} />
               <Text style={drawerStyles.logoutText}>Đăng xuất</Text>

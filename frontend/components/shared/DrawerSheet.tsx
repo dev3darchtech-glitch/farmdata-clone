@@ -33,6 +33,7 @@ type DrawerSheetProps = {
   title: string;
   children: React.ReactNode;
   onClose: () => void;
+  onScrimPress?: () => void;
   full?: boolean;
   contentStyle?: ViewStyle;
   showHandle?: boolean;
@@ -43,6 +44,7 @@ export function DrawerSheet({
   title,
   children,
   onClose,
+  onScrimPress,
   full,
   contentStyle,
   showHandle = true,
@@ -191,12 +193,12 @@ export function DrawerSheet({
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={handleClose}
+      onRequestClose={onScrimPress || handleClose}
     >
       <View style={drawerStyles.scrim}>
         <AnimatedPressable
           style={[drawerStyles.scrimFill, { opacity: scrimOpacity }]}
-          onPress={handleClose}
+          onPress={onScrimPress || handleClose}
         />
         <Animated.View
           style={[
@@ -223,7 +225,7 @@ export function DrawerSheet({
             ) : null}
             <View style={drawerStyles.header}>
               <Text style={drawerStyles.title}>{title}</Text>
-              <Pressable style={drawerStyles.iconButton} onPress={handleClose}>
+              <Pressable style={drawerStyles.iconButton} onPress={onScrimPress || handleClose}>
                 <X size={22} color={DRAWER_COLORS.text} />
               </Pressable>
             </View>

@@ -200,7 +200,7 @@ export async function fetchOutdoorWeather(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,windspeed_10m,uv_index&past_days=2`;
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,windspeed_10m,uv_index,weather_code&past_days=2`;
 
     const response = await fetch(apiUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -225,6 +225,8 @@ export async function fetchOutdoorWeather(
     const hourlyHumidity: number[] = json?.hourly?.relative_humidity_2m ?? [];
     const hourlyWinds: number[] = json?.hourly?.windspeed_10m ?? [];
     const hourlyUvs: number[] = json?.hourly?.uv_index ?? [];
+    const hourlyWeatherCodes: number[] = json?.hourly?.weather_code ?? [];
+    const hourlyTimes: string[] = json?.hourly?.time ?? [];
 
     const len = hourlyTemps.length;
     const t24Index = Math.max(0, len - 25);
@@ -232,6 +234,18 @@ export async function fetchOutdoorWeather(
 
     const curUv = len > 0 ? (hourlyUvs[len - 1] ?? 6.5) : 6.5;
     const curHumidity = len > 0 ? (hourlyHumidity[len - 1] ?? 74) : 74;
+
+    const currentTimestamp = json?.current_weather?.time
+      ? new Date(json.current_weather.time).toISOString()
+      : new Date().toISOString();
+
+    const t24Timestamp = hourlyTimes[t24Index]
+      ? new Date(hourlyTimes[t24Index]).toISOString()
+      : new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+
+    const t48Timestamp = hourlyTimes[t48Index]
+      ? new Date(hourlyTimes[t48Index]).toISOString()
+      : new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
     const outdoorData: EnvironmentalData = {
       mode: "outdoor",
@@ -244,6 +258,7 @@ export async function fetchOutdoorWeather(
         co2Level: 415,
         humidity: Number(curHumidity),
         weatherCode: Number(curWeatherCode),
+        updatedAt: currentTimestamp,
       },
       t24: {
         temperature: hourlyTemps[t24Index] ?? 27.0,
@@ -251,7 +266,8 @@ export async function fetchOutdoorWeather(
         windSpeed: hourlyWinds[t24Index] ?? 10.5,
         co2Level: 412,
         humidity: hourlyHumidity[t24Index] ?? 76,
-        weatherCode: Number(curWeatherCode),
+        weatherCode: Number(hourlyWeatherCodes[t24Index] ?? curWeatherCode),
+        updatedAt: t24Timestamp,
       },
       t48: {
         temperature: hourlyTemps[t48Index] ?? 29.1,
@@ -259,11 +275,12 @@ export async function fetchOutdoorWeather(
         windSpeed: hourlyWinds[t48Index] ?? 14.2,
         co2Level: 418,
         humidity: hourlyHumidity[t48Index] ?? 71,
-        weatherCode: Number(curWeatherCode),
+        weatherCode: Number(hourlyWeatherCodes[t48Index] ?? curWeatherCode),
+        updatedAt: t48Timestamp,
       },
       isOverridden: false,
       isFallback: false,
-      timestamp: new Date().toISOString(),
+      timestamp: currentTimestamp,
     };
 
     return outdoorData;

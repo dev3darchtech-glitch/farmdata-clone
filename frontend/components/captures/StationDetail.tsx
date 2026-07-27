@@ -11,25 +11,44 @@ import {
   getWeatherBadgeTextColor,
   getWeatherLabel,
 } from "@/utils/weatherMetrics";
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { DetailRow } from "./DetailRow";
 import { MetricGrid } from "./MetricGrid";
 import { WeatherTypeIcon } from "./WeatherTypeIcon";
 
 export function StationDetail({
   data,
+  t24,
+  t48,
   captureLocation,
   latitude,
   longitude,
   updatedAt,
 }: {
   data: WeatherCondition;
+  t24?: WeatherCondition;
+  t48?: WeatherCondition;
   captureLocation?: LocationData;
   latitude?: number;
   longitude?: number;
   updatedAt?: string;
 }) {
+  const [activeTab, setActiveTab] = useState<"t0" | "t24" | "t48">( "t0");
+
+  const activeData =
+    activeTab === "t0"
+      ? data
+      : activeTab === "t24"
+        ? t24 || data
+        : t48 || data;
+
+  const tabs = [
+    { id: "t0" as const, label: "Hiện tại (T0)" },
+    { id: "t24" as const, label: "T-24" },
+    { id: "t48" as const, label: "T-48" },
+  ];
+
   return (
     <ScrollView
       style={stationDetailStyles.stationDetailScroll}
@@ -39,22 +58,47 @@ export function StationDetail({
       nestedScrollEnabled
       showsVerticalScrollIndicator={false}
     >
+      <View style={stationDetailStyles.tabContainer}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <Pressable
+              key={tab.id}
+              style={[
+                stationDetailStyles.tabButton,
+                isActive && stationDetailStyles.tabButtonActive,
+              ]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text
+                style={[
+                  stationDetailStyles.tabButtonText,
+                  isActive && stationDetailStyles.tabButtonTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <View
         style={[
           stationDetailStyles.weatherTypeCard,
-          { backgroundColor: getWeatherBadgeBgColor(data.weatherCode) },
+          { backgroundColor: getWeatherBadgeBgColor(activeData.weatherCode) },
         ]}
       >
         <View style={stationDetailStyles.weatherTypeIconWrap}>
-          <WeatherTypeIcon code={data.weatherCode} size={20} />
+          <WeatherTypeIcon code={activeData.weatherCode} size={20} />
         </View>
         <Text
           style={[
             stationDetailStyles.weatherTypeValue,
-            { color: getWeatherBadgeTextColor(data.weatherCode) },
+            { color: getWeatherBadgeTextColor(activeData.weatherCode) },
           ]}
         >
-          {getWeatherLabel(data.weatherCode)}
+          {getWeatherLabel(activeData.weatherCode)}
         </Text>
       </View>
 
@@ -90,14 +134,20 @@ export function StationDetail({
         />
         <DetailRow
           label="Cập nhật thời tiết"
-          value={updatedAt ? formatDate(updatedAt) : undefined}
+          value={
+            activeData.updatedAt
+              ? formatDate(activeData.updatedAt)
+              : updatedAt
+                ? formatDate(updatedAt)
+                : undefined
+          }
         />
       </View>
       <View style={stationDetailStyles.stationDetailBlock}>
         <Text style={stationDetailStyles.stationDetailTitle}>
-          Dữ liệu thời tiết
+          Dữ liệu thời tiết ({activeTab === "t0" ? "T0" : activeTab === "t24" ? "T-24" : "T-48"})
         </Text>
-        <MetricGrid data={data} />
+        <MetricGrid data={activeData} />
       </View>
     </ScrollView>
   );
@@ -109,6 +159,37 @@ const stationDetailStyles = StyleSheet.create({
   },
   stationDetailContent: {
     paddingBottom: 28,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: COLORS.field,
+    borderRadius: 8,
+    padding: 2,
+    marginBottom: 16,
+    gap: 2,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  tabButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.muted,
+  },
+  tabButtonTextActive: {
+    color: COLORS.green,
   },
   weatherTypeCard: {
     backgroundColor: COLORS.greenSoft,

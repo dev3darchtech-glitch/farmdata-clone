@@ -15,7 +15,7 @@ function isCreatedByCurrentAdmin(
 
 function readRequestedActiveStatus(req: Request, res: Response) {
   if (typeof req.body?.isActive !== "boolean") {
-    res.status(400).json({ error: "isActive boolean is required" });
+    res.status(400).json({ error: "Trường isActive phải là kiểu boolean" });
     return undefined;
   }
 
@@ -88,7 +88,7 @@ export const getPlots = async (req: Request, res: Response) => {
 export const createPlot = async (req: Request, res: Response) => {
   const { code, name, areaSquareMeters } = req.body;
   if (!code || !name) {
-    return res.status(400).json({ error: "code and name are required" });
+    return res.status(400).json({ error: "Mã luống và tên luống là bắt buộc" });
   }
 
   const cleanCode = code.trim().toUpperCase();
@@ -120,7 +120,7 @@ export const createPlot = async (req: Request, res: Response) => {
 export const updatePlot = async (req: Request, res: Response) => {
   const target = await PlotModel.findById(req.params.id);
   if (!target) {
-    return res.status(404).json({ error: "Plot not found" });
+    return res.status(404).json({ error: "Không tìm thấy luống" });
   }
 
   const permError = checkMasterDataMutationPermission(target, req, "mã luống");
@@ -136,7 +136,7 @@ export const updatePlot = async (req: Request, res: Response) => {
     isActive === undefined
   ) {
     return res.status(400).json({
-      error: "code, name, areaSquareMeters, or isActive is required",
+      error: "Cần cung cấp ít nhất một trong: mã, tên, diện tích hoặc trạng thái",
     });
   }
 
@@ -148,7 +148,7 @@ export const updatePlot = async (req: Request, res: Response) => {
     });
     if (existing) {
       return res.status(400).json({
-        error: `Plot code '${normalizedCode}' already exists`,
+        error: `Mã luống '${normalizedCode}' đã tồn tại`,
       });
     }
     target.code = normalizedCode;
@@ -163,7 +163,7 @@ export const updatePlot = async (req: Request, res: Response) => {
   } else if (areaSquareMeters !== undefined) {
     const parsedArea = Number(areaSquareMeters);
     if (!Number.isFinite(parsedArea) || parsedArea < 0) {
-      return res.status(400).json({ error: "areaSquareMeters is invalid" });
+      return res.status(400).json({ error: "Diện tích không hợp lệ" });
     }
     target.areaSquareMeters = parsedArea;
   }
@@ -188,7 +188,7 @@ export const deactivatePlot = async (req: Request, res: Response) => {
 
   const target = await PlotModel.findById(req.params.id);
   if (!target) {
-    return res.status(404).json({ error: "Plot not found" });
+    return res.status(404).json({ error: "Không tìm thấy luống" });
   }
 
   const permError = checkMasterDataMutationPermission(target, req, "mã luống");
@@ -216,7 +216,7 @@ export const getCrops = async (req: Request, res: Response) => {
 export const createCrop = async (req: Request, res: Response) => {
   const { name, category, icon } = req.body;
   if (!name) {
-    return res.status(400).json({ error: "name is required" });
+    return res.status(400).json({ error: "Tên loại cây là bắt buộc" });
   }
 
   const adminId = req.user!.id;
@@ -247,7 +247,7 @@ export const createCrop = async (req: Request, res: Response) => {
 export const updateCrop = async (req: Request, res: Response) => {
   const target = await CropModel.findById(req.params.id);
   if (!target) {
-    return res.status(404).json({ error: "Crop not found" });
+    return res.status(404).json({ error: "Không tìm thấy loại cây" });
   }
 
   const permError = checkMasterDataMutationPermission(target, req, "loại cây");
@@ -264,7 +264,7 @@ export const updateCrop = async (req: Request, res: Response) => {
   ) {
     return res
       .status(400)
-      .json({ error: "name, category, icon, or isActive is required" });
+      .json({ error: "Cần cung cấp ít nhất một trong: tên, danh mục, icon hoặc trạng thái" });
   }
 
   if (name && String(name).trim()) {
@@ -275,7 +275,7 @@ export const updateCrop = async (req: Request, res: Response) => {
     });
     if (existing) {
       return res.status(400).json({
-        error: `Crop name '${normalizedName}' already exists`,
+        error: `Tên loại cây '${normalizedName}' đã tồn tại`,
       });
     }
     target.name = normalizedName;
@@ -309,7 +309,7 @@ export const deactivateCrop = async (req: Request, res: Response) => {
 
   const target = await CropModel.findById(req.params.id);
   if (!target) {
-    return res.status(404).json({ error: "Crop not found" });
+    return res.status(404).json({ error: "Không tìm thấy loại cây" });
   }
 
   const permError = checkMasterDataMutationPermission(target, req, "loại cây");
@@ -385,10 +385,10 @@ export const createPlantDisease = async (req: Request, res: Response) => {
   const adminId = req.user!.id;
 
   if (!isPlantDiseaseGroup(group)) {
-    return res.status(400).json({ error: "group is invalid" });
+    return res.status(400).json({ error: "Nhóm bệnh không hợp lệ" });
   }
   if (!type || !name) {
-    return res.status(400).json({ error: "type and name are required" });
+    return res.status(400).json({ error: "Phân loại và tên bệnh là bắt buộc" });
   }
 
   const existing = await PlantDiseaseModel.findOne({
@@ -399,7 +399,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
   });
   if (existing) {
     return res.status(400).json({
-      error: `Plant disease '${name}' already exists in '${type}'`,
+      error: `Bệnh cây '${name}' đã tồn tại trong '${type}'`,
     });
   }
 
@@ -420,7 +420,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
 export const updatePlantDisease = async (req: Request, res: Response) => {
   const target = await PlantDiseaseModel.findById(req.params.id);
   if (!target) {
-    return res.status(404).json({ error: "Plant disease not found" });
+    return res.status(404).json({ error: "Không tìm thấy bệnh cây" });
   }
 
   const permError = checkMasterDataMutationPermission(target, req, "bệnh cây");
@@ -437,7 +437,7 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
     isActive === undefined
   ) {
     return res.status(400).json({
-      error: "group, type, name, description, or isActive is required",
+      error: "Cần cung cấp ít nhất một trong: nhóm bệnh, phân loại, tên, mô tả hoặc trạng thái",
     });
   }
 
@@ -448,10 +448,10 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
     name === undefined ? target.name : normalizeRequiredText(name);
 
   if (!isPlantDiseaseGroup(nextGroup)) {
-    return res.status(400).json({ error: "group is invalid" });
+    return res.status(400).json({ error: "Nhóm bệnh không hợp lệ" });
   }
   if (!nextType || !nextName) {
-    return res.status(400).json({ error: "type and name are required" });
+    return res.status(400).json({ error: "Phân loại và tên bệnh là bắt buộc" });
   }
 
   const existing = await PlantDiseaseModel.findOne({
@@ -462,7 +462,7 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
   });
   if (existing) {
     return res.status(400).json({
-      error: `Plant disease '${nextName}' already exists in '${nextType}'`,
+      error: `Bệnh cây '${nextName}' đã tồn tại trong '${nextType}'`,
     });
   }
 
@@ -493,7 +493,7 @@ export const deactivatePlantDisease = async (req: Request, res: Response) => {
 
   const target = await PlantDiseaseModel.findById(req.params.id);
   if (!target) {
-    return res.status(404).json({ error: "Plant disease not found" });
+    return res.status(404).json({ error: "Không tìm thấy bệnh cây" });
   }
 
   const permError = checkMasterDataMutationPermission(target, req, "bệnh cây");
@@ -530,12 +530,12 @@ export const createUser = async (req: Request, res: Response) => {
   if (!name || !username || !password) {
     return res
       .status(400)
-      .json({ error: "name, username, and password are required" });
+      .json({ error: "Tên, tên đăng nhập và mật khẩu là bắt buộc" });
   }
   if (role !== "FARMER") {
     return res
       .status(403)
-      .json({ error: "Admins can only create FARMER accounts" });
+      .json({ error: "Admin chỉ có thể tạo tài khoản nông dân" });
   }
 
   const cleanUsername = String(username)
@@ -543,14 +543,14 @@ export const createUser = async (req: Request, res: Response) => {
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
   if (!cleanUsername) {
-    return res.status(400).json({ error: "username is invalid" });
+    return res.status(400).json({ error: "Tên đăng nhập không hợp lệ" });
   }
 
   const existing = await UserModel.findOne({ username: cleanUsername });
   if (existing) {
     return res
       .status(400)
-      .json({ error: `User with username '${cleanUsername}' already exists` });
+      .json({ error: `Tên đăng nhập '${cleanUsername}' đã được sử dụng` });
   }
 
   const newUser = await UserModel.create({
@@ -575,24 +575,24 @@ export const updateUser = async (req: Request, res: Response) => {
     "+passwordHash",
   );
   if (!target) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
   if (target.role !== "FARMER") {
     return res.status(403).json({
-      error: "Admins can only update FARMER accounts",
+      error: "Admin chỉ có thể cập nhật tài khoản nông dân",
     });
   }
   if (!isCreatedByCurrentAdmin(target, req)) {
     return res
       .status(403)
-      .json({ error: "Cannot update a farmer created by another admin" });
+      .json({ error: "Không thể cập nhật tài khoản nông dân do admin khác tạo" });
   }
 
   const { name, username, password } = req.body;
   if (!name && !username && !password) {
     return res
       .status(400)
-      .json({ error: "name, username, or password is required" });
+      .json({ error: "Cần cung cấp ít nhất một trong: tên, tên đăng nhập hoặc mật khẩu" });
   }
 
   if (name && String(name).trim()) {
@@ -605,7 +605,7 @@ export const updateUser = async (req: Request, res: Response) => {
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
     if (!normalizedUsername) {
-      return res.status(400).json({ error: "username is invalid" });
+      return res.status(400).json({ error: "Tên đăng nhập không hợp lệ" });
     }
     const existing = await UserModel.findOne({
       username: normalizedUsername,
@@ -613,7 +613,7 @@ export const updateUser = async (req: Request, res: Response) => {
     });
     if (existing) {
       return res.status(400).json({
-        error: `User with username '${normalizedUsername}' already exists`,
+        error: `Tên đăng nhập '${normalizedUsername}' đã được sử dụng`,
       });
     }
     target.username = normalizedUsername;
@@ -637,20 +637,20 @@ export const revokeUser = async (req: Request, res: Response) => {
     "-passwordHash",
   );
   if (!target) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
   if (target.role !== "FARMER") {
     return res
       .status(403)
-      .json({ error: "Admins can only revoke FARMER accounts" });
+      .json({ error: "Admin chỉ có thể thu hồi tài khoản nông dân" });
   }
   if (target._id.toString() === req.user!.id) {
-    return res.status(400).json({ error: "Cannot revoke your own account" });
+    return res.status(400).json({ error: "Không thể thu hồi tài khoản của chính mình" });
   }
   if (!isCreatedByCurrentAdmin(target, req)) {
     return res
       .status(403)
-      .json({ error: "Cannot revoke a farmer created by another admin" });
+      .json({ error: "Không thể thu hồi tài khoản nông dân do admin khác tạo" });
   }
 
   target.isRevoked = true;
@@ -670,17 +670,17 @@ export const restoreUser = async (req: Request, res: Response) => {
     "-passwordHash",
   );
   if (!target) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
   if (target.role !== "FARMER") {
     return res
       .status(403)
-      .json({ error: "Admins can only restore FARMER accounts" });
+      .json({ error: "Admin chỉ có thể khôi phục tài khoản nông dân" });
   }
   if (!isCreatedByCurrentAdmin(target, req)) {
     return res
       .status(403)
-      .json({ error: "Cannot restore a farmer created by another admin" });
+      .json({ error: "Không thể khôi phục tài khoản nông dân do admin khác tạo" });
   }
 
   target.isRevoked = false;

@@ -97,6 +97,7 @@ export interface WeatherCondition {
   co2Level: number; // ppm (200 .. 5000)
   humidity?: number; // % relative humidity (0 .. 100)
   weatherCode?: number; // Open-Meteo weather code
+  updatedAt?: string; // Time of this measurement
   soilPh?: string;
   soilEc?: string;
   soilDo?: string;
@@ -278,6 +279,8 @@ export interface CaptureSession {
   envMode: EnvMode; // 'outdoor' | 'greenhouse' (Required)
   captureLocation?: LocationData; // GPS position captured at photo time
   stationMeasurements: WeatherCondition; // Auto-fetched station data
+  stationMeasurementsT24?: WeatherCondition;
+  stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: LocalWeatherMeasurement; // On-site measurement (Optional)
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
@@ -314,6 +317,8 @@ export interface Post {
   images: string[]; // Photos belonging to the session
   driveFiles?: DriveFile[];
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT24?: WeatherCondition;
+  stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: LocalWeatherMeasurement;
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;

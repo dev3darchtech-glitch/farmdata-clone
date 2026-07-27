@@ -88,6 +88,12 @@ export function tabItemsForRole(role: UserRole | string = "farmer") {
           icon: FileText,
         },
         {
+          id: "capture" as const,
+          label: "Chụp ảnh",
+          route: "/(tabs)/capture",
+          icon: CameraIcon,
+        },
+        {
           id: "management" as const,
           label: "Quản lý",
           route: "/(tabs)/management",

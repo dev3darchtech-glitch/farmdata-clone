@@ -1,7 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import {
-  EnvMode,
   CaptureLocation,
+  EnvMode,
   GROWTH_STAGE_IDS,
   GrowthStageId,
   SessionStatus,
@@ -17,6 +17,9 @@ export interface IDriveFile {
   fileName?: string;
   folderPath?: string;
   description?: string;
+  watermarkFileId?: string;
+  watermarkWebViewLink?: string;
+  watermarkWebContentLink?: string;
 }
 
 export interface ICaptureSessionDocument extends Document {
@@ -32,6 +35,8 @@ export interface ICaptureSessionDocument extends Document {
   envMode: EnvMode;
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT24?: WeatherCondition;
+  stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: WeatherCondition;
   diseaseGroup?: string;
   diseaseType?: string;
@@ -58,6 +63,9 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
         fileName: { type: String },
         folderPath: { type: String },
         description: { type: String },
+        watermarkFileId: { type: String },
+        watermarkWebViewLink: { type: String },
+        watermarkWebContentLink: { type: String },
       },
     ],
     plotId: { type: String },
@@ -83,10 +91,29 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
       co2Level: { type: Number, required: true },
       humidity: { type: Number },
       weatherCode: { type: Number },
+      updatedAt: { type: String },
       soilPh: { type: String },
       soilEc: { type: String },
       soilDo: { type: String },
       soilHumidity: { type: String },
+    },
+    stationMeasurementsT24: {
+      temperature: { type: Number },
+      lightUvIndex: { type: Number },
+      windSpeed: { type: Number },
+      co2Level: { type: Number },
+      humidity: { type: Number },
+      weatherCode: { type: Number },
+      updatedAt: { type: String },
+    },
+    stationMeasurementsT48: {
+      temperature: { type: Number },
+      lightUvIndex: { type: Number },
+      windSpeed: { type: Number },
+      co2Level: { type: Number },
+      humidity: { type: Number },
+      weatherCode: { type: Number },
+      updatedAt: { type: String },
     },
     localMeasurements: {
       temperature: { type: Number },

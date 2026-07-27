@@ -38,7 +38,7 @@ function normalizeDiseaseFields(req: Request, res: Response) {
     !diseaseName
   ) {
     res.status(400).json({
-      error: "diseaseGroup, diseaseType, and diseaseName are required",
+      error: "Nhóm bệnh, phân loại bệnh và tên bệnh là bắt buộc",
     });
     return undefined;
   }
@@ -60,39 +60,41 @@ export const createSession = async (req: Request, res: Response) => {
     envMode,
     captureLocation,
     stationMeasurements,
+    stationMeasurementsT24,
+    stationMeasurementsT48,
     localMeasurements,
     symptomDescription,
     severity,
   } = req.body;
 
   if (!images || !Array.isArray(images) || images.length === 0) {
-    return res.status(400).json({ error: "At least 1 image URI is required" });
+    return res.status(400).json({ error: "Yêu cầu ít nhất 1 ảnh chụp" });
   }
   if (!cropType || !cropType.trim()) {
-    return res.status(400).json({ error: "cropType is required" });
+    return res.status(400).json({ error: "Loại cây trồng là bắt buộc" });
   }
   if (!growthStage) {
-    return res.status(400).json({ error: "growthStage is required" });
+    return res.status(400).json({ error: "Giai đoạn sinh trưởng là bắt buộc" });
   }
   if (!GROWTH_STAGE_IDS.includes(growthStage as GrowthStageId)) {
-    return res.status(400).json({ error: "growthStage is invalid" });
+    return res.status(400).json({ error: "Giai đoạn sinh trưởng không hợp lệ" });
   }
   if (!envMode) {
-    return res.status(400).json({ error: "envMode is required" });
+    return res.status(400).json({ error: "Môi trường là bắt buộc" });
   }
   if (!severity || typeof severity !== "string") {
-    return res.status(400).json({ error: "severity is required" });
+    return res.status(400).json({ error: "Mức độ nghiêm trọng là bắt buộc" });
   }
   const normalizedSeverity = severity.trim();
   if (
     !SYMPTOM_SEVERITY_VALUES.includes(normalizedSeverity as SymptomSeverity)
   ) {
-    return res.status(400).json({ error: "severity is invalid" });
+    return res.status(400).json({ error: "Mức độ nghiêm trọng không hợp lệ" });
   }
   const cleanSymptomDescription =
     typeof symptomDescription === "string" ? symptomDescription.trim() : "";
   if (!cleanSymptomDescription) {
-    return res.status(400).json({ error: "symptomDescription is required" });
+    return res.status(400).json({ error: "Mô tả triệu chứng là bắt buộc" });
   }
   const normalizedSymptomDescription = cleanSymptomDescription;
   const normalizedStationMeasurements = stationMeasurements || {
@@ -121,6 +123,8 @@ export const createSession = async (req: Request, res: Response) => {
         envMode,
         captureLocation,
         stationMeasurements: normalizedStationMeasurements,
+        stationMeasurementsT24,
+        stationMeasurementsT48,
         localMeasurements,
         ...normalizedDisease,
         symptomDescription: normalizedSymptomDescription,
@@ -142,7 +146,8 @@ export const createSession = async (req: Request, res: Response) => {
     description: imageDescription,
     destination: "capture",
   });
-  const driveImageLinks = driveFiles
+  const originalFiles = driveFiles.filter((f) => !f.fileName || !f.fileName.includes("_MARK"));
+  const driveImageLinks = originalFiles
     .map((file) => file.webContentLink || file.webViewLink)
     .filter((link): link is string => Boolean(link));
   const postImages =
@@ -161,6 +166,8 @@ export const createSession = async (req: Request, res: Response) => {
     envMode,
     captureLocation,
     stationMeasurements: normalizedStationMeasurements,
+    stationMeasurementsT24,
+    stationMeasurementsT48,
     localMeasurements,
     ...normalizedDisease,
     symptomDescription: normalizedSymptomDescription,

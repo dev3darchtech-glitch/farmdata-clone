@@ -1,44 +1,45 @@
 import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
-import { getCropTypes, getPlots } from "@/services/adminService";
 import { deletePost, getPosts } from "@/services/postService";
-import { CropTypeInfo, EnvMode, PlotInfo, Post } from "@/types";
+import { EnvMode, Post } from "@/types";
 import { ManagementVariant } from "@/types/ui";
 import {
   normalizePostIdentity,
   normalizeRole,
   postListKey,
 } from "@/utils/captureDisplay";
-import { useLocalSearchParams } from "expo-router";
 import {
   ArrowDownAZ,
   ArrowDownWideNarrow,
   ArrowUpAZ,
-  ArrowUpNarrowWide,
   ArrowUpDown,
-  Plus,
+  ArrowUpNarrowWide,
   Search,
   SlidersHorizontal,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
+  ActivityIndicator,
   Alert,
+  FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AdminPostComposer } from "../posts/AdminPostComposer";
 import { DateRangeFilter, FilterModal } from "../posts/FilterModal";
 import { ImageViewer } from "../posts/ImageViewer";
 import { PostCard } from "../posts/PostCard";
 import {
   PostsEmptyState,
   PostsErrorState,
-  PostsLoadingState,
   PostsSkeletonList,
 } from "../posts/PostStates";
 import { SortModal } from "../posts/SortModal";
@@ -111,7 +112,6 @@ function matchesDateRange(
 
 export function PostsScreen() {
   const { user } = useAuth();
-  const params = useLocalSearchParams<{ compose?: string }>();
   const role = normalizeRole(user?.role as string);
   const [posts, setPosts] = useState<Post[]>([]);
   const [sidebarVariant, setSidebarVariant] =
@@ -119,11 +119,14 @@ export function PostsScreen() {
   const [query, setQuery] = useState("");
   const [env, setEnv] = useState<"all" | EnvMode>("all");
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filtering, setFiltering] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [viewerPost, setViewerPost] = useState<Post | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentOffset, setCurrentOffset] = useState(0);
 
   const [sortOpen, setSortOpen] = useState(false);
   const [sortMode, setSortMode] = useState("newest");
@@ -135,13 +138,31 @@ export function PostsScreen() {
   const [selectedDateRange, setSelectedDateRange] = useState<DateRangeFilter>({
     preset: "all",
   });
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [masterPlots, setMasterPlots] = useState<PlotInfo[]>([]);
-  const [masterCrops, setMasterCrops] = useState<CropTypeInfo[]>([]);
 
-  const insets = useSafeAreaInsets();
+  const PAGE_SIZE = 10;
   const effectiveEnv = selectedEnv !== "all" ? selectedEnv : env;
   const isInitialMount = useRef(true);
+
+  const buildFilters = useCallback(
+    (offset: number) => ({
+      crop: selectedCrop,
+      env: effectiveEnv,
+      plot: selectedPlot,
+      q: query,
+      severity: selectedSeverity,
+      sort: sortMode,
+      limit: PAGE_SIZE,
+      offset,
+    }),
+    [
+      effectiveEnv,
+      query,
+      selectedCrop,
+      selectedPlot,
+      selectedSeverity,
+      sortMode,
+    ],
+  );
 
   const fetchPostsData = useCallback(
     async (isPullToRefresh = false) => {
@@ -154,25 +175,24 @@ export function PostsScreen() {
       }
       setLoadError(null);
       try {
-        const data = await getPosts(role, user?.id, {
-          crop: selectedCrop,
-          env: effectiveEnv,
-          plot: selectedPlot,
-          q: query,
-          severity: selectedSeverity,
-          sort: sortMode,
-        });
-        const dateFiltered = data.filter((post) =>
+        const { posts: newPosts, hasMore: more } = await getPosts(
+          role,
+          user?.id,
+          buildFilters(0),
+        );
+        const dateFiltered = newPosts.filter((post) =>
           matchesDateRange(post.createdAt, selectedDateRange),
         );
-        setPosts(
-          dateFiltered.map((post) =>
-            normalizePostIdentity(post as Post & { _id?: string }),
-          ),
+        const normalized = dateFiltered.map((post) =>
+          normalizePostIdentity(post as Post & { _id?: string }),
         );
+        setPosts(normalized);
+        setHasMore(more);
+        setCurrentOffset(normalized.length);
       } catch (err: any) {
         setLoadError(err?.message || "Lỗi tải dữ liệu");
         setPosts([]);
+        setHasMore(false);
       } finally {
         setRefreshing(false);
         setLoadingPosts(false);
@@ -180,18 +200,41 @@ export function PostsScreen() {
         isInitialMount.current = false;
       }
     },
-    [
-      effectiveEnv,
-      query,
-      role,
-      selectedCrop,
-      selectedDateRange,
-      selectedPlot,
-      selectedSeverity,
-      sortMode,
-      user?.id,
-    ],
+    [buildFilters, role, selectedDateRange, user?.id],
   );
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const { posts: newPosts, hasMore: more } = await getPosts(
+        role,
+        user?.id,
+        buildFilters(currentOffset),
+      );
+      const dateFiltered = newPosts.filter((post) =>
+        matchesDateRange(post.createdAt, selectedDateRange),
+      );
+      const normalized = dateFiltered.map((post) =>
+        normalizePostIdentity(post as Post & { _id?: string }),
+      );
+      setPosts((prev) => [...prev, ...normalized]);
+      setHasMore(more);
+      setCurrentOffset((prev) => prev + normalized.length);
+    } catch {
+      // silent
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [
+    buildFilters,
+    currentOffset,
+    hasMore,
+    loadingMore,
+    role,
+    selectedDateRange,
+    user?.id,
+  ]);
 
   useEffect(() => {
     fetchPostsData(false);
@@ -200,27 +243,6 @@ export function PostsScreen() {
   const onPullToRefresh = useCallback(() => {
     fetchPostsData(true);
   }, [fetchPostsData]);
-
-  const loadPostComposerData = useCallback(async () => {
-    if (role !== "admin") return;
-    const [plotData, cropData] = await Promise.all([
-      getPlots(),
-      getCropTypes(),
-    ]);
-    setMasterPlots(plotData);
-    setMasterCrops(cropData);
-  }, [role]);
-
-  const openPostComposer = useCallback(() => {
-    setComposerOpen(true);
-    loadPostComposerData().catch(() => {});
-  }, [loadPostComposerData]);
-
-  useEffect(() => {
-    if (role === "admin" && params.compose === "1") {
-      openPostComposer();
-    }
-  }, [openPostComposer, params.compose, role]);
 
   const plots = useMemo(() => {
     const set = new Set(posts.map((p) => p.plotId).filter(Boolean));
@@ -237,8 +259,8 @@ export function PostsScreen() {
       if (!targetPost || !user || role !== "admin") return false;
       return Boolean(
         targetPost.user?.id === user.id ||
-          (targetPost.user?.email && targetPost.user.email === user.email) ||
-          (targetPost.user?.name && targetPost.user.name === user.name),
+        (targetPost.user?.email && targetPost.user.email === user.email) ||
+        (targetPost.user?.name && targetPost.user.name === user.name),
       );
     },
     [role, user],
@@ -261,7 +283,6 @@ export function PostsScreen() {
     <AppScreenLayout
       active="posts"
       managementVariant={sidebarVariant}
-      onAdminCreatePost={openPostComposer}
       setManagementVariant={setSidebarVariant}
       testID="posts-screen"
       overlays={
@@ -309,16 +330,6 @@ export function PostsScreen() {
             onClose={() => setSortOpen(false)}
             selectedSort={sortMode}
             onSelectSort={setSortMode}
-          />
-          <AdminPostComposer
-            visible={composerOpen}
-            plots={masterPlots}
-            crops={masterCrops}
-            onClose={() => setComposerOpen(false)}
-            onSaved={() => {
-              setComposerOpen(false);
-              fetchPostsData(false);
-            }}
           />
         </>
       }
@@ -398,10 +409,26 @@ export function PostsScreen() {
           })()}
         </View>
       </View>
-      <ScrollView
+      <FlatList
         style={postsScreenStyles.postList}
         contentContainerStyle={postsScreenStyles.postListContent}
         keyboardShouldPersistTaps="handled"
+        data={posts}
+        keyExtractor={(post, index) =>
+          postListKey(post as Post & { _id?: string }, index)
+        }
+        renderItem={({ item: post }) => (
+          <PostCard
+            post={post}
+            admin={role === "admin"}
+            canDelete={isPostAuthorAdmin(post)}
+            onImage={(imageIndex = 0) => {
+              setViewerPost(post);
+              setViewerIndex(imageIndex);
+            }}
+            onDelete={() => handleDeletePost(post.id)}
+          />
+        )}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -409,82 +436,35 @@ export function PostsScreen() {
             tintColor={COLORS.green}
           />
         }
-      >
-        {loadingPosts ? (
-          <PostsSkeletonList />
-        ) : loadError ? (
-          <PostsErrorState onRetry={() => fetchPostsData(false)} />
-        ) : filtering ? (
-          <View style={{ opacity: 0.6, gap: LAYOUT.sectionGap }}>
-            {posts.length > 0 ? (
-              posts.map((post, index) => (
-                <PostCard
-                  key={postListKey(post as Post & { _id?: string }, index)}
-                  post={post}
-                  admin={role === "admin"}
-                  canDelete={isPostAuthorAdmin(post)}
-                  onImage={(imageIndex = 0) => {
-                    setViewerPost(post);
-                    setViewerIndex(imageIndex);
-                  }}
-                  onDelete={() => handleDeletePost(post.id)}
-                />
-              ))
-            ) : (
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListHeaderComponent={
+          loadingPosts ? (
+            <PostsSkeletonList />
+          ) : loadError ? (
+            <PostsErrorState onRetry={() => fetchPostsData(false)} />
+          ) : filtering ? (
+            <View style={{ opacity: 0.6 }}>
               <PostsSkeletonList />
-            )}
-          </View>
-        ) : posts.length > 0 ? (
-          posts.map((post, index) => (
-            <PostCard
-              key={postListKey(post as Post & { _id?: string }, index)}
-              post={post}
-              admin={role === "admin"}
-              canDelete={isPostAuthorAdmin(post)}
-              onImage={(imageIndex = 0) => {
-                setViewerPost(post);
-                setViewerIndex(imageIndex);
-              }}
-              onDelete={() => handleDeletePost(post.id)}
-            />
-          ))
-        ) : (
-          <PostsEmptyState showStartButton={false} />
-        )}
-      </ScrollView>
-      {role === "admin" && !viewerPost ? (
-        <Pressable
-          style={[
-            postLocalStyles.floatingPublishButton,
-            { bottom: 64 + insets.bottom },
-          ]}
-          onPress={openPostComposer}
-        >
-          <Plus size={20} color="#fff" />
-        </Pressable>
-      ) : null}
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          !loadingPosts && !loadError && !filtering ? (
+            <PostsEmptyState showStartButton={false} />
+          ) : null
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={postsScreenStyles.loadMoreFooter}>
+              <ActivityIndicator size="small" color={COLORS.green} />
+            </View>
+          ) : null
+        }
+      />
     </AppScreenLayout>
   );
 }
-
-const postLocalStyles = StyleSheet.create({
-  floatingPublishButton: {
-    position: "absolute",
-    right: LAYOUT.sheetX,
-    bottom: 96,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.green,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-});
 
 const postsScreenStyles = StyleSheet.create({
   listHeader: {
@@ -586,5 +566,10 @@ const postsScreenStyles = StyleSheet.create({
     paddingHorizontal: LAYOUT.screenX,
     paddingBottom: 12,
     gap: LAYOUT.sectionGap,
+  },
+  loadMoreFooter: {
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

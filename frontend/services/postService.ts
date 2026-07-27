@@ -126,8 +126,10 @@ export async function getPosts(
     q?: string;
     severity?: string;
     sort?: string;
+    limit?: number;
+    offset?: number;
   } = {},
-): Promise<Post[]> {
+): Promise<{ posts: Post[]; total: number; hasMore: boolean }> {
   return await fetchPostFeed(role, filters);
 }
 

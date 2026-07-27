@@ -4,7 +4,6 @@ import { env } from "../configs/env";
 import { CropModel } from "../models/Crop";
 import { PlantDiseaseModel } from "../models/PlantDisease";
 import { PlotModel } from "../models/Plot";
-import { PostModel } from "../models/Post";
 import { createUsernameFromEmail, UserModel } from "../models/User";
 
 function isLocalMongoUri(uri: string) {
@@ -85,9 +84,6 @@ export async function seedDefaultsIfEmpty() {
     ]);
 
     console.log("🌱 Default MongoDB database seed completed successfully.");
-  } else {
-    // Clean up any old mock posts if present
-    await PostModel.deleteMany({ postId: "POST-1001" });
 
     const usersWithoutUsername = await UserModel.find({
       $or: [

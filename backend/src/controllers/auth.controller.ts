@@ -11,6 +11,7 @@ import {
 } from "../models/User";
 import {
   getAdminGoogleAuthUrl,
+  getAdminDriveFolderUrl,
   linkAdminGoogleAccount,
 } from "../services/googleDriveService";
 
@@ -97,7 +98,7 @@ async function findOrCreateGoogleUser(payload: {
 }) {
   const email = payload.email?.trim().toLowerCase();
   if (!email || !payload.email_verified) {
-    throw new Error("Google account email is unavailable or not verified.");
+    throw new Error("Email tài khoản Google không khả dụng hoặc chưa được xác minh.");
   }
 
   const existingUser = await ensureUsername(
@@ -105,7 +106,7 @@ async function findOrCreateGoogleUser(payload: {
   );
   if (existingUser) {
     if (existingUser.isRevoked) {
-      throw new Error("Account has been revoked.");
+      throw new Error("Tài khoản đã bị thu hồi.");
     }
     return existingUser;
   }
@@ -201,19 +202,19 @@ export const getGoogleAppAuthUrl = async (req: Request, res: Response) => {
 
   if (!redirectUri || typeof redirectUri !== "string") {
     return res.status(400).json({
-      error: "Missing redirect_uri query parameter",
+      error: "Thiếu tham số redirect_uri",
     });
   }
 
   if (!isAllowedAppRedirectUri(redirectUri)) {
     return res.status(400).json({
-      error: "Unsupported redirect_uri",
+      error: "redirect_uri không được hỗ trợ",
     });
   }
 
   if (!env.googleClientId || !env.googleClientSecret) {
     return res.status(500).json({
-      error: "Google OAuth is not configured on the server.",
+      error: "Google OAuth chưa được cấu hình trên máy chủ.",
     });
   }
 
@@ -282,12 +283,12 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
     };
 
     if (!tokenData.id_token) {
-      return res.status(400).send("No id_token received from Google");
+      return res.status(400).send("Không nhận được id_token từ Google");
     }
 
     const payload = await verifyGoogleIdToken(tokenData.id_token);
     if (!payload) {
-      return res.status(401).send("Invalid Google ID token");
+      return res.status(401).send("Token Google ID không hợp lệ");
     }
 
     const user = await findOrCreateGoogleUser({
@@ -297,7 +298,7 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
       sub: payload.sub || undefined,
     });
     if (!user) {
-      return res.status(500).send("Unable to create Google user.");
+      return res.status(500).send("Không thể tạo tài khoản Google.");
     }
     if (user.role === "ADMIN") {
       await updateUserGoogleTokens(user, tokenData, payload.email || undefined);
@@ -353,7 +354,7 @@ export const refreshAuthToken = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken || typeof refreshToken !== "string") {
-    return res.status(400).json({ error: "Refresh token is required" });
+    return res.status(400).json({ error: "Refresh token là bắt buộc" });
   }
 
   try {
@@ -363,17 +364,17 @@ export const refreshAuthToken = async (req: Request, res: Response) => {
     };
 
     if (!decoded.id || decoded.tokenUse !== "refresh") {
-      return res.status(403).json({ error: "Invalid refresh token" });
+      return res.status(403).json({ error: "Refresh token không hợp lệ" });
     }
 
     const user = await ensureUsername(
       await UserModel.findById(decoded.id).select("-passwordHash"),
     );
     if (!user) {
-      return res.status(403).json({ error: "Forbidden: User not found" });
+      return res.status(403).json({ error: "Không tìm thấy người dùng" });
     }
     if (user.isRevoked) {
-      return res.status(403).json({ error: "Forbidden: Account revoked" });
+      return res.status(403).json({ error: "Tài khoản đã bị thu hồi" });
     }
 
     const tokens = signAuthTokens(user);
@@ -387,7 +388,7 @@ export const refreshAuthToken = async (req: Request, res: Response) => {
       },
     });
   } catch {
-    return res.status(403).json({ error: "Invalid or expired refresh token" });
+    return res.status(403).json({ error: "Refresh token không hợp lệ hoặc đã hết hạn" });
   }
 };
 
@@ -399,7 +400,7 @@ export const getMe = async (req: Request, res: Response) => {
     await UserModel.findById(req.user!.id).select("-passwordHash"),
   );
   if (!user) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
 
   return res.json({
@@ -420,18 +421,18 @@ export const registerPushToken = async (req: Request, res: Response) => {
   const { platform, token } = req.body;
 
   if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: "Chưa xác thực" });
   }
   if (platform !== "android" && platform !== "ios") {
-    return res.status(400).json({ error: "platform is invalid" });
+    return res.status(400).json({ error: "Nền tảng không hợp lệ" });
   }
   if (!token || typeof token !== "string" || !isExpoPushToken(token)) {
-    return res.status(400).json({ error: "push token is invalid" });
+    return res.status(400).json({ error: "Push token không hợp lệ" });
   }
 
   const user = await UserModel.findById(userId);
   if (!user) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
 
   const now = new Date();
@@ -459,10 +460,10 @@ export const unregisterPushToken = async (req: Request, res: Response) => {
   const { token } = req.body;
 
   if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
+    return res.status(401).json({ error: "Chưa xác thực" });
   }
   if (!token || typeof token !== "string") {
-    return res.status(400).json({ error: "push token is required" });
+    return res.status(400).json({ error: "Push token là bắt buộc" });
   }
 
   await UserModel.updateOne(
@@ -487,19 +488,28 @@ export const getGoogleAuthUrl = (req: Request, res: Response) => {
 export const linkGoogleAccount = async (req: Request, res: Response) => {
   const { code } = req.body;
   if (!code) {
-    return res.status(400).json({ error: "Missing auth code" });
+    return res.status(400).json({ error: "Thiếu mã xác thực" });
   }
 
   try {
     const updatedAdmin = await linkAdminGoogleAccount(req.user!.id, code);
     return res.json({
       success: true,
-      message: "Google Drive successfully linked to Admin account",
+      message: "Liên kết Google Drive thành công",
       googleEmail: updatedAdmin?.googleTokens?.email,
     });
   } catch (err: any) {
     return res
       .status(500)
-      .json({ error: `Failed to link Google Drive: ${err.message}` });
+      .json({ error: `Liên kết Google Drive thất bại: ${err.message}` });
+  }
+};
+
+export const getGoogleDriveFolderUrl = async (req: Request, res: Response) => {
+  try {
+    const url = await getAdminDriveFolderUrl(req.user!.id);
+    return res.json({ url });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || "Không lấy được đường dẫn thư mục Drive" });
   }
 };

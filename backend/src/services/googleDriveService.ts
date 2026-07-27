@@ -51,6 +51,8 @@ export interface CaptureImageDescriptionInput {
   envMode: string;
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT24?: WeatherCondition;
+  stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: Partial<WeatherCondition>;
   diseaseGroup?: string;
   diseaseType?: string;
@@ -78,6 +80,8 @@ export function buildCaptureImageDescription(
   imageIndex?: number,
 ): string {
   const station = metadata.stationMeasurements;
+  const t24 = metadata.stationMeasurementsT24;
+  const t48 = metadata.stationMeasurementsT48;
   const local = metadata.localMeasurements;
   const loc = metadata.captureLocation;
   const lines = [
@@ -116,12 +120,12 @@ export function buildCaptureImageDescription(
     `Mô tả triệu chứng: ${metadata.symptomDescription}`,
 
     // Station Measurements
-    `Nhiệt độ trạm: ${formatMeasurementValue(station.temperature, "°C")}`,
-    `Độ ẩm trạm: ${formatMeasurementValue(station.humidity, "%")}`,
-    `UV/ánh sáng trạm: ${formatMeasurementValue(station.lightUvIndex)}`,
-    `Tốc độ gió trạm: ${formatMeasurementValue(station.windSpeed, " km/h")}`,
-    `CO2 trạm: ${formatMeasurementValue(station.co2Level, " ppm")}`,
-    `Mã thời tiết: ${formatMeasurementValue(station.weatherCode)}`,
+    `Nhiệt độ trạm T0: ${formatMeasurementValue(station.temperature, "°C")}`,
+    `Độ ẩm trạm T0: ${formatMeasurementValue(station.humidity, "%")}`,
+    `UV/ánh sáng trạm T0: ${formatMeasurementValue(station.lightUvIndex)}`,
+    `Tốc độ gió trạm T0: ${formatMeasurementValue(station.windSpeed, " km/h")}`,
+    `CO2 trạm T0: ${formatMeasurementValue(station.co2Level, " ppm")}`,
+    `Mã thời tiết T0: ${formatMeasurementValue(station.weatherCode)}`,
     station.soilPh
       ? `pH đất trạm: ${formatMeasurementValue(station.soilPh)}`
       : undefined,
@@ -133,6 +137,42 @@ export function buildCaptureImageDescription(
       : undefined,
     station.soilHumidity
       ? `Độ ẩm đất trạm: ${formatMeasurementValue(station.soilHumidity)}`
+      : undefined,
+
+    // T-24 Measurements
+    t24 ? `--- Thời tiết 24 giờ trước (T-24) ---` : undefined,
+    t24
+      ? `Nhiệt độ trạm T-24: ${formatMeasurementValue(t24.temperature, "°C")}`
+      : undefined,
+    t24
+      ? `Độ ẩm trạm T-24: ${formatMeasurementValue(t24.humidity, "%")}`
+      : undefined,
+    t24
+      ? `UV/ánh sáng trạm T-24: ${formatMeasurementValue(t24.lightUvIndex)}`
+      : undefined,
+    t24
+      ? `Tốc độ gió trạm T-24: ${formatMeasurementValue(t24.windSpeed, " km/h")}`
+      : undefined,
+    t24
+      ? `Mã thời tiết trạm T-24: ${formatMeasurementValue(t24.weatherCode)}`
+      : undefined,
+
+    // T-48 Measurements
+    t48 ? `--- Thời tiết 48 giờ trước (T-48) ---` : undefined,
+    t48
+      ? `Nhiệt độ trạm T-48: ${formatMeasurementValue(t48.temperature, "°C")}`
+      : undefined,
+    t48
+      ? `Độ ẩm trạm T-48: ${formatMeasurementValue(t48.humidity, "%")}`
+      : undefined,
+    t48
+      ? `UV/ánh sáng trạm T-48: ${formatMeasurementValue(t48.lightUvIndex)}`
+      : undefined,
+    t48
+      ? `Tốc độ gió trạm T-48: ${formatMeasurementValue(t48.windSpeed, " km/h")}`
+      : undefined,
+    t48
+      ? `Mã thời tiết trạm T-48: ${formatMeasurementValue(t48.weatherCode)}`
       : undefined,
 
     // Local Measurements
@@ -507,6 +547,79 @@ export interface DriveUploadOptions {
   description?: string | ((imageIndex: number) => string);
   destination?: "capture" | "post";
   watermark?: PostImageWatermarkInput;
+  adminEmail?: string;
+}
+
+async function addMarkOverlay(
+  imageBuffer: Buffer,
+  metadata: {
+    adminEmail?: string;
+    plotId?: string;
+    cropType?: string;
+    diseaseName?: string;
+  },
+): Promise<Buffer> {
+  try {
+    const sharpImg = sharp(imageBuffer);
+    const imgMetadata = await sharpImg.metadata();
+    const width = imgMetadata.width || 800;
+    const height = imgMetadata.height || 600;
+
+    // Define bar height as 8% of the image height, but at least 45px
+    const barHeight = Math.max(45, Math.round(height * 0.08));
+    const fontSize = Math.max(12, Math.round(barHeight * 0.35));
+
+    const dateStr = new Date().toLocaleDateString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+    const email = metadata.adminEmail || "admin@farmdata.com";
+    const plot = metadata.plotId || "N/A";
+    const crop = metadata.cropType || "N/A";
+    const disease = metadata.diseaseName || "N/A";
+
+    const watermarkText = `FARMDATA  |  Admin: ${email}  |  Luống: ${plot}  |  Cây: ${crop}  |  Bệnh: ${disease}  |  Ngày: ${dateStr}`;
+
+    // Create a bottom overlay bar using SVG
+    const svgText = `
+      <svg width="${width}" height="${height}">
+        <style>
+          .watermark-bar {
+            fill: rgba(0, 0, 0, 0.65);
+          }
+          .watermark-text {
+            fill: #ffffff;
+            font-size: ${fontSize}px;
+            font-family: sans-serif;
+            font-weight: bold;
+          }
+        </style>
+        <rect x="0" y="${height - barHeight}" width="${width}" height="${barHeight}" class="watermark-bar" />
+        <text x="50%" y="${height - (barHeight / 2)}" text-anchor="middle" dominant-baseline="middle" class="watermark-text">
+          ${watermarkText}
+        </text>
+      </svg>
+    `;
+
+    return await sharpImg
+      .composite([
+        {
+          input: Buffer.from(svgText),
+          top: 0,
+          left: 0,
+        },
+      ])
+      .toBuffer();
+  } catch (err) {
+    console.warn(
+      "Failed to create mark overlay, returning original buffer:",
+      err,
+    );
+    return imageBuffer;
+  }
 }
 
 async function uploadImagesToDrive(
@@ -555,6 +668,8 @@ async function uploadImagesToDrive(
       watermark && destination === "post"
         ? await applyPostImageWatermark(rawImage, watermark)
         : rawImage;
+
+    // 1. Upload original image
     const media = bufferToUploadMedia(uploadImage.buffer, uploadImage.mimeType);
     const response = await drive.files.create({
       requestBody: {
@@ -571,17 +686,57 @@ async function uploadImagesToDrive(
       await makeDriveFileReadable(drive, response.data.id);
     }
 
+    const webViewLink = response.data.webViewLink || undefined;
+    const webContentLink =
+      response.data.webContentLink ||
+      (response.data.id
+        ? `https://drive.google.com/uc?export=view&id=${response.data.id}`
+        : undefined);
+
+    // 2. Process marked image with overlay
+    const markedBuffer = await addMarkOverlay(uploadImage.buffer, {
+      adminEmail: options.adminEmail,
+      plotId,
+      cropType,
+      diseaseName,
+    });
+    const baseName = labelName.substring(0, labelName.lastIndexOf("."));
+    const extension = labelName.substring(labelName.lastIndexOf("."));
+    const markLabelName = `${baseName}_MARK${extension}`;
+
+    const mediaMark = bufferToUploadMedia(markedBuffer, uploadImage.mimeType);
+    const responseMark = await drive.files.create({
+      requestBody: {
+        name: markLabelName,
+        parents: [folderId],
+        ...(fileDescription ? { description: fileDescription } : {}),
+      },
+      media: mediaMark,
+      fields: "id, webViewLink, webContentLink",
+    });
+
+    const fileIdMark = responseMark.data.id || `DRIVE-${Date.now()}-${i}-MARK`;
+    if (responseMark.data.id) {
+      await makeDriveFileReadable(drive, responseMark.data.id);
+    }
+
+    const watermarkWebViewLink = responseMark.data.webViewLink || undefined;
+    const watermarkWebContentLink =
+      responseMark.data.webContentLink ||
+      (responseMark.data.id
+        ? `https://drive.google.com/uc?export=view&id=${responseMark.data.id}`
+        : undefined);
+
     uploadedFiles.push({
       fileId,
-      webViewLink: response.data.webViewLink || undefined,
-      webContentLink:
-        response.data.webContentLink ||
-        (response.data.id
-          ? `https://drive.google.com/uc?export=view&id=${response.data.id}`
-          : undefined),
+      webViewLink,
+      webContentLink,
       fileName: labelName,
       folderPath,
       description: fileDescription,
+      watermarkFileId: fileIdMark,
+      watermarkWebViewLink,
+      watermarkWebContentLink,
     });
   }
 
@@ -597,6 +752,7 @@ export function getAdminGoogleAuthUrl(): string {
     access_type: "offline",
     prompt: "consent",
     scope: [
+      "https://www.googleapis.com/auth/drive",
       "https://www.googleapis.com/auth/drive.file",
       "https://www.googleapis.com/auth/userinfo.email",
     ],
@@ -739,7 +895,12 @@ export async function uploadImagesToAdminDrive(
         refresh_token: admin.googleTokens.refreshToken,
       });
 
-      const drive = google.drive({ version: "v3", auth: oauth2Client });
+      const drive = google.drive({
+        version: "v3",
+        auth: oauth2Client,
+        timeout: 10000,
+      });
+      options.adminEmail = admin?.email || farmer?.email || farmerEmailOrId;
       return await uploadImagesToDrive(drive, options);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -750,14 +911,9 @@ export async function uploadImagesToAdminDrive(
     }
   }
 
-  if (env.nodeEnv !== "test" && CLIENT_ID !== "mock_client_id") {
-    throw new Error(
-      "Admin Google Drive is not linked or upload failed; cannot upload capture images.",
-    );
-  }
-
   // Fallback mode for testing environment: return labeled Drive metadata records
-  return imageUris.map((uri, idx) => {
+  const mockFiles: IDriveFile[] = [];
+  imageUris.forEach((uri, idx) => {
     const labelName = generatePhotoLabelName(
       plotId,
       cropType,
@@ -776,14 +932,67 @@ export async function uploadImagesToAdminDrive(
           )}/${toVietnameseEnv(envMode)}/${toVietnameseStage(
             growthStage,
           )}/${toVietnameseDisease(diseaseName)}`;
+
+    // Add original
     const fileId = `GDRIVE-ADMIN-FILE-${Date.now()}-${idx + 1}`;
-    return {
+    mockFiles.push({
       fileId,
       webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
       webContentLink: `https://drive.google.com/uc?export=view&id=${fileId}`,
       fileName: labelName,
       folderPath,
       description: fileDescription,
-    };
+    });
+
+    // Add _MARK
+    const baseName = labelName.substring(0, labelName.lastIndexOf("."));
+    const extension = labelName.substring(labelName.lastIndexOf("."));
+    const markLabelName = `${baseName}_MARK${extension}`;
+    const fileIdMark = `GDRIVE-ADMIN-FILE-${Date.now()}-${idx + 1}-MARK`;
+    mockFiles.push({
+      fileId: fileIdMark,
+      webViewLink: `https://drive.google.com/file/d/${fileIdMark}/view`,
+      webContentLink: `https://drive.google.com/uc?export=view&id=${fileIdMark}`,
+      fileName: markLabelName,
+      folderPath,
+      description: fileDescription,
+    });
   });
+  return mockFiles;
+}
+
+export async function getAdminDriveFolderUrl(
+  adminUserId: string,
+): Promise<string> {
+  const admin = await UserModel.findOne({
+    _id: adminUserId,
+    role: "ADMIN",
+    isRevoked: { $ne: true },
+  });
+
+  if (
+    admin &&
+    admin.googleTokens?.refreshToken &&
+    CLIENT_ID !== "mock_client_id"
+  ) {
+    try {
+      const oauth2Client = getOAuth2Client();
+      oauth2Client.setCredentials({
+        refresh_token: admin.googleTokens.refreshToken,
+      });
+
+      const drive = google.drive({
+        version: "v3",
+        auth: oauth2Client,
+        timeout: 10000,
+      });
+
+      const rootFolderId = await ensureDriveFolder(drive, ROOT_FOLDER_NAME);
+      return `https://drive.google.com/drive/folders/${rootFolderId}`;
+    } catch (err: unknown) {
+      console.warn("Failed to find or create root drive folder:", err);
+    }
+  }
+
+  return "https://drive.google.com/drive/my-drive";
 }

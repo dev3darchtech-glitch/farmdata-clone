@@ -52,6 +52,8 @@ type SelectionSheetsProps = {
   diseaseType?: string;
   diseaseName?: string;
   stationWeather: WeatherCondition;
+  stationT24?: WeatherCondition;
+  stationT48?: WeatherCondition;
   stationUpdatedAt?: string;
   stationLatitude?: number;
   stationLongitude?: number;
@@ -278,6 +280,8 @@ export function SelectionSheets(props: SelectionSheetsProps) {
       >
         <StationDetail
           data={props.stationWeather}
+          t24={props.stationT24}
+          t48={props.stationT48}
           captureLocation={props.captureLocation}
           latitude={props.stationLatitude}
           longitude={props.stationLongitude}

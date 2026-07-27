@@ -201,8 +201,10 @@ export async function fetchPostFeed(
     q?: string;
     severity?: string;
     sort?: string;
+    limit?: number;
+    offset?: number;
   } = {},
-): Promise<Post[]> {
+): Promise<{ posts: Post[]; total: number; hasMore: boolean }> {
   try {
     const url = new URL(`${BACKEND_URL}/posts`);
     if (filters.crop && filters.crop !== "all" && filters.crop !== "ALL") {
@@ -227,19 +229,34 @@ export async function fetchPostFeed(
     if (filters.sort) {
       url.searchParams.set("sort", filters.sort);
     }
+    if (filters.limit !== undefined) {
+      url.searchParams.set("limit", String(filters.limit));
+    }
+    if (filters.offset !== undefined) {
+      url.searchParams.set("offset", String(filters.offset));
+    }
 
     const res = await fetch(url.toString(), {
       headers: getAuthHeaders(),
     });
 
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      // Support both old array response and new paginated response
+      if (Array.isArray(data)) {
+        return { posts: data, total: data.length, hasMore: false };
+      }
+      return {
+        posts: data.posts ?? [],
+        total: data.total ?? 0,
+        hasMore: data.hasMore ?? false,
+      };
     }
   } catch {
     // Silent offline catch
   }
 
-  return [];
+  return { posts: [], total: 0, hasMore: false };
 }
 
 export async function fetchPostById(postId: string): Promise<Post | null> {
@@ -771,4 +788,19 @@ export async function restoreUserAPI(userId: string): Promise<User> {
         ? data.createdByAdminId
         : data.createdByAdminId?._id || data.createdByAdminId?.id,
   };
+}
+
+export async function getGoogleDriveFolderUrlAPI(): Promise<string> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/auth/google/drive-url`, {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.url;
+    }
+  } catch (err) {
+    console.warn("Failed to fetch Google Drive folder URL:", err);
+  }
+  return "https://drive.google.com/drive/my-drive";
 }

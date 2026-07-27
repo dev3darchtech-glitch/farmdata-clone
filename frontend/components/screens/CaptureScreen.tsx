@@ -58,6 +58,8 @@ type CaptureScreenDraft = {
   envMode: EnvMode;
   captureLocation?: LocationData;
   stationWeather: WeatherCondition;
+  stationT24?: WeatherCondition;
+  stationT48?: WeatherCondition;
   stationUpdatedAt?: string;
   stationLatitude?: number;
   stationLongitude?: number;
@@ -136,6 +138,12 @@ export function CaptureScreen() {
   const [stationWeather, setStationWeather] = useState<WeatherCondition>(
     MOCK_OUTDOOR_WEATHER.current,
   );
+  const [stationT24, setStationT24] = useState<WeatherCondition | undefined>(
+    MOCK_OUTDOOR_WEATHER.t24,
+  );
+  const [stationT48, setStationT48] = useState<WeatherCondition | undefined>(
+    MOCK_OUTDOOR_WEATHER.t48,
+  );
   const [stationUpdatedAt, setStationUpdatedAt] = useState(
     MOCK_OUTDOOR_WEATHER.timestamp,
   );
@@ -188,6 +196,8 @@ export function CaptureScreen() {
         try {
           if (!isMountedRef.current) return;
           setStationWeather(weather.current);
+          setStationT24(weather.t24);
+          setStationT48(weather.t48);
           setStationUpdatedAt(weather.timestamp);
           setStationLatitude(weather.latitude ?? location.latitude);
           setStationLongitude(weather.longitude ?? location.longitude);
@@ -197,6 +207,8 @@ export function CaptureScreen() {
         try {
           if (!isMountedRef.current) return;
           setStationWeather(MOCK_OUTDOOR_WEATHER.current);
+          setStationT24(MOCK_OUTDOOR_WEATHER.t24);
+          setStationT48(MOCK_OUTDOOR_WEATHER.t48);
           setStationUpdatedAt(MOCK_OUTDOOR_WEATHER.timestamp);
           setStationLatitude(location.latitude);
           setStationLongitude(location.longitude);
@@ -221,6 +233,8 @@ export function CaptureScreen() {
         if (draft.envMode) setEnvMode(draft.envMode);
         if (draft.captureLocation) setCaptureLocation(draft.captureLocation);
         if (draft.stationWeather) setStationWeather(draft.stationWeather);
+        if (draft.stationT24) setStationT24(draft.stationT24);
+        if (draft.stationT48) setStationT48(draft.stationT48);
         if (draft.stationUpdatedAt) setStationUpdatedAt(draft.stationUpdatedAt);
         if (draft.stationLatitude !== undefined) {
           setStationLatitude(draft.stationLatitude);
@@ -347,6 +361,8 @@ export function CaptureScreen() {
       envMode,
       captureLocation,
       stationWeather,
+      stationT24,
+      stationT48,
       stationUpdatedAt,
       stationLatitude,
       stationLongitude,
@@ -375,6 +391,8 @@ export function CaptureScreen() {
       stationLongitude,
       stationUpdatedAt,
       stationWeather,
+      stationT24,
+      stationT48,
       symptomDescription,
     ],
   );
@@ -412,6 +430,8 @@ export function CaptureScreen() {
     envMode,
     captureLocation,
     stationMeasurements: stationWeather,
+    stationMeasurementsT24: stationT24,
+    stationMeasurementsT48: stationT48,
     localMeasurements,
     diseaseGroup,
     diseaseType,
@@ -522,6 +542,8 @@ export function CaptureScreen() {
             diseaseType={diseaseType}
             diseaseName={diseaseName}
             stationWeather={stationWeather}
+            stationT24={stationT24}
+            stationT48={stationT48}
             stationUpdatedAt={stationUpdatedAt}
             stationLatitude={stationLatitude}
             stationLongitude={stationLongitude}

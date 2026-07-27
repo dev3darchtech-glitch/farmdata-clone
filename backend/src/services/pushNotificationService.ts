@@ -1,6 +1,5 @@
 import { env } from "../configs/env";
 import { ICaptureSessionDocument } from "../models/CaptureSession";
-import { IPostDocument } from "../models/Post";
 import { IUserDocument, UserModel } from "../models/User";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
@@ -135,7 +134,7 @@ export async function notifyCaptureSessionCompleted(
   });
 }
 
-export async function notifyPostPublished(post: IPostDocument) {
+export async function notifyPostPublished(post: ICaptureSessionDocument) {
   const users = await UserModel.find({
     isRevoked: { $ne: true },
     pushTokens: { $exists: true, $ne: [] },
@@ -151,7 +150,7 @@ export async function notifyPostPublished(post: IPostDocument) {
     channelId: CHANNEL_ID,
     data: {
       type: "post_published",
-      postId: post.postId,
+      postId: post.sessionId,
       url: "/(tabs)/posts",
     },
   });

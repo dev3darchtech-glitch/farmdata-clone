@@ -3,11 +3,12 @@ import {
   getGoogleAppAuthUrl,
   getGoogleAppCallback,
   getGoogleAuthUrl,
+  getGoogleDriveFolderUrl,
   getMe,
   linkGoogleAccount,
   login,
-  registerPushToken,
   refreshAuthToken,
+  registerPushToken,
   unregisterPushToken,
 } from "../controllers/auth.controller";
 import { authenticateToken, requireRole } from "../middleware/rbac";
@@ -67,6 +68,16 @@ router.post(
   authenticateToken,
   requireRole("ADMIN"),
   linkGoogleAccount,
+);
+
+/**
+ * GET /api/auth/google/drive-url
+ */
+router.get(
+  "/google/drive-url",
+  authenticateToken,
+  requireRole("ADMIN"),
+  getGoogleDriveFolderUrl,
 );
 
 export default router;

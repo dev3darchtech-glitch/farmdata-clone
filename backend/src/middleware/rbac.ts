@@ -34,7 +34,7 @@ export function authenticateToken(
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Unauthorized: Missing token" });
+    return res.status(401).json({ error: "Chưa xác thực: Thiếu token" });
   }
 
   try {
@@ -43,10 +43,10 @@ export function authenticateToken(
       .select("name email username role isRevoked")
       .then((user) => {
         if (!user) {
-          return res.status(403).json({ error: "Forbidden: User not found" });
+          return res.status(403).json({ error: "Không tìm thấy người dùng" });
         }
         if (user.isRevoked) {
-          return res.status(403).json({ error: "Forbidden: Account revoked" });
+          return res.status(403).json({ error: "Tài khoản đã bị thu hồi" });
         }
         req.user = {
           id: user._id.toString(),
@@ -58,12 +58,12 @@ export function authenticateToken(
         next();
       })
       .catch(() =>
-        res.status(403).json({ error: "Forbidden: Invalid token user" }),
+        res.status(403).json({ error: "Token không hợp lệ" }),
       );
   } catch (err) {
     return res
       .status(403)
-      .json({ error: "Forbidden: Invalid or expired token" });
+      .json({ error: "Token không hợp lệ hoặc đã hết hạn" });
   }
 }
 
@@ -73,12 +73,12 @@ export function authenticateToken(
 export function requireRole(...allowedRoles: RoleName[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: "Chưa xác thực" });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
-        error: `Forbidden: Access restricted to roles [${allowedRoles.join(", ")}]`,
+        error: `Không có quyền truy cập: chỉ dành cho vai trò [${allowedRoles.join(", ")}]`,
         userRole: req.user.role,
       });
     }
