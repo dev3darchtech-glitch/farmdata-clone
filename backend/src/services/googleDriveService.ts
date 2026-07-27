@@ -37,6 +37,13 @@ function normalizeFolderName(value: string): string {
   return value.trim().replace(/\s+/g, " ") || "Unspecified";
 }
 
+function isGoogleAuthError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return /invalid credentials|invalid_grant|autherror|unauthorized|login required|access token/i.test(
+    message,
+  );
+}
+
 function getGrowthStageDisplayName(growthStage: string): string {
   return normalizeFolderName(growthStage);
 }
@@ -766,8 +773,17 @@ export async function linkAdminGoogleAccount(
   adminUserId: string,
   authCode: string,
 ) {
+  const existingAdmin = await UserModel.findById(adminUserId).select("googleTokens");
   const oauth2Client = getOAuth2Client();
   const { tokens } = await oauth2Client.getToken(authCode);
+  const nextRefreshToken =
+    tokens.refresh_token || existingAdmin?.googleTokens?.refreshToken;
+
+  if (!nextRefreshToken) {
+    throw new Error(
+      "Google khong tra refresh token. Hay go quyen truy cap FarmData trong tai khoan Google roi lien ket lai.",
+    );
+  }
 
   oauth2Client.setCredentials(tokens);
 
@@ -786,10 +802,12 @@ export async function linkAdminGoogleAccount(
     {
       $set: {
         googleTokens: {
-          accessToken: tokens.access_token || undefined,
-          refreshToken: tokens.refresh_token || undefined,
-          expiryDate: tokens.expiry_date || undefined,
-          email: googleEmail,
+          accessToken:
+            tokens.access_token || existingAdmin?.googleTokens?.accessToken,
+          refreshToken: nextRefreshToken,
+          expiryDate:
+            tokens.expiry_date || existingAdmin?.googleTokens?.expiryDate,
+          email: googleEmail || existingAdmin?.googleTokens?.email,
           isLinked: true,
         },
       },
@@ -881,20 +899,25 @@ export async function uploadImagesToAdminDrive(
     id: admin?._id?.toString(),
     email: admin?.email,
     hasTokens: !!admin?.googleTokens,
+    hasAccessToken: !!admin?.googleTokens?.accessToken,
     hasRefreshToken: !!admin?.googleTokens?.refreshToken,
     isLinked: admin?.googleTokens?.isLinked,
   });
 
   // Test/mock fallback only. Production must use the creator Admin OAuth.
   if (
-    (!admin || !admin.googleTokens?.refreshToken) &&
+    (!admin ||
+      (!admin.googleTokens?.accessToken && !admin.googleTokens?.refreshToken)) &&
     (env.nodeEnv === "test" || CLIENT_ID === "mock_client_id")
   ) {
     admin = await UserModel.findOne({
       role: "ADMIN",
       isRevoked: { $ne: true },
       "googleTokens.isLinked": true,
-      "googleTokens.refreshToken": { $exists: true, $ne: null },
+      $or: [
+        { "googleTokens.refreshToken": { $exists: true, $ne: null } },
+        { "googleTokens.accessToken": { $exists: true, $ne: null } },
+      ],
     });
     console.log("[GoogleDriveService] Fallback admin found:", {
       id: admin?._id?.toString(),
@@ -902,36 +925,81 @@ export async function uploadImagesToAdminDrive(
     });
   }
 
-  // If live Admin Google tokens exist, perform actual Google Drive upload via API
-  if (
-    admin &&
-    admin.googleTokens?.refreshToken &&
-    CLIENT_ID !== "mock_client_id"
-  ) {
-    try {
-      console.log("[GoogleDriveService] Initiating real upload to Google Drive for Admin:", admin.email);
-      const oauth2Client = getOAuth2Client();
-      oauth2Client.setCredentials({
-        refresh_token: admin.googleTokens.refreshToken,
-      });
+  // If live Admin Google tokens exist, perform actual Google Drive upload via API.
+  if (admin && CLIENT_ID !== "mock_client_id") {
+    const accessToken = admin.googleTokens?.accessToken;
+    const refreshToken = admin.googleTokens?.refreshToken;
 
-      const drive = google.drive({
-        version: "v3",
-        auth: oauth2Client,
-        timeout: 10000,
-      });
+    if (accessToken || refreshToken) {
       options.adminEmail = admin?.email || farmer?.email || farmerEmailOrId;
-      return await uploadImagesToDrive(drive, options);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(
-        "[GoogleDriveService] Google Drive API Upload failed with error:",
-        message,
-      );
+
+      const tryUpload = async (credentials: {
+        access_token?: string;
+        refresh_token?: string;
+      }) => {
+        const oauth2Client = getOAuth2Client();
+        oauth2Client.setCredentials(credentials);
+
+        const drive = google.drive({
+          version: "v3",
+          auth: oauth2Client,
+          timeout: 10000,
+        });
+
+        return await uploadImagesToDrive(drive, options);
+      };
+
+      let firstError: unknown;
+
+      if (accessToken) {
+        try {
+          console.log(
+            "[GoogleDriveService] Initiating Google Drive upload with access token for Admin:",
+            admin.email,
+          );
+          return await tryUpload({ access_token: accessToken });
+        } catch (err: unknown) {
+          firstError = err;
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn(
+            "[GoogleDriveService] Access-token upload failed:",
+            message,
+          );
+          if (!refreshToken || !isGoogleAuthError(err)) {
+            throw err;
+          }
+        }
+      }
+
+      if (refreshToken) {
+        try {
+          console.log(
+            "[GoogleDriveService] Retrying Google Drive upload with refresh token for Admin:",
+            admin.email,
+          );
+          return await tryUpload({ refresh_token: refreshToken });
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(
+            "[GoogleDriveService] Refresh-token upload failed:",
+            message,
+          );
+          throw err;
+        }
+      }
+
+      throw firstError || new Error("Google Drive credentials are unavailable");
     }
-  } else {
+  }
+
+  if (env.nodeEnv !== "test" && CLIENT_ID !== "mock_client_id") {
+    throw new Error("Admin Google Drive credentials are unavailable");
+  }
+
+  {
     console.log("[GoogleDriveService] Falling back to mock files. Reason:", {
       hasAdmin: !!admin,
+      hasAccessToken: !!admin?.googleTokens?.accessToken,
       hasRefreshToken: !!admin?.googleTokens?.refreshToken,
       isMockClientId: CLIENT_ID === "mock_client_id",
     });

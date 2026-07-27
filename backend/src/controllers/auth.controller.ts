@@ -10,8 +10,8 @@ import {
   UserModel,
 } from "../models/User";
 import {
-  getAdminGoogleAuthUrl,
   getAdminDriveFolderUrl,
+  getAdminGoogleAuthUrl,
   linkAdminGoogleAccount,
 } from "../services/googleDriveService";
 
@@ -57,6 +57,12 @@ function getGoogleAppCallbackUrl(req: Request) {
   return `${protocol}://${req.get("host")}/api/auth/google/callback`;
 }
 
+function hasLinkedGoogleDrive(
+  user?: Pick<IUserDocument, "googleTokens"> | null,
+) {
+  return Boolean(user?.googleTokens?.refreshToken);
+}
+
 function isAllowedAppRedirectUri(value: string) {
   return (
     value.startsWith("capturedata:") ||
@@ -98,7 +104,9 @@ async function findOrCreateGoogleUser(payload: {
 }) {
   const email = payload.email?.trim().toLowerCase();
   if (!email || !payload.email_verified) {
-    throw new Error("Email tài khoản Google không khả dụng hoặc chưa được xác minh.");
+    throw new Error(
+      "Email tài khoản Google không khả dụng hoặc chưa được xác minh.",
+    );
   }
 
   const existingUser = await ensureUsername(
@@ -130,18 +138,16 @@ async function updateUserGoogleTokens(
   },
   email?: string,
 ) {
+  const nextRefreshToken =
+    tokens.refresh_token || user.googleTokens?.refreshToken;
+
   user.googleTokens = {
     accessToken: tokens.access_token || user.googleTokens?.accessToken,
-    refreshToken: tokens.refresh_token || user.googleTokens?.refreshToken,
+    refreshToken: nextRefreshToken,
     expiryDate:
       tokens.expiry_date || user.googleTokens?.expiryDate || undefined,
     email: email || user.googleTokens?.email,
-    isLinked: Boolean(
-      tokens.refresh_token ||
-      user.googleTokens?.refreshToken ||
-      tokens.access_token ||
-      user.googleTokens?.accessToken,
-    ),
+    isLinked: Boolean(nextRefreshToken),
   };
 
   await user.save();
@@ -189,7 +195,7 @@ export const login = async (req: Request, res: Response) => {
     refreshToken,
     user: {
       ...payload,
-      isGoogleDriveLinked: Boolean(user.googleTokens?.isLinked),
+      isGoogleDriveLinked: hasLinkedGoogleDrive(user),
     },
   });
 };
@@ -312,10 +318,7 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
       return res.redirect(finalRedirectUrl);
     }
 
-    return res
-      .status(302)
-      .setHeader("Location", finalRedirectUrl)
-      .send(`
+    return res.status(302).setHeader("Location", finalRedirectUrl).send(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -384,11 +387,13 @@ export const refreshAuthToken = async (req: Request, res: Response) => {
       expiresIn: 86400,
       user: {
         ...tokens.payload,
-        isGoogleDriveLinked: Boolean(user.googleTokens?.isLinked),
+        isGoogleDriveLinked: hasLinkedGoogleDrive(user),
       },
     });
   } catch {
-    return res.status(403).json({ error: "Refresh token không hợp lệ hoặc đã hết hạn" });
+    return res
+      .status(403)
+      .json({ error: "Refresh token không hợp lệ hoặc đã hết hạn" });
   }
 };
 
@@ -406,7 +411,7 @@ export const getMe = async (req: Request, res: Response) => {
   return res.json({
     user: {
       ...toAuthUser(user),
-      isGoogleDriveLinked: Boolean(user.googleTokens?.isLinked),
+      isGoogleDriveLinked: hasLinkedGoogleDrive(user),
       googleDriveEmail: user.googleTokens?.email,
     },
   });
@@ -510,6 +515,8 @@ export const getGoogleDriveFolderUrl = async (req: Request, res: Response) => {
     const url = await getAdminDriveFolderUrl(req.user!.id);
     return res.json({ url });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message || "Không lấy được đường dẫn thư mục Drive" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Không lấy được đường dẫn thư mục Drive" });
   }
 };

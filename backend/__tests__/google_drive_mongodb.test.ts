@@ -119,6 +119,30 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
     expect(meRes.body.user.googleDriveEmail).toBe("admin.gdrive@farm.vn");
   });
 
+  it("does not report Google Drive as linked when refresh token is missing", async () => {
+    await UserModel.findOneAndUpdate(
+      { email: "admin@farm.vn" },
+      {
+        $set: {
+          "googleTokens.accessToken": "login_only_access_token",
+          "googleTokens.email": "admin.loginonly@farm.vn",
+          "googleTokens.isLinked": true,
+        },
+        $unset: {
+          "googleTokens.refreshToken": 1,
+        },
+      },
+    );
+
+    const meRes = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.user.isGoogleDriveLinked).toBe(false);
+    expect(meRes.body.user.googleDriveEmail).toBe("admin.loginonly@farm.vn");
+  });
+
   it("allows admin to manage farmers but not create, update, or revoke admin accounts", async () => {
     const createAdminRes = await request(app)
       .post("/api/admin/users")
