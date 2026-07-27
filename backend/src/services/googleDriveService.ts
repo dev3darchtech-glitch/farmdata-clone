@@ -1,5 +1,7 @@
+import fs from "fs";
 import { google } from "googleapis";
 import mongoose from "mongoose";
+import path from "path";
 import sharp from "sharp";
 import { Readable } from "stream";
 import { env } from "../configs/env";
@@ -694,14 +696,38 @@ async function addMarkOverlay(
       </svg>
     `;
 
+    const logoPath = path.resolve(__dirname, "../../../frontend/assets/images/logo.svg");
+    let logoBuffer: Buffer | null = null;
+    try {
+      if (fs.existsSync(logoPath)) {
+        logoBuffer = fs.readFileSync(logoPath);
+      }
+    } catch (logoErr) {
+      console.warn("Failed to read logo.svg file:", logoErr);
+    }
+
+    const compositeList: any[] = [
+      {
+        input: Buffer.from(svgText),
+        top: 0,
+        left: 0,
+      }
+    ];
+
+    if (logoBuffer) {
+      // Resize logo to fit nicely in corner (e.g. 50 width, keeping aspect ratio)
+      const logoResized = await sharp(logoBuffer)
+        .resize({ width: Math.max(40, Math.round(width * 0.065)) })
+        .toBuffer();
+      compositeList.push({
+        input: logoResized,
+        top: 16,
+        left: width - Math.max(40, Math.round(width * 0.065)) - 16,
+      });
+    }
+
     return await sharpImg
-      .composite([
-        {
-          input: Buffer.from(svgText),
-          top: 0,
-          left: 0,
-        },
-      ])
+      .composite(compositeList)
       .toBuffer();
   } catch (err) {
     console.warn(

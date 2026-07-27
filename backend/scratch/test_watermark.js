@@ -103,14 +103,37 @@ async function testWatermark() {
 
     console.log("Generating watermark test overlay SVG...");
 
+    const logoPath = path.resolve(__dirname, "../../frontend/assets/images/logo.svg");
+    let logoBuffer = null;
+    try {
+      if (fs.existsSync(logoPath)) {
+        logoBuffer = fs.readFileSync(logoPath);
+      }
+    } catch (logoErr) {
+      console.warn("Failed to read logo.svg file:", logoErr);
+    }
+
+    const compositeList = [
+      {
+        input: Buffer.from(svgText),
+        top: 0,
+        left: 0,
+      }
+    ];
+
+    if (logoBuffer) {
+      const logoResized = await sharp(logoBuffer)
+        .resize({ width: Math.max(40, Math.round(width * 0.065)) })
+        .toBuffer();
+      compositeList.push({
+        input: logoResized,
+        top: 16,
+        left: width - Math.max(40, Math.round(width * 0.065)) - 16,
+      });
+    }
+
     const markedBuffer = await sharpImg
-      .composite([
-        {
-          input: Buffer.from(svgText),
-          top: 0,
-          left: 0,
-        },
-      ])
+      .composite(compositeList)
       .toBuffer();
 
     fs.writeFileSync(outputPath, markedBuffer);
