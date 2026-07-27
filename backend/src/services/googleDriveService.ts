@@ -857,6 +857,13 @@ export async function uploadImagesToAdminDrive(
     });
   }
 
+  console.log("[GoogleDriveService] Farmer lookup:", {
+    id: farmer?._id?.toString(),
+    email: farmer?.email,
+    role: farmer?.role,
+    createdByAdminId: farmer?.createdByAdminId?.toString(),
+  });
+
   // 2. Find associated creator Admin user with linked Google Drive tokens.
   let admin: IUserDocument | null = null;
   if (farmer?.role === "ADMIN") {
@@ -870,6 +877,14 @@ export async function uploadImagesToAdminDrive(
     });
   }
 
+  console.log("[GoogleDriveService] Admin lookup:", {
+    id: admin?._id?.toString(),
+    email: admin?.email,
+    hasTokens: !!admin?.googleTokens,
+    hasRefreshToken: !!admin?.googleTokens?.refreshToken,
+    isLinked: admin?.googleTokens?.isLinked,
+  });
+
   // Test/mock fallback only. Production must use the creator Admin OAuth.
   if (
     (!admin || !admin.googleTokens?.refreshToken) &&
@@ -881,6 +896,10 @@ export async function uploadImagesToAdminDrive(
       "googleTokens.isLinked": true,
       "googleTokens.refreshToken": { $exists: true, $ne: null },
     });
+    console.log("[GoogleDriveService] Fallback admin found:", {
+      id: admin?._id?.toString(),
+      email: admin?.email,
+    });
   }
 
   // If live Admin Google tokens exist, perform actual Google Drive upload via API
@@ -890,6 +909,7 @@ export async function uploadImagesToAdminDrive(
     CLIENT_ID !== "mock_client_id"
   ) {
     try {
+      console.log("[GoogleDriveService] Initiating real upload to Google Drive for Admin:", admin.email);
       const oauth2Client = getOAuth2Client();
       oauth2Client.setCredentials({
         refresh_token: admin.googleTokens.refreshToken,
@@ -904,11 +924,17 @@ export async function uploadImagesToAdminDrive(
       return await uploadImagesToDrive(drive, options);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      console.warn(
-        "Google Drive API Upload failed, falling back to Drive ID assignment:",
+      console.error(
+        "[GoogleDriveService] Google Drive API Upload failed with error:",
         message,
       );
     }
+  } else {
+    console.log("[GoogleDriveService] Falling back to mock files. Reason:", {
+      hasAdmin: !!admin,
+      hasRefreshToken: !!admin?.googleTokens?.refreshToken,
+      isMockClientId: CLIENT_ID === "mock_client_id",
+    });
   }
 
   // Fallback mode for testing environment: return labeled Drive metadata records
