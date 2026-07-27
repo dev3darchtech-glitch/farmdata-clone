@@ -51,140 +51,149 @@ function normalizeDiseaseFields(req: Request, res: Response) {
  * Creates a CaptureSession in MongoDB.
  */
 export const createSession = async (req: Request, res: Response) => {
-  const user = req.user!;
-  const {
-    images,
-    plotId,
-    cropType,
-    growthStage,
-    envMode,
-    captureLocation,
-    stationMeasurements,
-    stationMeasurementsT24,
-    stationMeasurementsT48,
-    localMeasurements,
-    symptomDescription,
-    severity,
-  } = req.body;
+  try {
+    const user = req.user!;
+    const {
+      images,
+      plotId,
+      cropType,
+      growthStage,
+      envMode,
+      captureLocation,
+      stationMeasurements,
+      stationMeasurementsT24,
+      stationMeasurementsT48,
+      localMeasurements,
+      symptomDescription,
+      severity,
+    } = req.body;
 
-  if (!images || !Array.isArray(images) || images.length === 0) {
-    return res.status(400).json({ error: "Yêu cầu ít nhất 1 ảnh chụp" });
-  }
-  if (!cropType || !cropType.trim()) {
-    return res.status(400).json({ error: "Loại cây trồng là bắt buộc" });
-  }
-  if (!growthStage) {
-    return res.status(400).json({ error: "Giai đoạn sinh trưởng là bắt buộc" });
-  }
-  if (!GROWTH_STAGE_IDS.includes(growthStage as GrowthStageId)) {
-    return res.status(400).json({ error: "Giai đoạn sinh trưởng không hợp lệ" });
-  }
-  if (!envMode) {
-    return res.status(400).json({ error: "Môi trường là bắt buộc" });
-  }
-  if (!severity || typeof severity !== "string") {
-    return res.status(400).json({ error: "Mức độ nghiêm trọng là bắt buộc" });
-  }
-  const normalizedSeverity = severity.trim();
-  if (
-    !SYMPTOM_SEVERITY_VALUES.includes(normalizedSeverity as SymptomSeverity)
-  ) {
-    return res.status(400).json({ error: "Mức độ nghiêm trọng không hợp lệ" });
-  }
-  const cleanSymptomDescription =
-    typeof symptomDescription === "string" ? symptomDescription.trim() : "";
-  if (!cleanSymptomDescription) {
-    return res.status(400).json({ error: "Mô tả triệu chứng là bắt buộc" });
-  }
-  const normalizedSymptomDescription = cleanSymptomDescription;
-  const normalizedStationMeasurements = stationMeasurements || {
-    temperature: 28.0,
-    lightUvIndex: 50,
-    windSpeed: 10.0,
-    co2Level: 400,
-  };
-  const normalizedDisease = normalizeDiseaseFields(req, res);
-  if (normalizedDisease === undefined) {
-    return;
-  }
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({ error: "Yêu cầu ít nhất 1 ảnh chụp" });
+    }
+    if (!cropType || !cropType.trim()) {
+      return res.status(400).json({ error: "Loại cây trồng là bắt buộc" });
+    }
+    if (!growthStage) {
+      return res.status(400).json({ error: "Giai đoạn sinh trưởng là bắt buộc" });
+    }
+    if (!GROWTH_STAGE_IDS.includes(growthStage as GrowthStageId)) {
+      return res.status(400).json({ error: "Giai đoạn sinh trưởng không hợp lệ" });
+    }
+    if (!envMode) {
+      return res.status(400).json({ error: "Môi trường là bắt buộc" });
+    }
+    if (!severity || typeof severity !== "string") {
+      return res.status(400).json({ error: "Mức độ nghiêm trọng là bắt buộc" });
+    }
+    const normalizedSeverity = severity.trim();
+    if (
+      !SYMPTOM_SEVERITY_VALUES.includes(normalizedSeverity as SymptomSeverity)
+    ) {
+      return res.status(400).json({ error: "Mức độ nghiêm trọng không hợp lệ" });
+    }
+    const cleanSymptomDescription =
+      typeof symptomDescription === "string" ? symptomDescription.trim() : "";
+    if (!cleanSymptomDescription) {
+      return res.status(400).json({ error: "Mô tả triệu chứng là bắt buộc" });
+    }
+    const normalizedSymptomDescription = cleanSymptomDescription;
+    const normalizedStationMeasurements = stationMeasurements || {
+      temperature: 28.0,
+      lightUvIndex: 50,
+      windSpeed: 10.0,
+      co2Level: 400,
+    };
+    const normalizedDisease = normalizeDiseaseFields(req, res);
+    if (normalizedDisease === undefined) {
+      return;
+    }
 
-  const sessionId = `SESS-${Date.now()}`;
-  const cleanPlotId =
-    plotId && plotId.trim() ? plotId.trim().toUpperCase() : undefined;
-  const imageDescription = (imageIndex: number) =>
-    buildCaptureImageDescription(
-      {
-        sessionId,
-        farmerName: user.name,
-        farmerEmail: user.email,
-        plotId: cleanPlotId,
-        cropType: cropType.trim(),
-        growthStage,
-        envMode,
-        captureLocation,
-        stationMeasurements: normalizedStationMeasurements,
-        stationMeasurementsT24,
-        stationMeasurementsT48,
-        localMeasurements,
-        ...normalizedDisease,
-        symptomDescription: normalizedSymptomDescription,
-        severity: normalizedSeverity,
-      },
-      imageIndex,
+    const sessionId = `SESS-${Date.now()}`;
+    const cleanPlotId =
+      plotId && plotId.trim() ? plotId.trim().toUpperCase() : undefined;
+    const imageDescription = (imageIndex: number) =>
+      buildCaptureImageDescription(
+        {
+          sessionId,
+          farmerName: user.name,
+          farmerEmail: user.email,
+          plotId: cleanPlotId,
+          cropType: cropType.trim(),
+          growthStage,
+          envMode,
+          captureLocation,
+          stationMeasurements: normalizedStationMeasurements,
+          stationMeasurementsT24,
+          stationMeasurementsT48,
+          localMeasurements,
+          ...normalizedDisease,
+          symptomDescription: normalizedSymptomDescription,
+          severity: normalizedSeverity,
+        },
+        imageIndex,
+      );
+
+    const driveFiles = await uploadImagesToAdminDrive({
+      farmerEmailOrId: user.id,
+      imageUris: images,
+      plotId: cleanPlotId,
+      cropType: cropType.trim(),
+      envMode,
+      growthStage,
+      diseaseName: normalizedDisease?.diseaseName,
+      severity: normalizedSeverity,
+      description: imageDescription,
+      destination: "capture",
+    });
+    const originalFiles = driveFiles.filter(
+      (f) => !f.fileName || !f.fileName.includes("_MARK"),
+    );
+    const driveImageLinks = originalFiles
+      .map((file) => file.webContentLink || file.webViewLink)
+      .filter((link): link is string => Boolean(link));
+    const postImages =
+      driveImageLinks.length === images.length ? driveImageLinks : images;
+
+    const newSession = await CaptureSessionModel.create({
+      sessionId,
+      farmerId: user.id,
+      farmerName: user.name,
+      farmerEmail: user.email,
+      images: postImages,
+      driveFiles,
+      plotId: cleanPlotId,
+      cropType: cropType.trim(),
+      growthStage,
+      envMode,
+      captureLocation,
+      stationMeasurements: normalizedStationMeasurements,
+      stationMeasurementsT24,
+      stationMeasurementsT48,
+      localMeasurements,
+      ...normalizedDisease,
+      symptomDescription: normalizedSymptomDescription,
+      severity: normalizedSeverity,
+      status: "COMPLETED",
+    });
+
+    void notifyCaptureSessionCompleted(newSession).catch((error) =>
+      console.warn(
+        "Capture session notification failed:",
+        error instanceof Error ? error.message : String(error),
+      ),
     );
 
-  // Upload session photos to creator Admin's Google Drive storage with label names
-  const driveFiles = await uploadImagesToAdminDrive({
-    farmerEmailOrId: user.id,
-    imageUris: images,
-    plotId: cleanPlotId,
-    cropType: cropType.trim(),
-    envMode,
-    growthStage,
-    diseaseName: normalizedDisease?.diseaseName,
-    severity: normalizedSeverity,
-    description: imageDescription,
-    destination: "capture",
-  });
-  const originalFiles = driveFiles.filter((f) => !f.fileName || !f.fileName.includes("_MARK"));
-  const driveImageLinks = originalFiles
-    .map((file) => file.webContentLink || file.webViewLink)
-    .filter((link): link is string => Boolean(link));
-  const postImages =
-    driveImageLinks.length === images.length ? driveImageLinks : images;
-
-  const newSession = await CaptureSessionModel.create({
-    sessionId,
-    farmerId: user.id,
-    farmerName: user.name,
-    farmerEmail: user.email,
-    images: postImages,
-    driveFiles,
-    plotId: cleanPlotId,
-    cropType: cropType.trim(),
-    growthStage,
-    envMode,
-    captureLocation,
-    stationMeasurements: normalizedStationMeasurements,
-    stationMeasurementsT24,
-    stationMeasurementsT48,
-    localMeasurements,
-    ...normalizedDisease,
-    symptomDescription: normalizedSymptomDescription,
-    severity: normalizedSeverity,
-    status: "COMPLETED",
-  });
-
-  void notifyCaptureSessionCompleted(newSession).catch((error) =>
-    console.warn(
-      "Capture session notification failed:",
-      error instanceof Error ? error.message : String(error),
-    ),
-  );
-
-  return res.status(201).json({
-    session: newSession,
-  });
+    return res.status(201).json({
+      session: newSession,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Create session failed:", message);
+    return res.status(502).json({
+      error: message || "Khong the tai anh len Google Drive",
+    });
+  }
 };
 
 /**

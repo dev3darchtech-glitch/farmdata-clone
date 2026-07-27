@@ -18,6 +18,8 @@ import {
 const CLIENT_ID = env.googleClientId;
 const CLIENT_SECRET = env.googleClientSecret;
 const REDIRECT_URI = env.googleRedirectUri;
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+const GOOGLE_DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 
 export function getOAuth2Client() {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
@@ -40,6 +42,13 @@ function normalizeFolderName(value: string): string {
 function isGoogleAuthError(err: unknown) {
   const message = err instanceof Error ? err.message : String(err);
   return /invalid credentials|invalid_grant|autherror|unauthorized|login required|access token/i.test(
+    message,
+  );
+}
+
+function isGoogleInsufficientScopeError(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return /insufficient permission|insufficient authentication scopes|insufficient_scope|access_token_scope_insufficient/i.test(
     message,
   );
 }
@@ -757,10 +766,11 @@ export function getAdminGoogleAuthUrl(): string {
   const oauth2Client = getOAuth2Client();
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
-    prompt: "consent",
+    include_granted_scopes: true,
+    prompt: "consent select_account",
     scope: [
-      "https://www.googleapis.com/auth/drive",
-      "https://www.googleapis.com/auth/drive.file",
+      GOOGLE_DRIVE_SCOPE,
+      GOOGLE_DRIVE_FILE_SCOPE,
       "https://www.googleapis.com/auth/userinfo.email",
     ],
   });
@@ -773,15 +783,24 @@ export async function linkAdminGoogleAccount(
   adminUserId: string,
   authCode: string,
 ) {
-  const existingAdmin = await UserModel.findById(adminUserId).select("googleTokens");
   const oauth2Client = getOAuth2Client();
   const { tokens } = await oauth2Client.getToken(authCode);
-  const nextRefreshToken =
-    tokens.refresh_token || existingAdmin?.googleTokens?.refreshToken;
+  const nextScopes =
+    typeof tokens.scope === "string"
+      ? tokens.scope.split(/\s+/).filter(Boolean)
+      : [];
 
-  if (!nextRefreshToken) {
+  if (!tokens.access_token) {
+    throw new Error("Google khong tra access token.");
+  }
+  if (!tokens.refresh_token) {
     throw new Error(
       "Google khong tra refresh token. Hay go quyen truy cap FarmData trong tai khoan Google roi lien ket lai.",
+    );
+  }
+  if (!nextScopes.includes(GOOGLE_DRIVE_SCOPE)) {
+    throw new Error(
+      "Google token khong co quyen Google Drive. Hay lien ket lai bang dung quyen Drive.",
     );
   }
 
@@ -802,12 +821,11 @@ export async function linkAdminGoogleAccount(
     {
       $set: {
         googleTokens: {
-          accessToken:
-            tokens.access_token || existingAdmin?.googleTokens?.accessToken,
-          refreshToken: nextRefreshToken,
-          expiryDate:
-            tokens.expiry_date || existingAdmin?.googleTokens?.expiryDate,
-          email: googleEmail || existingAdmin?.googleTokens?.email,
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiryDate: tokens.expiry_date || undefined,
+          email: googleEmail || undefined,
+          scopes: nextScopes,
           isLinked: true,
         },
       },
@@ -966,6 +984,11 @@ export async function uploadImagesToAdminDrive(
             message,
           );
           if (!refreshToken || !isGoogleAuthError(err)) {
+            if (isGoogleInsufficientScopeError(err)) {
+              throw new Error(
+                "Tai khoan Google chua cap quyen Google Drive cho FarmData. Hay lien ket lai Google Drive bang dung quyen Drive.",
+              );
+            }
             throw err;
           }
         }
@@ -984,6 +1007,11 @@ export async function uploadImagesToAdminDrive(
             "[GoogleDriveService] Refresh-token upload failed:",
             message,
           );
+          if (isGoogleInsufficientScopeError(err)) {
+            throw new Error(
+              "Tai khoan Google chua cap quyen Google Drive cho FarmData. Hay lien ket lai Google Drive bang dung quyen Drive.",
+            );
+          }
           throw err;
         }
       }

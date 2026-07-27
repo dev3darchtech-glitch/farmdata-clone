@@ -97,6 +97,26 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
     expect(res.body.url).toContain("accounts.google.com");
   });
 
+  it("requests Drive scope during Google sign-in", async () => {
+    const redirectUri = "capturedata://auth-callback";
+    const res = await request(app)
+      .get("/api/auth/google")
+      .query({ redirect_uri: redirectUri })
+      .redirects(0);
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain("accounts.google.com");
+    expect(decodeURIComponent(res.headers.location)).toContain(
+      "https://www.googleapis.com/auth/drive",
+    );
+    expect(decodeURIComponent(res.headers.location)).toContain(
+      "https://www.googleapis.com/auth/drive.file",
+    );
+    expect(decodeURIComponent(res.headers.location)).toContain(
+      "prompt=consent select_account",
+    );
+  });
+
   it("links Google OAuth tokens to Admin account in MongoDB", async () => {
     // Manually set linked tokens for testing
     await UserModel.findOneAndUpdate(

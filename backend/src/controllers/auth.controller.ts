@@ -15,6 +15,15 @@ import {
   linkAdminGoogleAccount,
 } from "../services/googleDriveService";
 
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+const GOOGLE_DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+const GOOGLE_LOGIN_SCOPES = ["openid", "email", "profile"];
+const GOOGLE_ADMIN_SCOPES = [
+  ...GOOGLE_LOGIN_SCOPES,
+  GOOGLE_DRIVE_SCOPE,
+  GOOGLE_DRIVE_FILE_SCOPE,
+];
+
 async function ensureUsername(user: IUserDocument | null) {
   if (!user || user.username) return user;
   await user.validate();
@@ -57,10 +66,92 @@ function getGoogleAppCallbackUrl(req: Request) {
   return `${protocol}://${req.get("host")}/api/auth/google/callback`;
 }
 
+function getExpiryDateFromTokenResponse(tokens: {
+  expiry_date?: number | null;
+  expires_in?: number | null;
+}) {
+  if (typeof tokens.expiry_date === "number") {
+    return tokens.expiry_date;
+  }
+  if (typeof tokens.expires_in === "number") {
+    return Date.now() + tokens.expires_in * 1000;
+  }
+  return undefined;
+}
+
+function parseGrantedScopes(scope?: string | null) {
+  if (!scope) {
+    return [];
+  }
+  return scope
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function hasRequiredGoogleDriveAccess(
+  user?: Pick<IUserDocument, "googleTokens"> | null,
+) {
+  const scopes = user?.googleTokens?.scopes || [];
+  return Boolean(
+    user?.googleTokens?.refreshToken &&
+      scopes.includes(GOOGLE_DRIVE_SCOPE),
+  );
+}
+
 function hasLinkedGoogleDrive(
   user?: Pick<IUserDocument, "googleTokens"> | null,
 ) {
-  return Boolean(user?.googleTokens?.refreshToken);
+  return hasRequiredGoogleDriveAccess(user);
+}
+
+function buildRedirectUrl(
+  redirectUri: string,
+  params: Record<string, string>,
+) {
+  const separator = redirectUri.includes("?") ? "&" : "?";
+  const query = new URLSearchParams(params).toString();
+  return `${redirectUri}${separator}${query}`;
+}
+
+function redirectToApp(
+  res: Response,
+  redirectUri: string,
+  params: Record<string, string>,
+) {
+  const finalRedirectUrl = buildRedirectUrl(redirectUri, params);
+
+  if (redirectUri.startsWith("http://") || redirectUri.startsWith("https://")) {
+    return res.redirect(finalRedirectUrl);
+  }
+
+  return res.status(302).setHeader("Location", finalRedirectUrl).send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Dang chuyen huong ve ung dung FarmData...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 40px 20px; background-color: #f4f6f8; color: #1f2937; }
+    .card { background: #ffffff; padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 380px; margin: 0 auto; }
+    .title { font-size: 20px; font-weight: 700; color: #1b4d2e; margin-bottom: 8px; }
+    .text { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
+    .btn { display: inline-block; padding: 14px 28px; background-color: #1b4d2e; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">Dang nhap thanh cong!</div>
+    <div class="text">Dang tu dong chuyen huong ve ung dung FarmData...</div>
+    <a href="${finalRedirectUrl}" class="btn">Mo ung dung FarmData</a>
+  </div>
+  <script>
+    window.location.href = "${finalRedirectUrl}";
+  </script>
+</body>
+</html>
+  `);
 }
 
 function isAllowedAppRedirectUri(value: string) {
@@ -135,19 +226,30 @@ async function updateUserGoogleTokens(
     access_token?: string | null;
     refresh_token?: string | null;
     expiry_date?: number | null;
+    expires_in?: number | null;
+    scope?: string | null;
   },
   email?: string,
 ) {
-  const nextRefreshToken =
-    tokens.refresh_token || user.googleTokens?.refreshToken;
+  const grantedScopes = parseGrantedScopes(tokens.scope);
+
+  if (!tokens.access_token) {
+    throw new Error("Google khong tra access token.");
+  }
+  if (!tokens.refresh_token) {
+    throw new Error("Google khong tra refresh token.");
+  }
+  if (!grantedScopes.includes(GOOGLE_DRIVE_SCOPE)) {
+    throw new Error("Google token khong co quyen Google Drive.");
+  }
 
   user.googleTokens = {
-    accessToken: tokens.access_token || user.googleTokens?.accessToken,
-    refreshToken: nextRefreshToken,
-    expiryDate:
-      tokens.expiry_date || user.googleTokens?.expiryDate || undefined,
-    email: email || user.googleTokens?.email,
-    isLinked: Boolean(nextRefreshToken),
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    expiryDate: getExpiryDateFromTokenResponse(tokens),
+    email: email || undefined,
+    scopes: grantedScopes,
+    isLinked: true,
   };
 
   await user.save();
@@ -231,9 +333,10 @@ export const getGoogleAppAuthUrl = async (req: Request, res: Response) => {
     `?client_id=${encodeURIComponent(env.googleClientId)}` +
     `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
     `&response_type=code` +
-    `&scope=${encodeURIComponent("openid email profile")}` +
+    `&scope=${encodeURIComponent(GOOGLE_ADMIN_SCOPES.join(" "))}` +
     `&access_type=offline` +
-    `&prompt=select_account` +
+    `&include_granted_scopes=true` +
+    `&prompt=${encodeURIComponent("consent select_account")}` +
     `&state=${encodeURIComponent(redirectUri)}`;
 
   return res.redirect(authorizeUrl);
@@ -276,25 +379,34 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      return res
-        .status(400)
-        .send(errorText || "Failed to exchange Google code.");
+      return redirectToApp(res, state, {
+        error: "google_token_exchange_failed",
+        errorDescription: errorText || "Failed to exchange Google code.",
+      });
     }
 
     const tokenData = (await tokenResponse.json()) as {
       access_token?: string;
       refresh_token?: string;
       expiry_date?: number;
+      expires_in?: number;
+      scope?: string;
       id_token?: string;
     };
 
     if (!tokenData.id_token) {
-      return res.status(400).send("Không nhận được id_token từ Google");
+      return redirectToApp(res, state, {
+        error: "missing_google_id_token",
+        errorDescription: "Khong nhan duoc id_token tu Google",
+      });
     }
 
     const payload = await verifyGoogleIdToken(tokenData.id_token);
     if (!payload) {
-      return res.status(401).send("Token Google ID không hợp lệ");
+      return redirectToApp(res, state, {
+        error: "invalid_google_id_token",
+        errorDescription: "Token Google ID khong hop le",
+      });
     }
 
     const user = await findOrCreateGoogleUser({
@@ -304,49 +416,40 @@ export const getGoogleAppCallback = async (req: Request, res: Response) => {
       sub: payload.sub || undefined,
     });
     if (!user) {
-      return res.status(500).send("Không thể tạo tài khoản Google.");
+      return redirectToApp(res, state, {
+        error: "google_user_creation_failed",
+        errorDescription: "Khong the tao tai khoan Google.",
+      });
     }
     if (user.role === "ADMIN") {
+      const grantedScopes = parseGrantedScopes(tokenData.scope);
+      if (!tokenData.refresh_token) {
+        return redirectToApp(res, state, {
+          error: "missing_google_drive_refresh_token",
+          errorDescription:
+            "Google khong cap refresh token cho tai khoan admin. Hay thu lai va chap nhan quyen Google Drive.",
+        });
+      }
+      if (!grantedScopes.includes(GOOGLE_DRIVE_SCOPE)) {
+        return redirectToApp(res, state, {
+          error: "missing_google_drive_scope",
+          errorDescription:
+            "Tai khoan Google chua cap quyen Google Drive cho FarmData.",
+        });
+      }
       await updateUserGoogleTokens(user, tokenData, payload.email || undefined);
     }
 
     const { token, refreshToken } = signAuthTokens(user);
-    const separator = state.includes("?") ? "&" : "?";
-    const finalRedirectUrl = `${state}${separator}accessToken=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`;
-
-    if (state.startsWith("http://") || state.startsWith("https://")) {
-      return res.redirect(finalRedirectUrl);
-    }
-
-    return res.status(302).setHeader("Location", finalRedirectUrl).send(`
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Đang chuyển hướng về ứng dụng FarmData...</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 40px 20px; background-color: #f4f6f8; color: #1f2937; }
-    .card { background: #ffffff; padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 380px; margin: 0 auto; }
-    .title { font-size: 20px; font-weight: 700; color: #1b4d2e; margin-bottom: 8px; }
-    .text { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
-    .btn { display: inline-block; padding: 14px 28px; background-color: #1b4d2e; color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="title">Đăng nhập thành công!</div>
-    <div class="text">Đang tự động chuyển hướng về ứng dụng FarmData...</div>
-    <a href="${finalRedirectUrl}" class="btn">Mở ứng dụng FarmData</a>
-  </div>
-  <script>
-    window.location.href = "${finalRedirectUrl}";
-  </script>
-</body>
-</html>
-    `);
+    return redirectToApp(res, state, {
+      accessToken: token,
+      refreshToken,
+    });
   } catch (err: any) {
-    return res.status(401).send(err?.message || "Google sign-in failed.");
+    return redirectToApp(res, state, {
+      error: "google_sign_in_failed",
+      errorDescription: err?.message || "Google sign-in failed.",
+    });
   }
 };
 

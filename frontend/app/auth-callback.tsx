@@ -24,6 +24,7 @@ export default function AuthCallbackScreen() {
     accessToken?: string;
     refreshToken?: string;
     error?: string;
+    errorDescription?: string;
   }>();
 
   routerRef.current = router;

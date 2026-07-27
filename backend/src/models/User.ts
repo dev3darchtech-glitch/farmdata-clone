@@ -6,6 +6,7 @@ export interface IUserGoogleTokens {
   refreshToken?: string;
   expiryDate?: number;
   email?: string;
+  scopes?: string[];
   isLinked: boolean;
 }
 
@@ -80,6 +81,7 @@ const UserSchema = new Schema<IUserDocument>(
       refreshToken: { type: String },
       expiryDate: { type: Number },
       email: { type: String },
+      scopes: [{ type: String }],
       isLinked: { type: Boolean, default: false },
     },
     pushTokens: [

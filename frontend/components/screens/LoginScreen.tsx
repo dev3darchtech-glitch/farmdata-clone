@@ -127,6 +127,15 @@ export function LoginScreen() {
       const parsed = Linking.parse(result.url);
       const accessToken = parsed.queryParams?.accessToken;
       const refreshToken = parsed.queryParams?.refreshToken;
+      const oauthError = parsed.queryParams?.error;
+      const oauthErrorDescription = parsed.queryParams?.errorDescription;
+
+      if (typeof oauthErrorDescription === "string" && oauthErrorDescription) {
+        throw new Error(oauthErrorDescription);
+      }
+      if (typeof oauthError === "string" && oauthError) {
+        throw new Error("Đăng nhập Google không thành công.");
+      }
 
       if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
         throw new Error("Không nhận được token đăng nhập từ máy chủ.");
