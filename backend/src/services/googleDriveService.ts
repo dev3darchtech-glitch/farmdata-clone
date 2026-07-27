@@ -583,6 +583,8 @@ export interface DriveUploadOptions {
     region?: string;
     country?: string;
   };
+  weatherCode?: number;
+  temperature?: number;
 }
 
 async function addMarkOverlay(
@@ -593,6 +595,8 @@ async function addMarkOverlay(
     cropType?: string;
     diseaseName?: string;
     envMode?: string;
+    weatherCode?: number;
+    temperature?: number;
     captureLocation?: {
       latitude?: number;
       longitude?: number;
@@ -610,7 +614,6 @@ async function addMarkOverlay(
     const width = imgMetadata.width || 800;
     const height = imgMetadata.height || 600;
 
-
     const dateStr = new Date().toLocaleDateString("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
       day: "2-digit",
@@ -623,35 +626,50 @@ async function addMarkOverlay(
     const crop = metadata.cropType || "N/A";
     const disease = metadata.diseaseName || "N/A";
 
-    const leftLines = [
-      `FARMDATA`,
-      `Luong: ${plot}`,
-      `Cay: ${crop}`,
-      `Benh: ${disease}`,
-    ].map(toAsciiWatermarkText);
-
     const lat = metadata.captureLocation?.latitude;
     const lng = metadata.captureLocation?.longitude;
-    const addr = metadata.captureLocation?.formattedAddress || metadata.captureLocation?.name;
+    const addr =
+      metadata.captureLocation?.formattedAddress ||
+      metadata.captureLocation?.name;
     const city = metadata.captureLocation?.city;
     const region = metadata.captureLocation?.region;
-    const locationPart = addr 
-      ? addr 
-      : (city || region) 
+    const locationPart = addr
+      ? addr
+      : city || region
         ? [region, city].filter(Boolean).join(", ")
-        : (lat !== undefined && lng !== undefined)
+        : lat !== undefined && lng !== undefined
           ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
           : "N/A";
-    const locationStr = `Vi tri: ${locationPart}`;
+    const locationStr = `${locationPart}`;
+
+    const leftLines = [
+      `FARMDATA`,
+      `Luong ${plot}`,
+      `Cay ${crop}`,
+      `Benh ${disease}`,
+      locationStr,
+    ].map(toAsciiWatermarkText);
+
+    const gpsStr =
+      lat !== undefined && lng !== undefined
+        ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+        : "N/A";
 
     const envLower = (metadata.envMode || "").toLowerCase();
-    const envStr = envLower.includes("greenhouse") || envLower.includes("kinh")
-      ? "Nha kinh"
-      : "Ngoai troi";
+    const envStr =
+      envLower.includes("greenhouse") || envLower.includes("kinh")
+        ? "Nha kinh"
+        : "Ngoai troi";
+
+    const tempStr =
+      metadata.temperature !== undefined ? `${metadata.temperature}°C` : "--°C";
+    const weatherLabel = getWeatherCodeLabel(metadata.weatherCode);
+    const weatherStr = `${weatherLabel} (${tempStr})`;
 
     const rightLines = [
       envStr,
-      locationStr,
+      weatherStr,
+      gpsStr,
       `${email}`,
       `${dateStr}`,
     ].map(toAsciiWatermarkText);
@@ -696,7 +714,10 @@ async function addMarkOverlay(
       </svg>
     `;
 
-    const logoPath = path.resolve(__dirname, "../../../frontend/assets/images/logo.svg");
+    const logoPath = path.resolve(
+      __dirname,
+      "../../../frontend/assets/images/logo.svg",
+    );
     let logoBuffer: Buffer | null = null;
     try {
       if (fs.existsSync(logoPath)) {
@@ -711,7 +732,7 @@ async function addMarkOverlay(
         input: Buffer.from(svgText),
         top: 0,
         left: 0,
-      }
+      },
     ];
 
     if (logoBuffer) {
@@ -726,9 +747,7 @@ async function addMarkOverlay(
       });
     }
 
-    return await sharpImg
-      .composite(compositeList)
-      .toBuffer();
+    return await sharpImg.composite(compositeList).toBuffer();
   } catch (err) {
     console.warn(
       "Failed to create mark overlay, returning original buffer:",
@@ -817,6 +836,8 @@ async function uploadImagesToDrive(
       diseaseName,
       envMode,
       captureLocation: options.captureLocation,
+      weatherCode: options.weatherCode,
+      temperature: options.temperature,
     });
     const baseName = labelName.substring(0, labelName.lastIndexOf("."));
     const extension = labelName.substring(labelName.lastIndexOf("."));
@@ -1027,7 +1048,8 @@ export async function uploadImagesToAdminDrive(
   // Test/mock fallback only. Production must use the creator Admin OAuth.
   if (
     (!admin ||
-      (!admin.googleTokens?.accessToken && !admin.googleTokens?.refreshToken)) &&
+      (!admin.googleTokens?.accessToken &&
+        !admin.googleTokens?.refreshToken)) &&
     (env.nodeEnv === "test" || CLIENT_ID === "mock_client_id")
   ) {
     admin = await UserModel.findOne({

@@ -75,10 +75,14 @@ export const createSession = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Loại cây trồng là bắt buộc" });
     }
     if (!growthStage) {
-      return res.status(400).json({ error: "Giai đoạn sinh trưởng là bắt buộc" });
+      return res
+        .status(400)
+        .json({ error: "Giai đoạn sinh trưởng là bắt buộc" });
     }
     if (!GROWTH_STAGE_IDS.includes(growthStage as GrowthStageId)) {
-      return res.status(400).json({ error: "Giai đoạn sinh trưởng không hợp lệ" });
+      return res
+        .status(400)
+        .json({ error: "Giai đoạn sinh trưởng không hợp lệ" });
     }
     if (!envMode) {
       return res.status(400).json({ error: "Môi trường là bắt buộc" });
@@ -90,7 +94,9 @@ export const createSession = async (req: Request, res: Response) => {
     if (
       !SYMPTOM_SEVERITY_VALUES.includes(normalizedSeverity as SymptomSeverity)
     ) {
-      return res.status(400).json({ error: "Mức độ nghiêm trọng không hợp lệ" });
+      return res
+        .status(400)
+        .json({ error: "Mức độ nghiêm trọng không hợp lệ" });
     }
     const cleanSymptomDescription =
       typeof symptomDescription === "string" ? symptomDescription.trim() : "";
@@ -146,6 +152,8 @@ export const createSession = async (req: Request, res: Response) => {
       description: imageDescription,
       destination: "capture",
       captureLocation,
+      weatherCode: normalizedStationMeasurements.weatherCode,
+      temperature: normalizedStationMeasurements.temperature,
     });
     const originalFiles = driveFiles.filter(
       (f) => !f.fileName || !f.fileName.includes("_MARK"),

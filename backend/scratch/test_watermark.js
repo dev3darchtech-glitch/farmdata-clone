@@ -44,19 +44,23 @@ async function testWatermark() {
     const crop = "Ca chua";
     const disease = "Suong mai";
 
+    const locationStr = "Lam Dong, Viet Nam";
     const leftLines = [
       `FARMDATA`,
       `Luong: ${plot}`,
       `Cay: ${crop}`,
       `Benh: ${disease}`,
+      locationStr,
     ].map(toAsciiWatermarkText);
 
     const envStr = "Ngoai troi";
-    const locationStr = "Vi tri: Lam Dong, Viet Nam";
+    const gpsStr = "11.94041, 108.45831";
+    const weatherStr = "Nang (24°C)";
 
     const rightLines = [
       envStr,
-      locationStr,
+      weatherStr,
+      gpsStr,
       `${email}`,
       `${dateStr}`,
     ].map(toAsciiWatermarkText);
