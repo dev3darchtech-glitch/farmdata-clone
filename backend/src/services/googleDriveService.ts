@@ -378,6 +378,14 @@ function escapeSvgText(value: unknown): string {
     .replace(/'/g, "&#39;");
 }
 
+function toAsciiWatermarkText(value: unknown): string {
+  return String(value ?? "")
+    .replace(/Đ/g, "D")
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function wrapText(value: string, maxChars: number): string[] {
   const words = value.trim().split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -438,7 +446,7 @@ function renderSvgTextLines({
   return lines
     .map(
       (line, index) =>
-        `<text x="${x}" y="${y + index * lineHeight}" font-size="${fontSize}" font-weight="${fontWeight}" fill="${fill}">${escapeSvgText(line)}</text>`,
+        `<text x="${x}" y="${y + index * lineHeight}" font-size="${fontSize}" font-weight="${fontWeight}" fill="${fill}">${escapeSvgText(toAsciiWatermarkText(line))}</text>`,
     )
     .join("");
 }
@@ -451,8 +459,8 @@ function buildPostWatermarkSvg(
   const bottomHeight = Math.max(142, Math.round(height * 0.2));
   const bottomY = height - bottomHeight;
   const horizontalPadding = Math.max(28, Math.round(width * 0.035));
-  const titleFont = Math.max(28, Math.round(width * 0.026));
-  const bodyFont = Math.max(18, Math.round(width * 0.017));
+  const titleFont = Math.max(34, Math.round(width * 0.031));
+  const bodyFont = Math.max(22, Math.round(width * 0.02));
   const bodyLineHeight = Math.round(bodyFont * 1.45);
   const maxBottomChars = Math.max(34, Math.round(width / (bodyFont * 0.58)));
   const diseaseLines = wrapText(
@@ -474,7 +482,7 @@ function buildPostWatermarkSvg(
     `Gió: ${formatWatermarkValue(station.windSpeed, " km/h")}`,
     `CO2: ${formatWatermarkValue(station.co2Level, " ppm")}`,
   ];
-  const metricFont = Math.max(16, Math.round(width * 0.014));
+  const metricFont = Math.max(19, Math.round(width * 0.017));
   const metricLineHeight = Math.round(metricFont * 1.38);
   const metricBoxWidth = Math.min(
     Math.max(270, Math.round(width * 0.32)),
@@ -582,8 +590,8 @@ async function addMarkOverlay(
     const height = imgMetadata.height || 600;
 
     // Define bar height as 8% of the image height, but at least 45px
-    const barHeight = Math.max(45, Math.round(height * 0.08));
-    const fontSize = Math.max(12, Math.round(barHeight * 0.35));
+  const barHeight = Math.max(56, Math.round(height * 0.1));
+  const fontSize = Math.max(16, Math.round(barHeight * 0.42));
 
     const dateStr = new Date().toLocaleDateString("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
@@ -597,7 +605,9 @@ async function addMarkOverlay(
     const crop = metadata.cropType || "N/A";
     const disease = metadata.diseaseName || "N/A";
 
-    const watermarkText = `FARMDATA  |  Admin: ${email}  |  Luống: ${plot}  |  Cây: ${crop}  |  Bệnh: ${disease}  |  Ngày: ${dateStr}`;
+    const watermarkText = toAsciiWatermarkText(
+      `FARMDATA  |  Admin: ${email}  |  Luong: ${plot}  |  Cay: ${crop}  |  Benh: ${disease}  |  Ngay: ${dateStr}`,
+    );
 
     // Create a bottom overlay bar using SVG
     const svgText = `
@@ -615,7 +625,7 @@ async function addMarkOverlay(
         </style>
         <rect x="0" y="${height - barHeight}" width="${width}" height="${barHeight}" class="watermark-bar" />
         <text x="50%" y="${height - (barHeight / 2)}" text-anchor="middle" dominant-baseline="middle" class="watermark-text">
-          ${watermarkText}
+          ${escapeSvgText(watermarkText)}
         </text>
       </svg>
     `;
