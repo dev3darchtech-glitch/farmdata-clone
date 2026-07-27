@@ -145,6 +145,7 @@ export const createSession = async (req: Request, res: Response) => {
       severity: normalizedSeverity,
       description: imageDescription,
       destination: "capture",
+      captureLocation,
     });
     const originalFiles = driveFiles.filter(
       (f) => !f.fileName || !f.fileName.includes("_MARK"),

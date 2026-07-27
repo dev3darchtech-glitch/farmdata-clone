@@ -1,9 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { ManagementVariant } from "@/types/ui";
-import { normalizeRole, type TabRouteId } from "@/utils/captureDisplay";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { BottomNav } from "./BottomNav";
 import { ManagementDrawer } from "./ManagementDrawer";
 import { ScreenHeader } from "./ScreenHeader";
 
@@ -17,7 +15,7 @@ export function AppScreenLayout({
   setManagementVariant,
   testID,
 }: {
-  active: TabRouteId;
+  active: string;
   children: React.ReactNode;
   headerTitle?: string;
   managementVariant?: ManagementVariant;
@@ -27,14 +25,12 @@ export function AppScreenLayout({
   testID?: string;
 }) {
   const { user, logout } = useAuth();
-  const role = normalizeRole(user?.role as string);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <View style={appScreenLayoutStyles.screen} testID={testID}>
       <ScreenHeader title={headerTitle} onMenu={() => setSidebarOpen(true)} />
       {children}
-      <BottomNav active={active} admin={role === "admin"} />
       <ManagementDrawer
         visible={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

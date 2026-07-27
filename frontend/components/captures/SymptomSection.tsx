@@ -27,6 +27,7 @@ export function SymptomSection({
   onOpenDiseaseType,
   onOpenDiseaseName,
   onSymptomDescriptionChange,
+  onSymptomDescriptionFocus,
   order,
   severity,
   diseaseGroup,
@@ -47,6 +48,7 @@ export function SymptomSection({
   onOpenDiseaseType: () => void;
   onOpenDiseaseName: () => void;
   onSymptomDescriptionChange: (value: string) => void;
+  onSymptomDescriptionFocus?: () => void;
   order?: CaptureSectionOrder;
   severity?: SymptomSeverity;
   diseaseGroup?: PlantDiseaseGroup;
@@ -148,6 +150,10 @@ export function SymptomSection({
                   onChangeText={(value) => {
                     onSymptomDescriptionChange(value);
                     onEditSymptom(true);
+                  }}
+                  onFocus={() => {
+                    onEditSymptom(true);
+                    onSymptomDescriptionFocus?.();
                   }}
                   onBlur={() => {
                     if (symptomDescription.trim()) {

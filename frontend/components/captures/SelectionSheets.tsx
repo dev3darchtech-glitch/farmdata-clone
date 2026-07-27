@@ -541,6 +541,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
             <View style={selectionSheetStyles.measurementSaveButtonWrap}>
               <PrimaryButton
                 label="Lưu"
+                style={{ height: 36, minHeight: 36, borderRadius: 8 }}
                 onPress={() => {
                   const parseNum = (val: string): number | undefined => {
                     if (!val || !val.trim()) return undefined;
@@ -685,12 +686,12 @@ const selectionSheetStyles = StyleSheet.create({
     gap: 6,
   },
   diseaseOption: {
-    minHeight: 44,
-    borderRadius: 10,
+    minHeight: 38,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -777,8 +778,8 @@ const selectionSheetStyles = StyleSheet.create({
     lineHeight: 16,
   },
   measurementInput: {
-    height: 42,
-    borderRadius: 10,
+    height: 38,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 12,
@@ -787,8 +788,8 @@ const selectionSheetStyles = StyleSheet.create({
     fontSize: 13,
   },
   measurementSelect: {
-    height: 42,
-    borderRadius: 10,
+    height: 38,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: 12,
@@ -803,7 +804,7 @@ const selectionSheetStyles = StyleSheet.create({
   },
   weatherDropdown: {
     marginTop: 4,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: "#fff",
@@ -811,7 +812,7 @@ const selectionSheetStyles = StyleSheet.create({
     overflow: "hidden",
   },
   weatherDropdownItem: {
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
@@ -837,16 +838,16 @@ const selectionSheetStyles = StyleSheet.create({
   measurementActionArea: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    paddingTop: LAYOUT.sectionGap,
-    paddingBottom: LAYOUT.sectionGap,
+    paddingTop: 12,
+    paddingBottom: 12,
     flexDirection: "row",
     gap: 16,
     backgroundColor: "#fff",
   },
   measurementCancelButton: {
     width: 100,
-    height: 42,
-    borderRadius: 10,
+    height: 36,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: COLORS.green,
     alignItems: "center",
@@ -854,8 +855,8 @@ const selectionSheetStyles = StyleSheet.create({
   },
   measurementCancelText: {
     color: COLORS.green,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 16,
   },
   measurementSaveButtonWrap: {
     flex: 1,

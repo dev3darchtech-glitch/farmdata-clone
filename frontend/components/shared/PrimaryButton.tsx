@@ -10,6 +10,7 @@ export function PrimaryButton({
   loading,
   variant = "filled",
   testID,
+  style,
 }: {
   label: string;
   onPress?: () => void;
@@ -18,6 +19,7 @@ export function PrimaryButton({
   loading?: boolean;
   variant?: "filled" | "outline";
   testID?: string;
+  style?: any;
 }) {
   return (
     <Pressable
@@ -29,6 +31,7 @@ export function PrimaryButton({
         primaryButtonStyles.primaryButton,
         variant === "outline" && primaryButtonStyles.outlineButton,
         (disabled || inactive) && primaryButtonStyles.disabledButton,
+        style,
       ]}
     >
       {loading ? (
@@ -51,14 +54,14 @@ export function PrimaryButton({
 
 const primaryButtonStyles = StyleSheet.create({
   primaryButton: {
-    minHeight: 42,
-    borderRadius: 10,
+    minHeight: 36,
+    borderRadius: 8,
     backgroundColor: COLORS.green,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
   },
   outlineButton: {
     backgroundColor: "#fff",
@@ -72,7 +75,7 @@ const primaryButtonStyles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#fff",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
   },
   outlineButtonText: {

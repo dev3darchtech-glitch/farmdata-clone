@@ -1,4 +1,4 @@
-import { LAYOUT, TYPOGRAPHY } from "@/constants/theme";
+import { LAYOUT } from "@/constants/theme";
 import { Calendar, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {

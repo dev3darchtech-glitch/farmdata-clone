@@ -1129,6 +1129,7 @@ export function ManagementScreen() {
                       <View style={{ flex: 1 }}>
                         <PrimaryButton
                           label="Lưu"
+                          style={{ height: 36, minHeight: 36, borderRadius: 8 }}
                           onPress={addItem}
                           disabled={
                             variant === "accounts"
@@ -1577,8 +1578,8 @@ const managementScreenStyles = StyleSheet.create({
   },
   drawerCancelButton: {
     width: 100,
-    height: 48,
-    borderRadius: 12,
+    height: 36,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: COLORS.green,
     alignItems: "center",
@@ -1586,7 +1587,7 @@ const managementScreenStyles = StyleSheet.create({
   },
   drawerCancelText: {
     color: COLORS.green,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
   },
 });

@@ -572,6 +572,15 @@ export interface DriveUploadOptions {
   destination?: "capture" | "post";
   watermark?: PostImageWatermarkInput;
   adminEmail?: string;
+  captureLocation?: {
+    latitude?: number;
+    longitude?: number;
+    name?: string;
+    formattedAddress?: string;
+    city?: string;
+    region?: string;
+    country?: string;
+  };
 }
 
 async function addMarkOverlay(
@@ -581,6 +590,16 @@ async function addMarkOverlay(
     plotId?: string;
     cropType?: string;
     diseaseName?: string;
+    envMode?: string;
+    captureLocation?: {
+      latitude?: number;
+      longitude?: number;
+      name?: string;
+      formattedAddress?: string;
+      city?: string;
+      region?: string;
+      country?: string;
+    };
   },
 ): Promise<Buffer> {
   try {
@@ -589,9 +608,6 @@ async function addMarkOverlay(
     const width = imgMetadata.width || 800;
     const height = imgMetadata.height || 600;
 
-    // Define bar height as 8% of the image height, but at least 45px
-  const barHeight = Math.max(56, Math.round(height * 0.1));
-  const fontSize = Math.max(16, Math.round(barHeight * 0.42));
 
     const dateStr = new Date().toLocaleDateString("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
@@ -605,16 +621,65 @@ async function addMarkOverlay(
     const crop = metadata.cropType || "N/A";
     const disease = metadata.diseaseName || "N/A";
 
-    const watermarkText = toAsciiWatermarkText(
-      `FARMDATA  |  Admin: ${email}  |  Luong: ${plot}  |  Cay: ${crop}  |  Benh: ${disease}  |  Ngay: ${dateStr}`,
-    );
+    const leftLines = [
+      `FARMDATA`,
+      `Luong: ${plot}`,
+      `Cay: ${crop}`,
+      `Benh: ${disease}`,
+    ].map(toAsciiWatermarkText);
 
-    // Create a bottom overlay bar using SVG
+    const lat = metadata.captureLocation?.latitude;
+    const lng = metadata.captureLocation?.longitude;
+    const addr = metadata.captureLocation?.formattedAddress || metadata.captureLocation?.name;
+    const city = metadata.captureLocation?.city;
+    const region = metadata.captureLocation?.region;
+    const locationPart = addr 
+      ? addr 
+      : (city || region) 
+        ? [region, city].filter(Boolean).join(", ")
+        : (lat !== undefined && lng !== undefined)
+          ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+          : "N/A";
+    const locationStr = `Vi tri: ${locationPart}`;
+
+    const envLower = (metadata.envMode || "").toLowerCase();
+    const envStr = envLower.includes("greenhouse") || envLower.includes("kinh")
+      ? "Nha kinh"
+      : "Ngoai troi";
+
+    const rightLines = [
+      envStr,
+      locationStr,
+      `${email}`,
+      `${dateStr}`,
+    ].map(toAsciiWatermarkText);
+
+    // Height based on max lines in left/right (which is 4)
+    const padding = 14;
+    const lineHeight = Math.max(14, Math.round(height * 0.035));
+    const maxLines = Math.max(leftLines.length, rightLines.length);
+    const barHeight = maxLines * lineHeight + padding * 2;
+    const fontSize = Math.max(11, Math.round(lineHeight * 0.72));
+
+    const leftTextElements = leftLines
+      .map((line, idx) => {
+        const yPos = height - barHeight + padding + idx * lineHeight + fontSize;
+        return `<text x="16" y="${yPos}" class="watermark-text" text-anchor="start">${escapeSvgText(line)}</text>`;
+      })
+      .join("\n");
+
+    const rightTextElements = rightLines
+      .map((line, idx) => {
+        const yPos = height - barHeight + padding + idx * lineHeight + fontSize;
+        return `<text x="${width - 16}" y="${yPos}" class="watermark-text" text-anchor="end">${escapeSvgText(line)}</text>`;
+      })
+      .join("\n");
+
     const svgText = `
       <svg width="${width}" height="${height}">
         <style>
           .watermark-bar {
-            fill: rgba(0, 0, 0, 0.65);
+            fill: rgba(0, 0, 0, 0.75);
           }
           .watermark-text {
             fill: #ffffff;
@@ -624,9 +689,8 @@ async function addMarkOverlay(
           }
         </style>
         <rect x="0" y="${height - barHeight}" width="${width}" height="${barHeight}" class="watermark-bar" />
-        <text x="50%" y="${height - (barHeight / 2)}" text-anchor="middle" dominant-baseline="middle" class="watermark-text">
-          ${escapeSvgText(watermarkText)}
-        </text>
+        ${leftTextElements}
+        ${rightTextElements}
       </svg>
     `;
 
@@ -725,6 +789,8 @@ async function uploadImagesToDrive(
       plotId,
       cropType,
       diseaseName,
+      envMode,
+      captureLocation: options.captureLocation,
     });
     const baseName = labelName.substring(0, labelName.lastIndexOf("."));
     const extension = labelName.substring(labelName.lastIndexOf("."));
@@ -1065,8 +1131,9 @@ export async function uploadImagesToAdminDrive(
             growthStage,
           )}/${toVietnameseDisease(diseaseName)}`;
 
-    // Add original
+    // Add original with watermark links inside the SAME object to match schema
     const fileId = `GDRIVE-ADMIN-FILE-${Date.now()}-${idx + 1}`;
+    const fileIdMark = `GDRIVE-ADMIN-FILE-${Date.now()}-${idx + 1}-MARK`;
     mockFiles.push({
       fileId,
       webViewLink: `https://drive.google.com/file/d/${fileId}/view`,
@@ -1074,20 +1141,9 @@ export async function uploadImagesToAdminDrive(
       fileName: labelName,
       folderPath,
       description: fileDescription,
-    });
-
-    // Add _MARK
-    const baseName = labelName.substring(0, labelName.lastIndexOf("."));
-    const extension = labelName.substring(labelName.lastIndexOf("."));
-    const markLabelName = `${baseName}_MARK${extension}`;
-    const fileIdMark = `GDRIVE-ADMIN-FILE-${Date.now()}-${idx + 1}-MARK`;
-    mockFiles.push({
-      fileId: fileIdMark,
-      webViewLink: `https://drive.google.com/file/d/${fileIdMark}/view`,
-      webContentLink: `https://drive.google.com/uc?export=view&id=${fileIdMark}`,
-      fileName: markLabelName,
-      folderPath,
-      description: fileDescription,
+      watermarkFileId: fileIdMark,
+      watermarkWebViewLink: `https://drive.google.com/file/d/${fileIdMark}/view`,
+      watermarkWebContentLink: `https://drive.google.com/uc?export=view&id=${fileIdMark}`,
     });
   });
   return mockFiles;

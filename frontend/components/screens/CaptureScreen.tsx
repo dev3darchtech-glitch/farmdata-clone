@@ -36,7 +36,15 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Keyboard,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { CapturePhotoSection } from "../captures/CapturePhotoSection";
 import { CropInfoSection } from "../captures/CropInfoSection";
@@ -95,7 +103,7 @@ const captureScreenStyles = StyleSheet.create({
   captureContent: {
     paddingHorizontal: LAYOUT.screenX,
     paddingTop: LAYOUT.screenTop,
-    paddingBottom: 208,
+    paddingBottom: 32,
     gap: LAYOUT.screenGap,
   },
   screenTitle: {
@@ -105,11 +113,7 @@ const captureScreenStyles = StyleSheet.create({
     lineHeight: TYPOGRAPHY.titleLine,
   },
   fixedCta: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 64,
-    paddingHorizontal: LAYOUT.screenX,
+    marginTop: 4,
     paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: "#fff",
@@ -127,6 +131,7 @@ const captureScreenStyles = StyleSheet.create({
 
 export function CaptureScreen() {
   const { user } = useAuth();
+  const scrollViewRef = useRef<ScrollView | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [plots, setPlots] = useState<PlotInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
@@ -174,6 +179,8 @@ export function CaptureScreen() {
   const [progressTotal, setProgressTotal] = useState(0);
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const lastFetchTimeRef = useRef<number>(0);
   const captureLocationRef = useRef<LocationData | undefined>(undefined);
@@ -214,6 +221,26 @@ export function CaptureScreen() {
           setStationLongitude(location.longitude);
         } catch {}
       });
+  }, []);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      setIsKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -448,6 +475,15 @@ export function CaptureScreen() {
           (Math.min(progressCurrent, progressTotal) / progressTotal) * 100,
         )
       : 0;
+  const defaultContentBottom = 32;
+
+  const handleSymptomDescriptionFocus = useCallback(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 120);
+    });
+  }, []);
 
   const addPhoto = async () => {
     try {
@@ -570,8 +606,15 @@ export function CaptureScreen() {
     >
       <View testID="storage-destination-picker" style={{ display: "none" }} />
       <ScrollView
+        ref={scrollViewRef}
         style={captureScreenStyles.captureScroll}
-        contentContainerStyle={captureScreenStyles.captureContent}
+        contentContainerStyle={[
+          captureScreenStyles.captureContent,
+          { paddingBottom: defaultContentBottom },
+          isKeyboardVisible
+            ? { paddingBottom: Math.max(160, keyboardHeight + 32) }
+            : null,
+        ]}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
@@ -633,6 +676,7 @@ export function CaptureScreen() {
           onOpenDiseaseName={() => {
             if (diseaseGroup && diseaseType) setSheet("diseaseName");
           }}
+          onSymptomDescriptionFocus={handleSymptomDescriptionFocus}
           onSymptomDescriptionChange={setSymptomDescription}
           order={6}
           severity={severity}
@@ -647,22 +691,24 @@ export function CaptureScreen() {
           symptomDescription={symptomDescription}
           symptomDescriptionError={validation.errors.symptomDescription}
         />
-      </ScrollView>
-      <View style={captureScreenStyles.fixedCta}>
-        <PrimaryButton
-          label="Hoàn tất phiên chụp"
-          onPress={submit}
-          disabled={saving}
-          inactive={!validation.isValid}
-          loading={saving}
-          testID="submit-capture-button"
-        />
-        {shouldShowInlineErrors ? (
-          <Text style={captureScreenStyles.ctaErrorText}>
-            Vui lòng nhập đủ thông tin bắt buộc
-          </Text>
+        {!isKeyboardVisible ? (
+          <View style={captureScreenStyles.fixedCta}>
+            <PrimaryButton
+              label="Hoàn tất phiên chụp"
+              onPress={submit}
+              disabled={saving}
+              inactive={!validation.isValid}
+              loading={saving}
+              testID="submit-capture-button"
+            />
+            {shouldShowInlineErrors ? (
+              <Text style={captureScreenStyles.ctaErrorText}>
+                Vui lòng nhập đủ thông tin bắt buộc
+              </Text>
+            ) : null}
+          </View>
         ) : null}
-      </View>
+      </ScrollView>
     </AppScreenLayout>
   );
 }
