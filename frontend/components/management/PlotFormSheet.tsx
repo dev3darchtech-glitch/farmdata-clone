@@ -1,11 +1,12 @@
 import { BottomSheet } from "@/components/shared/BottomSheet";
 import { InputSelection } from "@/components/shared/InputSelection";
 import { InputText } from "@/components/shared/InputText";
+import { KeyboardFormScrollView } from "@/components/shared/KeyboardFormScrollView";
 import { COLORS, LAYOUT } from "@/constants/theme";
 import { PLOT_ZONE_OPTIONS } from "@/utils/management";
 import { Check } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export type PlotFormValue = {
   code: string;
@@ -43,10 +44,8 @@ export function PlotFormSheet({
       title={`${editing ? "Chỉnh sửa" : "Thêm"} mã số luống`}
       onClose={onClose}
     >
-      <ScrollView
+      <KeyboardFormScrollView
         contentContainerStyle={plotSheetStyles.body}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
       >
         <InputText
           label="Mã số luống"
@@ -110,7 +109,7 @@ export function PlotFormSheet({
           placeholder="Chọn trạng thái"
           value={value.status}
         />
-      </ScrollView>
+      </KeyboardFormScrollView>
       <View style={plotSheetStyles.footer}>
         <Pressable style={plotSheetStyles.cancelButton} onPress={onClose}>
           <Text style={plotSheetStyles.cancelText}>Hủy</Text>

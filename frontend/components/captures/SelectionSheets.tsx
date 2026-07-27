@@ -10,13 +10,14 @@ import {
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
+  PLANT_DISEASE_GROUPS,
   PlantDiseaseGroup,
   PlantDiseaseInfo,
-  PLANT_DISEASE_GROUPS,
   PlotInfo,
   WeatherCondition,
 } from "@/types";
 import { SheetKind } from "@/utils/captureDisplay";
+import { triggerHaptic } from "@/utils/platformHelper";
 import { getWeatherLabel } from "@/utils/weatherMetrics";
 import { router } from "expo-router";
 import {
@@ -28,9 +29,17 @@ import {
   Sun,
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { BottomSheet } from "../shared/BottomSheet";
 import { InputText } from "../shared/InputText";
+import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { PrimaryButton } from "../shared/PrimaryButton";
 import {
   CaptureErrorDialog,
@@ -298,14 +307,11 @@ export function SelectionSheets(props: SelectionSheetsProps) {
           <Text style={selectionSheetStyles.measurementSheetSubtitle}>
             Nhập dữ liệu môi trường hiện tại
           </Text>
-          <ScrollView
+          <KeyboardFormScrollView
             style={selectionSheetStyles.measurementFieldsScroll}
             contentContainerStyle={selectionSheetStyles.measurementFormContent}
-            keyboardDismissMode="on-drag"
-            keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
             scrollEnabled={!isAdjustingTemperature}
-            showsVerticalScrollIndicator={false}
           >
             <View style={selectionSheetStyles.measurementSection}>
               <View style={selectionSheetStyles.measurementSectionTitleRow}>
@@ -528,7 +534,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
                 />
               </View>
             </View>
-          </ScrollView>
+          </KeyboardFormScrollView>
           <View style={selectionSheetStyles.measurementActionArea}>
             <Pressable
               style={selectionSheetStyles.measurementCancelButton}
@@ -658,6 +664,13 @@ function MeasurementInput({
   onChangeText: (value: string) => void;
   full?: boolean;
 }) {
+  const handleChangeText = (val: string) => {
+    onChangeText(val);
+    if (Platform.OS === "android") {
+      triggerHaptic("light");
+    }
+  };
+
   return (
     <InputText
       containerStyle={[
@@ -670,7 +683,7 @@ function MeasurementInput({
       value={value}
       placeholder={placeholder}
       placeholderTextColor="#94a3b8"
-      onChangeText={onChangeText}
+      onChangeText={handleChangeText}
       style={selectionSheetStyles.measurementInput}
       variant="plain"
     />

@@ -1,4 +1,5 @@
 import { GlobalOfflineNotice } from "@/components/screens/GlobalOfflineNotice";
+import { IOS_KEYBOARD_ACCESSORY_ID, KeyboardAccessory } from "@/components/shared/KeyboardAccessory";
 import { TYPOGRAPHY } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -10,7 +11,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
@@ -18,6 +18,7 @@ import {
   TouchableWithoutFeedback,
   useWindowDimensions,
 } from "react-native";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -27,7 +28,7 @@ const AppText = Text as typeof Text & {
   defaultProps?: { style?: unknown };
 };
 const AppTextInput = TextInput as typeof TextInput & {
-  defaultProps?: { style?: unknown };
+  defaultProps?: { inputAccessoryViewID?: string; style?: unknown };
 };
 
 AppText.defaultProps = AppText.defaultProps || {};
@@ -37,6 +38,11 @@ AppTextInput.defaultProps.style = [
   defaultTextStyle,
   AppTextInput.defaultProps.style,
 ];
+AppTextInput.defaultProps.inputAccessoryViewID =
+  Platform.OS === "ios"
+    ? (AppTextInput.defaultProps.inputAccessoryViewID ??
+      IOS_KEYBOARD_ACCESSORY_ID)
+    : AppTextInput.defaultProps.inputAccessoryViewID;
 
 function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -87,23 +93,23 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView
-        edges={["top", "left", "right"]}
-        style={[styles.appShell, { width, minWidth: width, minHeight: height }]}
-      >
-        <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardRoot}
-          >
+    <KeyboardProvider>
+      <SafeAreaProvider>
+        <SafeAreaView
+          edges={["top", "left", "right"]}
+          style={[styles.appShell, { width, minWidth: width, minHeight: height }]}
+        >
+          <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
             <AuthProvider>
-              <RootLayoutNav />
+              <>
+                <RootLayoutNav />
+                <KeyboardAccessory />
+              </>
             </AuthProvider>
-          </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
-      </SafeAreaView>
-    </SafeAreaProvider>
+          </TouchableWithoutFeedback>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </KeyboardProvider>
   );
 }
 
@@ -112,8 +118,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignSelf: "stretch",
     backgroundColor: "#ffffff",
-  },
-  keyboardRoot: {
-    flex: 1,
   },
 });

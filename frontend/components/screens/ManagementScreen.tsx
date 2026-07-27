@@ -76,6 +76,7 @@ import { AppScreenLayout } from "../shared/AppScreenLayout";
 import { BottomSheet } from "../shared/BottomSheet";
 import { InputSelection } from "../shared/InputSelection";
 import { InputText } from "../shared/InputText";
+import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { PrimaryButton } from "../shared/PrimaryButton";
 
 const DEFAULT_CROP_ICON_OPTIONS = [
@@ -906,12 +907,10 @@ export function ManagementScreen() {
                     })}
                   </ScrollView>
                 ) : diseaseGroupPickerOpen ? (
-                  <ScrollView
+                  <KeyboardFormScrollView
                     contentContainerStyle={
                       managementScreenStyles.managementEditDrawerContent
                     }
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
                   >
                     {PLANT_DISEASE_GROUP_OPTIONS.map((group) => {
                       const selected = diseaseForm.group === group;
@@ -943,14 +942,12 @@ export function ManagementScreen() {
                         </Pressable>
                       );
                     })}
-                  </ScrollView>
+                  </KeyboardFormScrollView>
                 ) : diseaseTypePickerOpen ? (
-                  <ScrollView
+                  <KeyboardFormScrollView
                     contentContainerStyle={
                       managementScreenStyles.managementEditDrawerContent
                     }
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
                   >
                     <InputText
                       containerStyle={managementScreenStyles.drawerFieldStack}
@@ -1001,14 +998,12 @@ export function ManagementScreen() {
                       label="Xác nhận"
                       onPress={() => setDiseaseTypePickerOpen(false)}
                     />
-                  </ScrollView>
+                  </KeyboardFormScrollView>
                 ) : (
-                  <ScrollView
+                  <KeyboardFormScrollView
                     contentContainerStyle={
                       managementScreenStyles.managementEditDrawerContent
                     }
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
                   >
                     {variant === "accounts" ? (
                       <>
@@ -1144,7 +1139,7 @@ export function ManagementScreen() {
                         />
                       </View>
                     </View>
-                  </ScrollView>
+                  </KeyboardFormScrollView>
                 )}
               </TouchableWithoutFeedback>
             </BottomSheet>

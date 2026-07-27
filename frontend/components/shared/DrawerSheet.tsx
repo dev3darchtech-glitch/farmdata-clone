@@ -4,10 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Animated,
   Easing,
-  KeyboardAvoidingView,
   Modal,
   PanResponder,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -206,9 +204,7 @@ export function DrawerSheet({
             { transform: [{ translateY }] },
           ]}
         >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+          <View
             style={[drawerStyles.sheet, sheetSizeStyle, contentStyle]}
             onLayout={(event) => {
               measuredHeightRef.current = event.nativeEvent.layout.height;
@@ -237,7 +233,7 @@ export function DrawerSheet({
             >
               {children}
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </Animated.View>
       </View>
     </Modal>

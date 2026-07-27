@@ -1,6 +1,7 @@
 import { COLORS } from "@/constants/theme";
 import React from "react";
 import {
+  Platform,
   StyleProp,
   StyleSheet,
   Text,
@@ -11,6 +12,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { FieldLabel } from "./FieldLabel";
+import { IOS_KEYBOARD_ACCESSORY_ID } from "./KeyboardAccessory";
 
 type InputTextProps = TextInputProps & {
   containerStyle?: StyleProp<ViewStyle>;
@@ -46,6 +48,11 @@ export function InputText({
         )
       ) : null}
       <TextInput
+        inputAccessoryViewID={
+          Platform.OS === "ios"
+            ? props.inputAccessoryViewID ?? IOS_KEYBOARD_ACCESSORY_ID
+            : props.inputAccessoryViewID
+        }
         placeholderTextColor={props.placeholderTextColor ?? COLORS.muted}
         style={[
           !isPlain && inputTextStyles.input,

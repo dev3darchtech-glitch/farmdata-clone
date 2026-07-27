@@ -3,17 +3,17 @@ import { Calendar, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { IOS_KEYBOARD_ACCESSORY_ID } from "../shared/KeyboardAccessory";
+import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 
 export type DateRangePreset = "all" | "today" | "7days" | "30days" | "custom";
 
@@ -138,10 +138,7 @@ export function FilterModal({
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View testID="post-filter-modal" style={styles.scrim}>
           <Pressable style={styles.scrimFill} onPress={onClose} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ width: "100%" }}
-          >
+          <View style={{ width: "100%" }}>
             <View style={styles.sheet}>
               <View style={styles.handleWrap}>
                 <View style={styles.handle} />
@@ -157,11 +154,9 @@ export function FilterModal({
                 </Pressable>
               </View>
 
-              <ScrollView
+              <KeyboardFormScrollView
                 style={{ maxHeight: 380 }}
                 contentContainerStyle={styles.content}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
               >
                 <FilterSection title="Môi trường">
                   <View style={styles.row}>
@@ -208,6 +203,11 @@ export function FilterModal({
                         <Pressable style={styles.dateInput}>
                           <Calendar size={16} color="#4b5563" />
                           <TextInput
+                            inputAccessoryViewID={
+                              Platform.OS === "ios"
+                                ? IOS_KEYBOARD_ACCESSORY_ID
+                                : undefined
+                            }
                             style={styles.dateTextInput}
                             value={localStartDate}
                             onChangeText={setLocalStartDate}
@@ -221,6 +221,11 @@ export function FilterModal({
                         <Pressable style={styles.dateInput}>
                           <Calendar size={16} color="#4b5563" />
                           <TextInput
+                            inputAccessoryViewID={
+                              Platform.OS === "ios"
+                                ? IOS_KEYBOARD_ACCESSORY_ID
+                                : undefined
+                            }
                             style={styles.dateTextInput}
                             value={localEndDate}
                             onChangeText={setLocalEndDate}
@@ -232,7 +237,7 @@ export function FilterModal({
                     </View>
                   ) : null}
                 </FilterSection>
-              </ScrollView>
+              </KeyboardFormScrollView>
 
               <View style={styles.footer}>
                 <Pressable style={styles.resetButton} onPress={handleReset}>
@@ -243,7 +248,7 @@ export function FilterModal({
                 </Pressable>
               </View>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       </TouchableWithoutFeedback>
     </Modal>

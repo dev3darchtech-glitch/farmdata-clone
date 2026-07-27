@@ -53,6 +53,7 @@ import { LocalMeasurementSection } from "../captures/LocalMeasurementSection";
 import { SelectionSheets } from "../captures/SelectionSheets";
 import { SymptomSection } from "../captures/SymptomSection";
 import { AppScreenLayout } from "../shared/AppScreenLayout";
+import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { LoadingProgressDialog } from "../shared/LoadingProgressDialog";
 import { PrimaryButton } from "../shared/PrimaryButton";
 
@@ -180,7 +181,6 @@ export function CaptureScreen() {
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const lastFetchTimeRef = useRef<number>(0);
   const captureLocationRef = useRef<LocationData | undefined>(undefined);
@@ -228,12 +228,10 @@ export function CaptureScreen() {
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
+    const showSubscription = Keyboard.addListener(showEvent, () => {
       setIsKeyboardVisible(true);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
       setIsKeyboardVisible(false);
     });
 
@@ -605,20 +603,21 @@ export function CaptureScreen() {
       }
     >
       <View testID="storage-destination-picker" style={{ display: "none" }} />
-      <ScrollView
+      <KeyboardFormScrollView
         ref={scrollViewRef}
         style={captureScreenStyles.captureScroll}
         contentContainerStyle={[
           captureScreenStyles.captureContent,
           { paddingBottom: defaultContentBottom },
           isKeyboardVisible
-            ? { paddingBottom: Math.max(160, keyboardHeight + 32) }
+            ? {
+                paddingBottom: Platform.OS === "ios" ? 120 : 96,
+              }
             : null,
         ]}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
         showsVerticalScrollIndicator={false}
+        bottomOffset={96}
       >
         <Text style={captureScreenStyles.screenTitle}>Phiên chụp mới</Text>
 
@@ -708,7 +707,7 @@ export function CaptureScreen() {
             ) : null}
           </View>
         ) : null}
-      </ScrollView>
+      </KeyboardFormScrollView>
     </AppScreenLayout>
   );
 }

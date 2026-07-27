@@ -16,10 +16,8 @@ import { Controller, useForm } from "react-hook-form";
 import {
   Image,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
@@ -29,6 +27,7 @@ import {
 import { AppLogo } from "../shared/AppLogo";
 import { FieldLabel } from "../shared/FieldLabel";
 import { InputText } from "../shared/InputText";
+import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { PrimaryButton } from "../shared/PrimaryButton";
 
 export function LoginScreen() {
@@ -204,159 +203,152 @@ export function LoginScreen() {
           ]}
           resizeMode="cover"
         />
-        <KeyboardAvoidingView
-          behavior={Platform.select({ ios: "padding", default: undefined })}
+        <KeyboardFormScrollView
           style={loginScreenStyles.flex}
+          contentContainerStyle={loginScreenStyles.loginContent}
         >
-          <ScrollView
-            keyboardDismissMode="on-drag"
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={loginScreenStyles.loginContent}
-          >
-            <View style={loginScreenStyles.loginBrand}>
-              <AppLogo />
-              <Text style={loginScreenStyles.loginTitle}>FARMDATA</Text>
-              <Text style={loginScreenStyles.loginSubtitle}>
-                Quản lý dữ liệu nông nghiệp
-              </Text>
-            </View>
+          <View style={loginScreenStyles.loginBrand}>
+            <AppLogo />
+            <Text style={loginScreenStyles.loginTitle}>FARMDATA</Text>
+            <Text style={loginScreenStyles.loginSubtitle}>
+              Quản lý dữ liệu nông nghiệp
+            </Text>
+          </View>
 
-            <View style={loginScreenStyles.loginForm}>
-              <View style={loginScreenStyles.fieldStack}>
-                <FieldLabel>Tên đăng nhập</FieldLabel>
-                <View
-                  style={[
-                    loginScreenStyles.loginInputShell,
-                    emailInvalid && loginScreenStyles.loginInputShellInvalid,
-                  ]}
-                >
-                  <Image
-                    source={loginUser}
-                    style={loginScreenStyles.loginLeadingImage}
-                    resizeMode="contain"
-                  />
-                  <Controller
-                    control={control}
-                    name="email"
-                    render={({ field: { onBlur, onChange, value } }) => (
-                      <InputText
-                        {...invalidInputProps(emailInvalid)}
-                        containerStyle={loginScreenStyles.loginInputField}
-                        testID="input-login-email"
-                        value={value}
-                        onBlur={onBlur}
-                        onChangeText={(nextValue) => {
-                          setLocalError(null);
-                          onChange(nextValue);
-                        }}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        placeholder="Nhập tên đăng nhập"
-                        placeholderTextColor={COLORS.muted}
-                        style={loginScreenStyles.loginTextInput}
-                        variant="plain"
-                      />
-                    )}
-                  />
-                </View>
-              </View>
-              <View style={loginScreenStyles.fieldStack}>
-                <FieldLabel>Mật khẩu</FieldLabel>
-                <View
-                  style={[
-                    loginScreenStyles.loginInputShell,
-                    passwordInvalid && loginScreenStyles.loginInputShellInvalid,
-                  ]}
-                >
-                  <Image
-                    source={loginLock}
-                    style={loginScreenStyles.loginLeadingImage}
-                    resizeMode="contain"
-                  />
-                  <Controller
-                    control={control}
-                    name="password"
-                    render={({ field: { onBlur, onChange, value } }) => (
-                      <InputText
-                        {...invalidInputProps(passwordInvalid)}
-                        containerStyle={loginScreenStyles.loginInputField}
-                        testID="input-login-password"
-                        value={value}
-                        onBlur={onBlur}
-                        onChangeText={(nextValue) => {
-                          setLocalError(null);
-                          onChange(nextValue);
-                        }}
-                        secureTextEntry={!showPassword}
-                        placeholder="Nhập mật khẩu"
-                        placeholderTextColor={COLORS.muted}
-                        style={loginScreenStyles.loginTextInput}
-                        variant="plain"
-                      />
-                    )}
-                  />
-                  <Pressable
-                    testID="btn-toggle-password"
-                    accessibilityRole="button"
-                    style={loginScreenStyles.loginTrailingIcon}
-                    onPress={() => setShowPassword((value) => !value)}
-                  >
-                    <Image
-                      source={loginEye}
-                      style={loginScreenStyles.loginEyeImage}
-                      resizeMode="contain"
+          <View style={loginScreenStyles.loginForm}>
+            <View style={loginScreenStyles.fieldStack}>
+              <FieldLabel>Tên đăng nhập</FieldLabel>
+              <View
+                style={[
+                  loginScreenStyles.loginInputShell,
+                  emailInvalid && loginScreenStyles.loginInputShellInvalid,
+                ]}
+              >
+                <Image
+                  source={loginUser}
+                  style={loginScreenStyles.loginLeadingImage}
+                  resizeMode="contain"
+                />
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onBlur, onChange, value } }) => (
+                    <InputText
+                      {...invalidInputProps(emailInvalid)}
+                      containerStyle={loginScreenStyles.loginInputField}
+                      testID="input-login-email"
+                      value={value}
+                      onBlur={onBlur}
+                      onChangeText={(nextValue) => {
+                        setLocalError(null);
+                        onChange(nextValue);
+                      }}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder="Nhập tên đăng nhập"
+                      placeholderTextColor={COLORS.muted}
+                      style={loginScreenStyles.loginTextInput}
+                      variant="plain"
                     />
-                  </Pressable>
-                </View>
-                {globalErrorMessage ? (
-                  <View style={loginScreenStyles.loginErrorRow}>
-                    <CircleAlert
-                      size={15}
-                      color={COLORS.danger}
-                      strokeWidth={2}
-                      style={loginScreenStyles.loginErrorIcon}
-                    />
-                    <Text style={loginScreenStyles.loginErrorText}>
-                      {globalErrorMessage}
-                    </Text>
-                  </View>
-                ) : null}
+                  )}
+                />
               </View>
-              <View style={loginScreenStyles.loginActions}>
-                <PrimaryButton
-                  label={isLoading ? "Đang đăng nhập" : "Đăng nhập"}
-                  onPress={submit}
-                  loading={isLoading}
-                  testID="btn-submit-login"
+            </View>
+            <View style={loginScreenStyles.fieldStack}>
+              <FieldLabel>Mật khẩu</FieldLabel>
+              <View
+                style={[
+                  loginScreenStyles.loginInputShell,
+                  passwordInvalid && loginScreenStyles.loginInputShellInvalid,
+                ]}
+              >
+                <Image
+                  source={loginLock}
+                  style={loginScreenStyles.loginLeadingImage}
+                  resizeMode="contain"
+                />
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onBlur, onChange, value } }) => (
+                    <InputText
+                      {...invalidInputProps(passwordInvalid)}
+                      containerStyle={loginScreenStyles.loginInputField}
+                      testID="input-login-password"
+                      value={value}
+                      onBlur={onBlur}
+                      onChangeText={(nextValue) => {
+                        setLocalError(null);
+                        onChange(nextValue);
+                      }}
+                      secureTextEntry={!showPassword}
+                      placeholder="Nhập mật khẩu"
+                      placeholderTextColor={COLORS.muted}
+                      style={loginScreenStyles.loginTextInput}
+                      variant="plain"
+                    />
+                  )}
                 />
                 <Pressable
-                  testID="btn-google-login"
-                  style={[
-                    loginScreenStyles.googleButton,
-                    (isLoading || isGoogleSubmitting) &&
-                      loginScreenStyles.googleButtonDisabled,
-                  ]}
-                  disabled={isLoading || isGoogleSubmitting}
-                  onPress={() => {
-                    void handleGoogleLogin();
-                  }}
+                  testID="btn-toggle-password"
+                  accessibilityRole="button"
+                  style={loginScreenStyles.loginTrailingIcon}
+                  onPress={() => setShowPassword((value) => !value)}
                 >
                   <Image
-                    source={googleLogo}
-                    style={loginScreenStyles.googleImage}
+                    source={loginEye}
+                    style={loginScreenStyles.loginEyeImage}
                     resizeMode="contain"
                   />
-                  <Text style={loginScreenStyles.googleText}>
-                    {isGoogleSubmitting
-                      ? "Đang đăng nhập với Google"
-                      : "Đăng nhập bằng Google"}
-                  </Text>
                 </Pressable>
               </View>
+              {globalErrorMessage ? (
+                <View style={loginScreenStyles.loginErrorRow}>
+                  <CircleAlert
+                    size={15}
+                    color={COLORS.danger}
+                    strokeWidth={2}
+                    style={loginScreenStyles.loginErrorIcon}
+                  />
+                  <Text style={loginScreenStyles.loginErrorText}>
+                    {globalErrorMessage}
+                  </Text>
+                </View>
+              ) : null}
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            <View style={loginScreenStyles.loginActions}>
+              <PrimaryButton
+                label={isLoading ? "Đang đăng nhập" : "Đăng nhập"}
+                onPress={submit}
+                loading={isLoading}
+                testID="btn-submit-login"
+              />
+              <Pressable
+                testID="btn-google-login"
+                style={[
+                  loginScreenStyles.googleButton,
+                  (isLoading || isGoogleSubmitting) &&
+                    loginScreenStyles.googleButtonDisabled,
+                ]}
+                disabled={isLoading || isGoogleSubmitting}
+                onPress={() => {
+                  void handleGoogleLogin();
+                }}
+              >
+                <Image
+                  source={googleLogo}
+                  style={loginScreenStyles.googleImage}
+                  resizeMode="contain"
+                />
+                <Text style={loginScreenStyles.googleText}>
+                  {isGoogleSubmitting
+                    ? "Đang đăng nhập với Google"
+                    : "Đăng nhập bằng Google"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardFormScrollView>
       </View>
     </TouchableWithoutFeedback>
   );
