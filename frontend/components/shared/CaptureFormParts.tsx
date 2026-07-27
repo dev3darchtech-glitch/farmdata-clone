@@ -1,5 +1,5 @@
 import { GROWTH_STAGES } from "@/constants/growthStages";
-import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
+import { COLORS, LAYOUT } from "@/constants/theme";
 import {
   CropTypeInfo,
   GrowthStageId,

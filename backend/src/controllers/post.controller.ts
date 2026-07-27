@@ -33,7 +33,6 @@ const mapSessionToPost = (session: any) => {
       }
       return session.images || [];
     })(),
-    driveFiles: session.driveFiles,
     stationMeasurements: session.stationMeasurements,
     stationMeasurementsT24: session.stationMeasurementsT24,
     stationMeasurementsT48: session.stationMeasurementsT48,
