@@ -238,13 +238,16 @@ export const createPost = async (req: Request, res: Response) => {
   let driveFiles;
 
   if (Array.isArray(images) && images.length > 0) {
-    driveFiles = await uploadImagesToAdminDrive(
-      user.id,
-      images,
-      cropType.trim(),
+    driveFiles = await uploadImagesToAdminDrive({
+      farmerEmailOrId: user.id,
+      imageUris: images,
+      plotId: cleanPlotId,
+      cropType: cropType.trim(),
+      envMode: "outdoor",
       growthStage,
-      normalizedSeverity,
-      (imageIndex) =>
+      diseaseName: normalizedDisease?.diseaseName,
+      severity: normalizedSeverity,
+      description: (imageIndex) =>
         buildCaptureImageDescription(
           {
             sessionId: sessionIdForPost,
@@ -261,15 +264,15 @@ export const createPost = async (req: Request, res: Response) => {
           },
           imageIndex,
         ),
-      "post",
-      {
+      destination: "post",
+      watermark: {
         cropType: cropType.trim(),
         growthStage,
         severity: normalizedSeverity,
         stationMeasurements,
         symptomDescription: cleanSymptomDescription,
       },
-    );
+    });
     const driveImageLinks = driveFiles
       .map((file) => file.webContentLink || file.webViewLink)
       .filter((link): link is string => Boolean(link));
@@ -307,4 +310,39 @@ export const createPost = async (req: Request, res: Response) => {
   );
 
   return res.status(201).json(post);
+};
+
+/**
+ * DELETE /api/posts/:id
+ * Delete post. Only the admin author who created the post can delete it.
+ */
+export const deletePost = async (req: Request, res: Response) => {
+  try {
+    const postId = req.params.id;
+    const postQuery = mongoose.isValidObjectId(postId)
+      ? { $or: [{ _id: postId }, { postId }] }
+      : { postId };
+
+    const post = await PostModel.findOne(postQuery);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Strict rule: Only the admin author who created this post can delete it
+    const reqUser = req.user!;
+    const isAuthor =
+      post.user?.id === reqUser.id ||
+      (post.user?.email && post.user.email === reqUser.email);
+
+    if (!isAuthor) {
+      return res.status(403).json({
+        error: "Chỉ admin tác giả đăng bài viết này mới có quyền xóa bài post.",
+      });
+    }
+
+    await PostModel.deleteOne({ _id: post._id });
+    return res.json({ message: "Đã xóa bài post thành công." });
+  } catch (error) {
+    return res.status(500).json({ error: "Không thể xóa bài post." });
+  }
 };

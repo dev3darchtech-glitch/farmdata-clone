@@ -65,20 +65,20 @@ const inputTextStyles = StyleSheet.create({
     gap: 10,
   },
   input: {
-    height: 48,
-    borderRadius: 12,
+    height: 42,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     color: COLORS.body,
     backgroundColor: "#fff",
-    fontSize: 16,
+    fontSize: 13,
   },
   multilineInput: {
     height: undefined,
-    minHeight: 96,
-    paddingTop: 14,
-    paddingBottom: 14,
+    minHeight: 80,
+    paddingTop: 10,
+    paddingBottom: 10,
     textAlignVertical: "top",
   },
   invalidField: {
@@ -86,8 +86,8 @@ const inputTextStyles = StyleSheet.create({
   },
   errorText: {
     color: COLORS.danger,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 11,
+    lineHeight: 15,
   },
   required: {
     color: COLORS.danger,

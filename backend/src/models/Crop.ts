@@ -5,6 +5,7 @@ export interface ICropDocument extends Document {
   category: string;
   icon?: string;
   isActive: boolean;
+  createdByAdminId?: mongoose.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,6 +16,11 @@ const CropSchema = new Schema<ICropDocument>(
     category: { type: String, required: true, trim: true },
     icon: { type: String, default: "🌱" },
     isActive: { type: Boolean, default: true },
+    createdByAdminId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true },
 );

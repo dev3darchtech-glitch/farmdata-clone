@@ -36,7 +36,7 @@ export function ScreenHeader({
 
 const screenHeaderStyles = StyleSheet.create({
   header: {
-    height: 71,
+    height: 48,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -56,7 +56,7 @@ const screenHeaderStyles = StyleSheet.create({
   },
   headerTitle: {
     color: COLORS.text,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
   },
   iconButton: {

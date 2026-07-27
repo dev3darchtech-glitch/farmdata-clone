@@ -7,6 +7,7 @@ import {
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function BottomNav({
   active,
@@ -15,10 +16,19 @@ export function BottomNav({
   active: TabRouteId;
   admin?: boolean;
 }) {
+  const insets = useSafeAreaInsets();
   const items = tabItemsForRole(admin ? "admin" : "farmer");
 
   return (
-    <View style={bottomNavStyles.bottomNav}>
+    <View
+      style={[
+        bottomNavStyles.bottomNav,
+        {
+          paddingBottom: insets.bottom,
+          height: 54 + insets.bottom,
+        },
+      ]}
+    >
       {items.map((item) => {
         const Icon = item.icon;
         const selected = active === item.id;
@@ -37,8 +47,9 @@ export function BottomNav({
               );
             }}
           >
-            <Icon size={24} color={color} />
+            <Icon size={19} color={color} />
             <Text
+              numberOfLines={1}
               style={[
                 bottomNavStyles.navLabel,
                 selected && bottomNavStyles.navLabelActive,
@@ -59,30 +70,30 @@ const bottomNavStyles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 64,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#f3f4f6",
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 1,
-    paddingHorizontal: 44.97,
+    paddingTop: 4,
+    paddingHorizontal: 8,
   },
   navItem: {
-    width: "auto",
-    height: 48,
+    flex: 1,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 3,
   },
   navLabel: {
     color: "#848484",
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "400",
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
   navLabelActive: {
     color: "#4f7730",
+    fontWeight: "700",
   },
 });

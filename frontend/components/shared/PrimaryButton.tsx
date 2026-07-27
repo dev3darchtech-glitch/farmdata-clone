@@ -51,8 +51,8 @@ export function PrimaryButton({
 
 const primaryButtonStyles = StyleSheet.create({
   primaryButton: {
-    minHeight: 48,
-    borderRadius: 12,
+    minHeight: 42,
+    borderRadius: 10,
     backgroundColor: COLORS.green,
     alignItems: "center",
     justifyContent: "center",
@@ -72,7 +72,7 @@ const primaryButtonStyles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
   },
   outlineButtonText: {

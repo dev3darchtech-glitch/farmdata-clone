@@ -26,65 +26,156 @@ import {
 } from "react-native";
 import { BottomSheet } from "../shared/BottomSheet";
 
+import {
+  SYSTEM_FIELDS_BY_VARIANT,
+  type ParsedCsv,
+} from "@/utils/csvHelper";
+import { Check, ChevronRight } from "lucide-react-native";
+import { ScrollView } from "react-native";
+import { DrawerSheet } from "../shared/DrawerSheet";
+import { InputSelection } from "../shared/InputSelection";
+
 export function CsvImportModal({
   mode,
+  variant = "plots",
+  parsedCsv,
+  fieldMapping = {},
+  onFieldMappingChange,
   progress,
   result,
   onClose,
   onStart,
+  onConfirmImport,
 }: {
   mode: CsvImportMode;
+  variant?: ManagementVariant;
+  parsedCsv?: ParsedCsv | null;
+  fieldMapping?: Record<string, string>;
+  onFieldMappingChange?: (systemKey: string, csvHeader: string) => void;
   progress: number;
   result: { success: number; skipped: number; errors: number };
   onClose: () => void;
   onStart: () => void;
+  onConfirmImport?: () => void;
 }) {
+  const [activePickerKey, setActivePickerKey] = React.useState<string | null>(
+    null,
+  );
+
   if (!mode) return null;
 
+  const systemFields = SYSTEM_FIELDS_BY_VARIANT[variant] || [];
+  const missingRequired = systemFields.some(
+    (field) => field.required && !fieldMapping[field.key],
+  );
+
+  const activePickerField = systemFields.find((f) => f.key === activePickerKey);
+
+  const sheetTitle =
+    mode === "select"
+      ? "Import CSV"
+      : mode === "mapping"
+        ? "Ghép cột dữ liệu CSV"
+        : mode === "loading"
+          ? "Đang nhập dữ liệu..."
+          : "Kết quả Import CSV";
+
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View style={feedbackStyles.scrim}>
+    <>
+      <DrawerSheet
+        visible={Boolean(mode)}
+        title={sheetTitle}
+        onClose={onClose}
+      >
         {mode === "select" ? (
-          <View style={feedbackStyles.card}>
-            <View style={feedbackStyles.modalHeader}>
-              <Text style={feedbackStyles.modalTitle}>Import CSV</Text>
-              <Pressable onPress={onClose}>
-                <X size={24} color={COLORS.text} />
+          <View style={feedbackStyles.sheetBodyStack}>
+            <Text style={feedbackStyles.selectDescription}>
+              Tải lên file danh sách dạng CSV từ kho lưu trữ thiết bị của bạn.
+              Hệ thống sẽ tự động hỗ trợ đọc và ghép tương ứng các cột dữ liệu.
+            </Text>
+            <View style={feedbackStyles.sheetFooterRow}>
+              <Pressable
+                style={feedbackStyles.primarySheetButton}
+                onPress={onStart}
+              >
+                <Text style={feedbackStyles.primarySheetButtonText}>
+                  Chọn file CSV
+                </Text>
+              </Pressable>
+              <Pressable
+                style={feedbackStyles.outlineSheetButton}
+                onPress={onClose}
+              >
+                <Text style={feedbackStyles.outlineSheetButtonText}>Đóng</Text>
               </Pressable>
             </View>
-            <View style={feedbackStyles.modalBody}>
-              <Pressable style={feedbackStyles.uploadArea} onPress={onStart}>
-                <Upload size={48} color={COLORS.muted} />
-                <Text style={feedbackStyles.uploadTitle}>Chọn file CSV</Text>
-                <Text style={feedbackStyles.uploadSubtitle}>
-                  hoặc kéo thả file vào đây
-                </Text>
-              </Pressable>
-              <View style={feedbackStyles.constraintBlock}>
-                <Text style={feedbackStyles.constraintText}>
-                  Dung lượng tối đa: 5MB
-                </Text>
-                <Text style={feedbackStyles.constraintText}>
-                  Định dạng: .csv
+          </View>
+        ) : mode === "mapping" ? (
+          <View style={feedbackStyles.sheetBodyStack}>
+            {parsedCsv ? (
+              <View style={feedbackStyles.fileInfoBadge}>
+                <Text style={feedbackStyles.fileInfoText}>
+                  📄 {parsedCsv.fileName} ({parsedCsv.rows.length} dòng dữ liệu)
                 </Text>
               </View>
-            </View>
-            <View style={feedbackStyles.modalFooter}>
-              <Pressable style={feedbackStyles.outlineButton} onPress={onClose}>
-                <Text style={feedbackStyles.outlineButtonText}>Đóng</Text>
+            ) : null}
+
+            <Text style={feedbackStyles.mappingHintText}>
+              Vui lòng ghép khớp các trường dữ liệu hệ thống với cột trong file CSV:
+            </Text>
+
+            <ScrollView
+              style={{ maxHeight: 260 }}
+              contentContainerStyle={feedbackStyles.mappingList}
+              showsVerticalScrollIndicator={false}
+            >
+              {systemFields.map((field) => {
+                const selectedHeader = fieldMapping[field.key];
+                return (
+                  <InputSelection
+                    key={field.key}
+                    label={field.label}
+                    required={field.required}
+                    placeholder="-- Chọn cột tương ứng --"
+                    value={
+                      selectedHeader
+                        ? `Cột: ${selectedHeader}`
+                        : undefined
+                    }
+                    onPress={() => setActivePickerKey(field.key)}
+                  />
+                );
+              })}
+            </ScrollView>
+
+            <View style={feedbackStyles.sheetFooterRow}>
+              <Pressable
+                style={[
+                  feedbackStyles.primarySheetButton,
+                  missingRequired && feedbackStyles.primarySheetButtonDisabled,
+                ]}
+                disabled={missingRequired}
+                onPress={onConfirmImport}
+              >
+                <Text style={feedbackStyles.primarySheetButtonText}>
+                  Xác nhận Import
+                </Text>
+              </Pressable>
+              <Pressable
+                style={feedbackStyles.outlineSheetButton}
+                onPress={onStart}
+              >
+                <Text style={feedbackStyles.outlineSheetButtonText}>
+                  Chọn file khác
+                </Text>
               </Pressable>
             </View>
           </View>
         ) : mode === "loading" ? (
-          <View style={feedbackStyles.loadingCard}>
-            <View style={feedbackStyles.loadingHeader}>
-              <Pressable onPress={onClose}>
-                <X size={24} color={COLORS.text} />
-              </Pressable>
-            </View>
+          <View style={feedbackStyles.sheetBodyStack}>
             <View style={feedbackStyles.loadingContent}>
               <Text style={feedbackStyles.loadingTitle}>
-                Đang xử lý file...
+                Đang nhập dữ liệu vào hệ thống...
               </Text>
               <View style={feedbackStyles.progressTrack}>
                 <View
@@ -96,44 +187,104 @@ export function CsvImportModal({
               </View>
               <Text style={feedbackStyles.progressText}>{progress}%</Text>
             </View>
-            <View style={feedbackStyles.modalFooter}>
-              <Pressable style={feedbackStyles.outlineButton} onPress={onClose}>
-                <Text style={feedbackStyles.outlineButtonText}>Hủy import</Text>
+            <View style={feedbackStyles.sheetFooterRow}>
+              <Pressable
+                style={feedbackStyles.outlineSheetButton}
+                onPress={onClose}
+              >
+                <Text style={feedbackStyles.outlineSheetButtonText}>
+                  Hủy import
+                </Text>
               </Pressable>
             </View>
           </View>
         ) : (
-          <View style={feedbackStyles.card}>
-            <View style={feedbackStyles.modalHeader}>
-              <Text style={feedbackStyles.modalTitle}>Kết quả import CSV</Text>
-              <Pressable onPress={onClose}>
-                <X size={24} color={COLORS.text} />
-              </Pressable>
-            </View>
+          <View style={feedbackStyles.sheetBodyStack}>
             <View style={feedbackStyles.resultBody}>
               <CircleCheck size={48} color="#2d7a32" />
-              <Text style={feedbackStyles.resultTitle}>Hoàn tất xử lý</Text>
+              <Text style={feedbackStyles.resultTitle}>
+                Hoàn tất xử lý import
+              </Text>
               <View style={feedbackStyles.resultRows}>
                 <Text style={feedbackStyles.constraintText}>
-                  Thành công: {result.success}
+                  • Thành công: {result.success} bản ghi
                 </Text>
                 <Text style={feedbackStyles.constraintText}>
-                  Bỏ qua: {result.skipped}
+                  • Bỏ qua: {result.skipped} bản ghi
                 </Text>
                 <Text style={feedbackStyles.constraintText}>
-                  Lỗi: {result.errors}
+                  • Lỗi: {result.errors} bản ghi
                 </Text>
               </View>
             </View>
-            <View style={feedbackStyles.modalFooter}>
-              <Pressable style={feedbackStyles.outlineButton} onPress={onClose}>
-                <Text style={feedbackStyles.outlineButtonText}>Đóng</Text>
+            <View style={feedbackStyles.sheetFooterRow}>
+              <Pressable
+                style={feedbackStyles.primarySheetButton}
+                onPress={onClose}
+              >
+                <Text style={feedbackStyles.primarySheetButtonText}>Đóng</Text>
               </Pressable>
             </View>
           </View>
         )}
-      </View>
-    </Modal>
+      </DrawerSheet>
+
+      <DrawerSheet
+        visible={Boolean(activePickerKey)}
+        title={`Chọn cột CSV cho "${activePickerField?.label || ""}"`}
+        onClose={() => setActivePickerKey(null)}
+      >
+        <ScrollView style={{ maxHeight: 280 }}>
+          <Pressable
+            style={feedbackStyles.mappingPickerOption}
+            onPress={() => {
+              if (activePickerKey) {
+                onFieldMappingChange?.(activePickerKey, "");
+              }
+              setActivePickerKey(null);
+            }}
+          >
+            <Text
+              style={[
+                feedbackStyles.mappingPickerOptionText,
+                !fieldMapping[activePickerKey || ""] &&
+                  feedbackStyles.mappingPickerActiveText,
+              ]}
+            >
+              -- Bỏ qua / Không chọn --
+            </Text>
+            {!fieldMapping[activePickerKey || ""] ? (
+              <Check size={18} color={COLORS.green} />
+            ) : null}
+          </Pressable>
+          {parsedCsv?.headers.map((header) => {
+            const isSelected = fieldMapping[activePickerKey || ""] === header;
+            return (
+              <Pressable
+                key={header}
+                style={feedbackStyles.mappingPickerOption}
+                onPress={() => {
+                  if (activePickerKey) {
+                    onFieldMappingChange?.(activePickerKey, header);
+                  }
+                  setActivePickerKey(null);
+                }}
+              >
+                <Text
+                  style={[
+                    feedbackStyles.mappingPickerOptionText,
+                    isSelected && feedbackStyles.mappingPickerActiveText,
+                  ]}
+                >
+                  Cột: {header}
+                </Text>
+                {isSelected ? <Check size={18} color={COLORS.green} /> : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </DrawerSheet>
+    </>
   );
 }
 
@@ -141,6 +292,7 @@ export function ManagementActionMenu({
   visible,
   variant,
   inactive,
+  canEdit = true,
   onClose,
   onEdit,
   onDeactivate,
@@ -152,6 +304,7 @@ export function ManagementActionMenu({
   visible: boolean;
   variant: ManagementVariant;
   inactive?: boolean;
+  canEdit?: boolean;
   onClose: () => void;
   onEdit?: () => void;
   onDeactivate: () => void;
@@ -165,7 +318,28 @@ export function ManagementActionMenu({
   return (
     <BottomSheet visible={visible} title="Thao tác" onClose={onClose}>
       <View style={feedbackStyles.actionSheetContent}>
-        {variant !== "accounts" ? (
+        {variant !== "accounts" && !canEdit ? (
+          <View
+            style={{
+              paddingVertical: 16,
+              paddingHorizontal: 12,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: "#6b7280",
+                fontSize: 14,
+                textAlign: "center",
+                lineHeight: 20,
+              }}
+            >
+              🔒 Dữ liệu mặc định của hệ thống{"\n"}Chỉ có thể xem, không có
+              quyền chỉnh sửa hoặc ngưng sử dụng.
+            </Text>
+          </View>
+        ) : null}
+        {variant !== "accounts" && canEdit ? (
           <Pressable
             style={feedbackStyles.actionMenuRow}
             onPress={onEdit || onClose}
@@ -174,7 +348,7 @@ export function ManagementActionMenu({
             <Text style={feedbackStyles.actionMenuText}>Chỉnh sửa</Text>
           </Pressable>
         ) : null}
-        {variant !== "accounts" ? (
+        {variant !== "accounts" && canEdit ? (
           <Pressable
             style={[
               feedbackStyles.actionMenuRow,
@@ -358,6 +532,118 @@ const feedbackStyles = StyleSheet.create({
     backgroundColor: "#fff",
     overflow: "hidden",
     ...modalShadow,
+  },
+  mappingCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    overflow: "hidden",
+    padding: 16,
+    gap: 12,
+    ...modalShadow,
+  },
+  fileInfoBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "#f3f4f6",
+    alignSelf: "flex-start",
+  },
+  fileInfoText: {
+    color: "#4b5563",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  mappingHintText: {
+    color: "#6b7280",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  mappingList: {
+    gap: 12,
+  },
+  mappingPickerOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  mappingPickerOptionText: {
+    color: COLORS.text,
+    fontSize: 14,
+  },
+  mappingPickerActiveText: {
+    color: COLORS.green,
+    fontWeight: "700",
+  },
+  primaryButton: {
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: COLORS.green,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  primaryButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  primaryButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    opacity: 0.6,
+  },
+  sheetBodyStack: {
+    gap: 14,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  selectDescription: {
+    color: "#4b5563",
+    fontSize: 14,
+    lineHeight: 20,
+    paddingVertical: 6,
+  },
+  sheetFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 8,
+  },
+  primarySheetButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: COLORS.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primarySheetButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  primarySheetButtonDisabled: {
+    backgroundColor: "#d1d5db",
+    opacity: 0.65,
+  },
+  outlineSheetButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.green,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  outlineSheetButtonText: {
+    color: COLORS.green,
+    fontSize: 14,
+    fontWeight: "600",
   },
   modalHeader: {
     minHeight: 65,

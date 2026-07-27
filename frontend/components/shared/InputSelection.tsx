@@ -75,11 +75,11 @@ const inputSelectionStyles = StyleSheet.create({
     gap: 10,
   },
   selectField: {
-    height: 48,
-    borderRadius: 12,
+    height: 42,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
-    paddingHorizontal: 17,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -101,14 +101,14 @@ const inputSelectionStyles = StyleSheet.create({
   selectText: {
     flex: 1,
     color: COLORS.body,
-    fontSize: 16,
+    fontSize: 13,
   },
   placeholderText: {
     color: COLORS.muted,
   },
   fieldErrorText: {
     color: COLORS.danger,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 11,
+    lineHeight: 15,
   },
 });

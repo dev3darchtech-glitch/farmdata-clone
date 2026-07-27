@@ -6,11 +6,16 @@ import {
   UserRole,
 } from "@/types";
 import {
+  createManualPostAPI,
+  deletePostAPI,
   fetchPostById,
   fetchPostFeed,
-  createManualPostAPI,
   submitCaptureSession,
 } from "./apiClient";
+
+export async function deletePost(postId: string): Promise<void> {
+  return await deletePostAPI(postId);
+}
 
 /**
  * Validates whether a capture session has all mandatory fields filled

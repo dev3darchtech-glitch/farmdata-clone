@@ -5,11 +5,12 @@ import {
   envName,
   formatPostDate,
   severityDotColor,
-  stagePostName,
+  stageName,
 } from "@/utils/captureDisplay";
-import { Calendar, Image as ImageIcon } from "lucide-react-native";
+import { Calendar, Image as ImageIcon, Trash2 } from "lucide-react-native";
 import React from "react";
 import {
+  Alert,
   Image,
   Platform,
   Pressable,
@@ -21,15 +22,36 @@ import {
 export function PostCard({
   post,
   admin,
+  canDelete,
   onImage,
+  onDelete,
 }: {
   post: Post;
   admin?: boolean;
+  canDelete?: boolean;
   onImage: (index?: number) => void;
+  onDelete?: () => void;
 }) {
   const imageCount = post.images.length;
   const visibleImages = post.images.slice(0, Math.min(imageCount, 4));
   const extraImageCount = Math.max(imageCount - 4, 0);
+  const diseaseDisplayName =
+    post.diseaseName?.trim() || post.diseaseType?.trim() || "Bệnh cây";
+
+  const handleConfirmDelete = () => {
+    Alert.alert(
+      "Xác nhận xóa bài post",
+      "Bạn có chắc chắn muốn xóa bài post này không? Thao tác này không thể hoàn tác.",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: () => onDelete?.(),
+        },
+      ],
+    );
+  };
 
   return (
     <View style={postCardStyles.postCard} testID={`post-card-${post.id}`}>
@@ -82,8 +104,17 @@ export function PostCard({
             </View>
           ) : null}
           <Text style={postCardStyles.postTitle} numberOfLines={1}>
-            {post.cropType} - {stagePostName(post.growthStage)}
+            {post.cropType} - {stageName(post.growthStage)}
           </Text>
+          {canDelete ? (
+            <Pressable
+              style={postCardStyles.deleteCardButton}
+              onPress={handleConfirmDelete}
+              hitSlop={8}
+            >
+              <Trash2 size={16} color="#ef4444" />
+            </Pressable>
+          ) : null}
         </View>
         <Text style={postCardStyles.postMeta} numberOfLines={1}>
           {post.stationMeasurements?.weatherCode !== undefined
@@ -98,7 +129,7 @@ export function PostCard({
             ]}
           />
           <Text style={postCardStyles.symptomText} numberOfLines={1}>
-            {post.symptomDescription} - Mức độ {post.severity}
+            {diseaseDisplayName} - Mức độ {post.severity}
           </Text>
         </View>
         {admin ? (
@@ -219,14 +250,14 @@ const postCardStyles = StyleSheet.create({
   postTitle: {
     flex: 1,
     color: COLORS.text,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: "800",
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "700",
   },
   postMeta: {
     color: "#6b7280",
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
   },
   symptomRow: {
     flexDirection: "row",
@@ -241,8 +272,8 @@ const postCardStyles = StyleSheet.create({
   symptomText: {
     flex: 1,
     color: "#374151",
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
   },
   postDateRow: {
     flexDirection: "row",
@@ -252,6 +283,13 @@ const postCardStyles = StyleSheet.create({
   postDate: {
     color: "#9ca3af",
     fontSize: 10,
-    lineHeight: 15,
+    lineHeight: 14,
+  },
+  deleteCardButton: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

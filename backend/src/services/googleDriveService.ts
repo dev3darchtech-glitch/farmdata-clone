@@ -6,7 +6,14 @@ import { env } from "../configs/env";
 import { IDriveFile } from "../models/CaptureSession";
 import { IUserDocument, UserModel } from "../models/User";
 import { CaptureLocation, WeatherCondition } from "../types";
-import { generatePhotoLabelName } from "../utils/dateHelper";
+import {
+  generatePhotoLabelName,
+  toVietnameseCrop,
+  toVietnameseDisease,
+  toVietnameseEnv,
+  toVietnamesePlot,
+  toVietnameseStage,
+} from "../utils/dateHelper";
 
 const CLIENT_ID = env.googleClientId;
 const CLIENT_SECRET = env.googleClientSecret;
@@ -22,30 +29,6 @@ const IMAGE_FOLDER_NAME = "Images";
 const POST_FOLDER_NAME = "posts";
 const POST_IMAGE_FOLDER_NAME = "images";
 
-const GROWTH_STAGE_FOLDER_NAMES: Record<string, string> = {
-  newly_planted: "Newly Planted",
-  vegetative: "Vegetative",
-  flowering: "Flowering",
-  fruiting: "Fruiting",
-  harvest: "Harvest",
-};
-
-const SEVERITY_FOLDER_NAMES: Record<string, string> = {
-  "Chớm bệnh": "Early Disease",
-  Nhẹ: "Mild",
-  Vừa: "Moderate",
-  Nặng: "Severe",
-  "Rất nặng": "Very Severe",
-};
-
-const GROWTH_STAGE_DISPLAY_NAMES: Record<string, string> = {
-  newly_planted: "Mới trồng",
-  vegetative: "Sinh trưởng thân lá",
-  flowering: "Ra hoa",
-  fruiting: "Kết trái",
-  harvest: "Thu hoạch",
-};
-
 function escapeDriveQueryValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
@@ -54,20 +37,8 @@ function normalizeFolderName(value: string): string {
   return value.trim().replace(/\s+/g, " ") || "Unspecified";
 }
 
-function getGrowthStageFolderName(growthStage: string): string {
-  return (
-    GROWTH_STAGE_FOLDER_NAMES[growthStage] || normalizeFolderName(growthStage)
-  );
-}
-
 function getGrowthStageDisplayName(growthStage: string): string {
-  return (
-    GROWTH_STAGE_DISPLAY_NAMES[growthStage] || normalizeFolderName(growthStage)
-  );
-}
-
-function getSeverityFolderName(severity: string): string {
-  return SEVERITY_FOLDER_NAMES[severity] || normalizeFolderName(severity);
+  return normalizeFolderName(growthStage);
 }
 
 export interface CaptureImageDescriptionInput {
@@ -108,6 +79,7 @@ export function buildCaptureImageDescription(
 ): string {
   const station = metadata.stationMeasurements;
   const local = metadata.localMeasurements;
+  const loc = metadata.captureLocation;
   const lines = [
     "Metadata phiên chụp",
     metadata.sessionId ? `Mã phiên: ${metadata.sessionId}` : undefined,
@@ -123,39 +95,76 @@ export function buildCaptureImageDescription(
       : undefined,
     metadata.diseaseType ? `Loại bệnh cây: ${metadata.diseaseType}` : undefined,
     metadata.diseaseName ? `Tên bệnh cây: ${metadata.diseaseName}` : undefined,
-    metadata.captureLocation?.formattedAddress
-      ? `Vị trí: ${metadata.captureLocation.formattedAddress}`
+
+    // GPS Location Metadata
+    loc?.formattedAddress ? `Vị trí: ${loc.formattedAddress}` : undefined,
+    loc?.latitude !== undefined ? `Vĩ độ: ${loc.latitude}` : undefined,
+    loc?.longitude !== undefined ? `Kinh độ: ${loc.longitude}` : undefined,
+    loc?.accuracy !== undefined
+      ? `Độ chính xác GPS: ${loc.accuracy} m`
       : undefined,
-    metadata.captureLocation?.latitude !== undefined
-      ? `Vĩ độ: ${metadata.captureLocation.latitude}`
+    loc?.timestamp ? `Thời điểm chụp: ${loc.timestamp}` : undefined,
+    loc?.isMocked !== undefined
+      ? `Giả lập tọa độ GPS: ${loc.isMocked ? "Có" : "Không"}`
       : undefined,
-    metadata.captureLocation?.longitude !== undefined
-      ? `Kinh độ: ${metadata.captureLocation.longitude}`
-      : undefined,
-    metadata.captureLocation?.accuracy !== undefined
-      ? `Độ chính xác GPS: ${metadata.captureLocation.accuracy} m`
-      : undefined,
-    metadata.captureLocation?.timestamp
-      ? `Thời điểm chụp: ${metadata.captureLocation.timestamp}`
-      : undefined,
+    loc?.name ? `Tên địa điểm GPS: ${loc.name}` : undefined,
+    loc?.city ? `Thành phố GPS: ${loc.city}` : undefined,
+    loc?.region ? `Khu vực/Tỉnh GPS: ${loc.region}` : undefined,
+    loc?.country ? `Quốc gia GPS: ${loc.country}` : undefined,
+
     `Tình trạng: ${metadata.severity}`,
     `Mô tả triệu chứng: ${metadata.symptomDescription}`,
+
+    // Station Measurements
     `Nhiệt độ trạm: ${formatMeasurementValue(station.temperature, "°C")}`,
+    `Độ ẩm trạm: ${formatMeasurementValue(station.humidity, "%")}`,
     `UV/ánh sáng trạm: ${formatMeasurementValue(station.lightUvIndex)}`,
     `Tốc độ gió trạm: ${formatMeasurementValue(station.windSpeed, " km/h")}`,
     `CO2 trạm: ${formatMeasurementValue(station.co2Level, " ppm")}`,
     `Mã thời tiết: ${formatMeasurementValue(station.weatherCode)}`,
-    local
+    station.soilPh
+      ? `pH đất trạm: ${formatMeasurementValue(station.soilPh)}`
+      : undefined,
+    station.soilEc
+      ? `EC đất trạm: ${formatMeasurementValue(station.soilEc)}`
+      : undefined,
+    station.soilDo
+      ? `DO đất trạm: ${formatMeasurementValue(station.soilDo)}`
+      : undefined,
+    station.soilHumidity
+      ? `Độ ẩm đất trạm: ${formatMeasurementValue(station.soilHumidity)}`
+      : undefined,
+
+    // Local Measurements
+    local && local.temperature !== undefined
       ? `Nhiệt độ nhập tay: ${formatMeasurementValue(local.temperature, "°C")}`
       : undefined,
-    local
+    local && local.humidity !== undefined
       ? `Độ ẩm nhập tay: ${formatMeasurementValue(local.humidity, "%")}`
       : undefined,
-    local ? `pH đất: ${formatMeasurementValue(local.soilPh)}` : undefined,
-    local ? `EC đất: ${formatMeasurementValue(local.soilEc)}` : undefined,
-    local ? `DO đất: ${formatMeasurementValue(local.soilDo)}` : undefined,
-    local
-      ? `Độ ẩm đất: ${formatMeasurementValue(local.soilHumidity)}`
+    local && local.lightUvIndex !== undefined
+      ? `UV/ánh sáng nhập tay: ${formatMeasurementValue(local.lightUvIndex)}`
+      : undefined,
+    local && local.windSpeed !== undefined
+      ? `Tốc độ gió nhập tay: ${formatMeasurementValue(local.windSpeed, " km/h")}`
+      : undefined,
+    local && local.co2Level !== undefined
+      ? `CO2 nhập tay: ${formatMeasurementValue(local.co2Level, " ppm")}`
+      : undefined,
+    local && local.weatherCode !== undefined
+      ? `Mã thời tiết nhập tay: ${formatMeasurementValue(local.weatherCode)}`
+      : undefined,
+    local && local.soilPh
+      ? `pH đất nhập tay: ${formatMeasurementValue(local.soilPh)}`
+      : undefined,
+    local && local.soilEc
+      ? `EC đất nhập tay: ${formatMeasurementValue(local.soilEc)}`
+      : undefined,
+    local && local.soilDo
+      ? `DO đất nhập tay: ${formatMeasurementValue(local.soilDo)}`
+      : undefined,
+    local && local.soilHumidity
+      ? `Độ ẩm đất nhập tay: ${formatMeasurementValue(local.soilHumidity)}`
       : undefined,
   ];
 
@@ -196,34 +205,43 @@ async function ensureDriveFolder(
   return createFolderRes.data.id;
 }
 
+/**
+ * 5-level directory structure for capture images in Google Drive:
+ * `farmdata/{PlotCode}/{CropType}/{EnvMode}/{GrowthStage}/{DiseaseName}/`
+ * All folders in English.
+ */
 async function ensureCaptureImageFolder(
   drive: ReturnType<typeof google.drive>,
-  growthStage: string,
-  severity: string,
+  plotId?: string,
+  cropType?: string,
+  envMode?: string,
+  growthStage?: string,
+  diseaseName?: string,
 ): Promise<{ folderId: string; folderPath: string }> {
-  const stageFolder = getGrowthStageFolderName(growthStage);
-  const severityFolder = getSeverityFolderName(severity);
+  const plotFolder = toVietnamesePlot(plotId);
+  const cropFolder = toVietnameseCrop(cropType);
+  const envFolder = toVietnameseEnv(envMode);
+  const stageFolder = toVietnameseStage(growthStage);
+  const diseaseFolder = toVietnameseDisease(diseaseName);
 
   const rootFolderId = await ensureDriveFolder(drive, ROOT_FOLDER_NAME);
+  const plotFolderId = await ensureDriveFolder(drive, plotFolder, rootFolderId);
+  const cropFolderId = await ensureDriveFolder(drive, cropFolder, plotFolderId);
+  const envFolderId = await ensureDriveFolder(drive, envFolder, cropFolderId);
   const stageFolderId = await ensureDriveFolder(
     drive,
     stageFolder,
-    rootFolderId,
+    envFolderId,
   );
-  const severityFolderId = await ensureDriveFolder(
+  const diseaseFolderId = await ensureDriveFolder(
     drive,
-    severityFolder,
+    diseaseFolder,
     stageFolderId,
-  );
-  const imageFolderId = await ensureDriveFolder(
-    drive,
-    IMAGE_FOLDER_NAME,
-    severityFolderId,
   );
 
   return {
-    folderId: imageFolderId,
-    folderPath: `${ROOT_FOLDER_NAME}/${stageFolder}/${severityFolder}/${IMAGE_FOLDER_NAME}`,
+    folderId: diseaseFolderId,
+    folderPath: `${ROOT_FOLDER_NAME}/${plotFolder}/${cropFolder}/${envFolder}/${stageFolder}/${diseaseFolder}`,
   };
 }
 
@@ -477,25 +495,59 @@ async function makeDriveFileReadable(
   });
 }
 
+export interface DriveUploadOptions {
+  farmerEmailOrId: string;
+  imageUris: string[];
+  plotId?: string;
+  cropType?: string;
+  envMode?: string;
+  growthStage?: string;
+  diseaseName?: string;
+  severity?: string;
+  description?: string | ((imageIndex: number) => string);
+  destination?: "capture" | "post";
+  watermark?: PostImageWatermarkInput;
+}
+
 async function uploadImagesToDrive(
   drive: ReturnType<typeof google.drive>,
-  imageUris: string[],
-  cropType: string,
-  growthStage: string,
-  severity: string,
-  description?: string | ((imageIndex: number) => string),
-  destination: "capture" | "post" = "capture",
-  watermark?: PostImageWatermarkInput,
+  options: DriveUploadOptions,
 ): Promise<IDriveFile[]> {
+  const {
+    imageUris,
+    plotId,
+    cropType = "Crop",
+    envMode = "outdoor",
+    growthStage = "Stage",
+    diseaseName,
+    description,
+    destination = "capture",
+    watermark,
+  } = options;
+
   const { folderId, folderPath } =
     destination === "post"
       ? await ensurePostImageFolder(drive)
-      : await ensureCaptureImageFolder(drive, growthStage, severity);
+      : await ensureCaptureImageFolder(
+          drive,
+          plotId,
+          cropType,
+          envMode,
+          growthStage,
+          diseaseName,
+        );
 
   const uploadedFiles: IDriveFile[] = [];
 
   for (let i = 0; i < imageUris.length; i++) {
-    const labelName = generatePhotoLabelName(cropType, growthStage, i + 1);
+    const labelName = generatePhotoLabelName(
+      plotId,
+      cropType,
+      envMode,
+      growthStage,
+      diseaseName,
+      i + 1,
+    );
     const fileDescription =
       typeof description === "function" ? description(i + 1) : description;
     const rawImage = await imageUriToBuffer(imageUris[i]);
@@ -594,18 +646,51 @@ export async function linkAdminGoogleAccount(
 
 /**
  * Upload session images to the Admin's Google Drive storage.
- * Photo filenames created using format: `[Loại cây]_[Giai đoạn]_[Timestamp VN]_[Index].jpg`
+ * Dynamic folder hierarchy: `farmdata/{PlotCode}/{CropType}/{EnvMode}/{GrowthStage}/{DiseaseName}/`
+ * Photo filename rule: `{PlotCode}+{CropType}+{EnvMode}+{GrowthStage}+{DiseaseName}+{Timestamp}.jpg`
  */
 export async function uploadImagesToAdminDrive(
-  farmerEmailOrId: string,
-  imageUris: string[],
-  cropType: string = "Crop",
-  growthStage: string = "Stage",
-  severity: string = "Unspecified",
-  description?: string | ((imageIndex: number) => string),
-  destination: "capture" | "post" = "capture",
-  watermark?: PostImageWatermarkInput,
+  optionsOrFarmerId: string | DriveUploadOptions,
+  imageUrisArg?: string[],
+  cropTypeArg: string = "Crop",
+  growthStageArg: string = "Stage",
+  severityArg: string = "Unspecified",
+  descriptionArg?: string | ((imageIndex: number) => string),
+  destinationArg: "capture" | "post" = "capture",
+  watermarkArg?: PostImageWatermarkInput,
+  plotIdArg?: string,
+  envModeArg?: string,
+  diseaseNameArg?: string,
 ): Promise<IDriveFile[]> {
+  const options: DriveUploadOptions =
+    typeof optionsOrFarmerId === "object"
+      ? optionsOrFarmerId
+      : {
+          farmerEmailOrId: optionsOrFarmerId,
+          imageUris: imageUrisArg || [],
+          cropType: cropTypeArg,
+          growthStage: growthStageArg,
+          severity: severityArg,
+          description: descriptionArg,
+          destination: destinationArg,
+          watermark: watermarkArg,
+          plotId: plotIdArg,
+          envMode: envModeArg,
+          diseaseName: diseaseNameArg,
+        };
+
+  const {
+    farmerEmailOrId,
+    imageUris,
+    plotId,
+    cropType = "Crop",
+    envMode = "outdoor",
+    growthStage = "Stage",
+    diseaseName,
+    description,
+    destination = "capture",
+  } = options;
+
   // 1. Find Farmer user
   let farmer: IUserDocument | null = null;
   if (mongoose.isValidObjectId(farmerEmailOrId)) {
@@ -617,7 +702,6 @@ export async function uploadImagesToAdminDrive(
   }
 
   // 2. Find associated creator Admin user with linked Google Drive tokens.
-  // Farmers must never use their own Google OAuth credentials for capture uploads.
   let admin: IUserDocument | null = null;
   if (farmer?.role === "ADMIN") {
     admin = farmer;
@@ -656,16 +740,7 @@ export async function uploadImagesToAdminDrive(
       });
 
       const drive = google.drive({ version: "v3", auth: oauth2Client });
-      return await uploadImagesToDrive(
-        drive,
-        imageUris,
-        cropType,
-        growthStage,
-        severity,
-        description,
-        destination,
-        watermark,
-      );
+      return await uploadImagesToDrive(drive, options);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.warn(
@@ -683,15 +758,24 @@ export async function uploadImagesToAdminDrive(
 
   // Fallback mode for testing environment: return labeled Drive metadata records
   return imageUris.map((uri, idx) => {
-    const labelName = generatePhotoLabelName(cropType, growthStage, idx + 1);
+    const labelName = generatePhotoLabelName(
+      plotId,
+      cropType,
+      envMode,
+      growthStage,
+      diseaseName,
+      idx + 1,
+    );
     const fileDescription =
       typeof description === "function" ? description(idx + 1) : description;
     const folderPath =
       destination === "post"
         ? `${ROOT_FOLDER_NAME}/${POST_FOLDER_NAME}/${POST_IMAGE_FOLDER_NAME}`
-        : `${ROOT_FOLDER_NAME}/${getGrowthStageFolderName(
+        : `${ROOT_FOLDER_NAME}/${toVietnamesePlot(plotId)}/${toVietnameseCrop(
+            cropType,
+          )}/${toVietnameseEnv(envMode)}/${toVietnameseStage(
             growthStage,
-          )}/${getSeverityFolderName(severity)}/${IMAGE_FOLDER_NAME}`;
+          )}/${toVietnameseDisease(diseaseName)}`;
     const fileId = `GDRIVE-ADMIN-FILE-${Date.now()}-${idx + 1}`;
     return {
       fileId,

@@ -20,9 +20,9 @@ export function FieldLabel({
 const fieldLabelStyles = StyleSheet.create({
   label: {
     color: COLORS.body,
-    fontSize: 16,
-    fontWeight: "500",
-    lineHeight: 20,
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
   },
   required: {
     color: COLORS.danger,

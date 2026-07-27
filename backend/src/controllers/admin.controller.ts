@@ -33,11 +33,52 @@ function normalizeRequiredText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+async function buildMasterDataFilter(req: Request) {
+  const user = req.user!;
+  if (user.role === "ADMIN") {
+    return {
+      $or: [
+        { createdByAdminId: null },
+        { createdByAdminId: { $exists: false } },
+        { createdByAdminId: user.id },
+      ],
+    };
+  } else if (user.role === "FARMER") {
+    const farmer = await UserModel.findById(user.id);
+    const adminId = farmer?.createdByAdminId;
+    return {
+      $or: [
+        { createdByAdminId: null },
+        { createdByAdminId: { $exists: false } },
+        ...(adminId ? [{ createdByAdminId: adminId }] : []),
+      ],
+    };
+  }
+  return {
+    $or: [{ createdByAdminId: null }, { createdByAdminId: { $exists: false } }],
+  };
+}
+
+function checkMasterDataMutationPermission(
+  target: { createdByAdminId?: unknown },
+  req: Request,
+  resourceName: string,
+) {
+  if (!target.createdByAdminId) {
+    return `Dữ liệu mặc định của hệ thống không thể chỉnh sửa hoặc thay đổi.`;
+  }
+  if (String(target.createdByAdminId) !== req.user!.id) {
+    return `Bạn chỉ có quyền thao tác trên ${resourceName} do chính bạn tạo ra.`;
+  }
+  return null;
+}
+
 /**
  * GET /api/admin/plots
  */
 export const getPlots = async (req: Request, res: Response) => {
-  const plots = await PlotModel.find().sort({ code: 1 });
+  const filter = await buildMasterDataFilter(req);
+  const plots = await PlotModel.find(filter).sort({ code: 1 });
   return res.json(plots);
 };
 
@@ -50,17 +91,24 @@ export const createPlot = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "code and name are required" });
   }
 
-  const existing = await PlotModel.findOne({ code: code.trim().toUpperCase() });
+  const cleanCode = code.trim().toUpperCase();
+  const adminId = req.user!.id;
+
+  const existing = await PlotModel.findOne({
+    code: cleanCode,
+    $or: [{ createdByAdminId: null }, { createdByAdminId: adminId }],
+  });
   if (existing) {
     return res
       .status(400)
-      .json({ error: `Plot code '${code}' already exists` });
+      .json({ error: `Mã luống '${cleanCode}' đã tồn tại.` });
   }
 
   const newPlot = await PlotModel.create({
-    code: code.trim().toUpperCase(),
+    code: cleanCode,
     name: name.trim(),
     areaSquareMeters,
+    createdByAdminId: adminId,
   });
 
   return res.status(201).json(newPlot);
@@ -73,6 +121,11 @@ export const updatePlot = async (req: Request, res: Response) => {
   const target = await PlotModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Plot not found" });
+  }
+
+  const permError = checkMasterDataMutationPermission(target, req, "mã luống");
+  if (permError) {
+    return res.status(403).json({ error: permError });
   }
 
   const { code, name, areaSquareMeters, isActive } = req.body;
@@ -138,6 +191,11 @@ export const deactivatePlot = async (req: Request, res: Response) => {
     return res.status(404).json({ error: "Plot not found" });
   }
 
+  const permError = checkMasterDataMutationPermission(target, req, "mã luống");
+  if (permError) {
+    return res.status(403).json({ error: permError });
+  }
+
   target.isActive = requestedIsActive;
   await target.save();
   return res.json(target);
@@ -147,7 +205,8 @@ export const deactivatePlot = async (req: Request, res: Response) => {
  * GET /api/admin/crops
  */
 export const getCrops = async (req: Request, res: Response) => {
-  const crops = await CropModel.find().sort({ name: 1 });
+  const filter = await buildMasterDataFilter(req);
+  const crops = await CropModel.find(filter).sort({ name: 1 });
   return res.json(crops);
 };
 
@@ -160,10 +219,23 @@ export const createCrop = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "name is required" });
   }
 
+  const adminId = req.user!.id;
+  const cleanName = name.trim();
+  const existing = await CropModel.findOne({
+    name: cleanName,
+    $or: [{ createdByAdminId: null }, { createdByAdminId: adminId }],
+  });
+  if (existing) {
+    return res
+      .status(400)
+      .json({ error: `Loại cây '${cleanName}' đã tồn tại.` });
+  }
+
   const newCrop = await CropModel.create({
-    name: name.trim(),
+    name: cleanName,
     category: category ? category.trim() : "Rau ăn quả",
     icon: icon || "🌱",
+    createdByAdminId: adminId,
   });
 
   return res.status(201).json(newCrop);
@@ -176,6 +248,11 @@ export const updateCrop = async (req: Request, res: Response) => {
   const target = await CropModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Crop not found" });
+  }
+
+  const permError = checkMasterDataMutationPermission(target, req, "loại cây");
+  if (permError) {
+    return res.status(403).json({ error: permError });
   }
 
   const { name, category, icon, isActive } = req.body;
@@ -235,6 +312,11 @@ export const deactivateCrop = async (req: Request, res: Response) => {
     return res.status(404).json({ error: "Crop not found" });
   }
 
+  const permError = checkMasterDataMutationPermission(target, req, "loại cây");
+  if (permError) {
+    return res.status(403).json({ error: permError });
+  }
+
   target.isActive = requestedIsActive;
   await target.save();
   return res.json(target);
@@ -252,7 +334,9 @@ export const getPlantDiseases = async (req: Request, res: Response) => {
     Number.isInteger(limit) &&
     page > 0 &&
     limit > 0;
-  const filter = query
+
+  const baseFilter = await buildMasterDataFilter(req);
+  const searchFilter = query
     ? {
         $or: [
           { group: { $regex: query, $options: "i" } },
@@ -261,6 +345,8 @@ export const getPlantDiseases = async (req: Request, res: Response) => {
         ],
       }
     : {};
+  const filter = { $and: [baseFilter, searchFilter] };
+
   const sort = {
     group: 1,
     type: 1,
@@ -296,6 +382,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
   const type = normalizeRequiredText(req.body?.type);
   const name = normalizeRequiredText(req.body?.name);
   const description = normalizeRequiredText(req.body?.description);
+  const adminId = req.user!.id;
 
   if (!isPlantDiseaseGroup(group)) {
     return res.status(400).json({ error: "group is invalid" });
@@ -304,7 +391,12 @@ export const createPlantDisease = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "type and name are required" });
   }
 
-  const existing = await PlantDiseaseModel.findOne({ group, type, name });
+  const existing = await PlantDiseaseModel.findOne({
+    group,
+    type,
+    name,
+    $or: [{ createdByAdminId: null }, { createdByAdminId: adminId }],
+  });
   if (existing) {
     return res.status(400).json({
       error: `Plant disease '${name}' already exists in '${type}'`,
@@ -316,6 +408,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
     type,
     name,
     description: description || undefined,
+    createdByAdminId: adminId,
   });
 
   return res.status(201).json(newDisease);
@@ -328,6 +421,11 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
   const target = await PlantDiseaseModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Plant disease not found" });
+  }
+
+  const permError = checkMasterDataMutationPermission(target, req, "bệnh cây");
+  if (permError) {
+    return res.status(403).json({ error: permError });
   }
 
   const { group, type, name, description, isActive } = req.body;
@@ -396,6 +494,11 @@ export const deactivatePlantDisease = async (req: Request, res: Response) => {
   const target = await PlantDiseaseModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Plant disease not found" });
+  }
+
+  const permError = checkMasterDataMutationPermission(target, req, "bệnh cây");
+  if (permError) {
+    return res.status(403).json({ error: permError });
   }
 
   target.isActive = requestedIsActive;

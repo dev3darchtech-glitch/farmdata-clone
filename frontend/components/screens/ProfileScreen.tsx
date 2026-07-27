@@ -62,7 +62,7 @@ export function ProfileScreen() {
       >
         <View style={profileScreenStyles.profileHeroCard}>
           <View style={profileScreenStyles.profileAvatar}>
-            <CircleUserRound size={54} color={COLORS.green} />
+            <CircleUserRound size={38} color={COLORS.green} />
           </View>
           <Text style={profileScreenStyles.profileName}>
             {user?.name || "Người dùng"}
@@ -74,7 +74,7 @@ export function ProfileScreen() {
 
         <View style={profileScreenStyles.profileStatCard}>
           <View style={profileScreenStyles.profileStatIcon}>
-            <Camera size={24} color={COLORS.green} />
+            <Camera size={20} color={COLORS.green} />
           </View>
           <View>
             <Text style={profileScreenStyles.profileStatValue}>
@@ -102,7 +102,7 @@ export function ProfileScreen() {
           style={profileScreenStyles.profileLogoutButton}
           onPress={handleLogout}
         >
-          <LogOut size={18} color="#fff" />
+          <LogOut size={16} color="#fff" />
           <Text style={profileScreenStyles.profileLogoutText}>Đăng xuất</Text>
         </Pressable>
       </ScrollView>
@@ -116,106 +116,106 @@ const profileScreenStyles = StyleSheet.create({
   },
   profileContent: {
     paddingHorizontal: LAYOUT.screenX,
-    paddingTop: LAYOUT.screenTop,
-    paddingBottom: 108,
-    gap: 18,
+    paddingTop: 8,
+    paddingBottom: 80,
+    gap: 12,
   },
   profileHeroCard: {
-    minHeight: 184,
-    borderRadius: 20,
+    minHeight: 130,
+    borderRadius: 14,
     backgroundColor: "#f0fdf4",
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
+    padding: 16,
     borderWidth: 1,
     borderColor: "#dcfce7",
   },
   profileAvatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 8,
   },
   profileName: {
     color: COLORS.text,
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: "800",
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "700",
     textAlign: "center",
   },
   profileUsername: {
-    marginTop: 4,
+    marginTop: 2,
     color: COLORS.muted,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: "center",
   },
   profileStatCard: {
-    minHeight: 96,
-    borderRadius: 16,
+    minHeight: 68,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f3f4f6",
     backgroundColor: "#fff",
-    padding: 18,
+    padding: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    boxShadow: "0 0 8px rgba(0, 0, 0, 0.08)",
-    elevation: 2,
+    gap: 12,
+    elevation: 1,
   },
   profileStatIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: COLORS.greenSoft,
     alignItems: "center",
     justifyContent: "center",
   },
   profileStatValue: {
     color: COLORS.text,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: "800",
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: "700",
   },
   profileStatLabel: {
     color: COLORS.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
   },
   profileInfoCard: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f3f4f6",
     backgroundColor: "#fff",
     overflow: "hidden",
   },
   profileInfoRow: {
-    minHeight: 62,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    minHeight: 46,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
     justifyContent: "center",
-    gap: 4,
+    gap: 2,
   },
   profileInfoLabel: {
     color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: "700",
     textTransform: "uppercase",
   },
   profileInfoValue: {
     color: COLORS.text,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "600",
   },
   profileLogoutButton: {
-    height: 50,
-    borderRadius: 12,
+    height: 42,
+    borderRadius: 10,
     backgroundColor: COLORS.danger,
     flexDirection: "row",
     alignItems: "center",
@@ -224,8 +224,8 @@ const profileScreenStyles = StyleSheet.create({
   },
   profileLogoutText: {
     color: "#fff",
-    fontSize: 16,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: "700",
   },
 });

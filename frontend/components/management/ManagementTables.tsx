@@ -1,10 +1,10 @@
 import { COLORS } from "@/constants/theme";
 import { CropTypeInfo, PlantDiseaseInfo, PlotInfo, User } from "@/types";
 import { cropIcon, getCropBgColor, getCropColor } from "@/utils/captureDisplay";
+import { isManagementItemInactive } from "@/utils/management";
 import { MoreVertical } from "lucide-react-native";
 import React from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { ManagementStatus } from "./ManagementStatus";
 
 export function PlotManagementTable({
   rows,
@@ -18,29 +18,71 @@ export function PlotManagementTable({
   return (
     <View>
       <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
-      <View style={tableStyles.plainTable}>
+      <View style={tableStyles.cardTable}>
         <View style={tableStyles.plotHeader}>
-          <View style={tableStyles.headerCell}>
-            <Text style={tableStyles.headerText}>Mã số luống</Text>
-          </View>
-          <View style={tableStyles.headerCellRight}>
-            <Text style={tableStyles.headerText}>Trạng thái</Text>
-          </View>
+          <Text style={[tableStyles.headerText, tableStyles.plotCodeCell]}>
+            MÃ LUỐNG
+          </Text>
+          <Text style={[tableStyles.headerText, tableStyles.plotZoneCell]}>
+            KHU VỰC
+          </Text>
+          <Text style={[tableStyles.headerText, tableStyles.plotAreaCell]}>
+            DIỆN TÍCH
+          </Text>
+          <View style={tableStyles.moreCell} />
         </View>
-        {rows.map((item) => (
-          <View key={item.id || item.code} style={tableStyles.plotRow}>
-            <View style={tableStyles.plotCell}>
-              <Text style={tableStyles.rowPrimary}>{item.code}</Text>
-            </View>
-            <ManagementStatus item={item} />
-            <Pressable
-              style={tableStyles.moreButton}
-              onPress={() => onAction(item)}
+        {rows.map((item) => {
+          const inactive = isManagementItemInactive(item);
+          return (
+            <View
+              key={item.id || item.code}
+              style={[
+                tableStyles.plotRow,
+                inactive && tableStyles.rowInactive,
+              ]}
             >
-              <MoreVertical size={20} color={COLORS.text} />
-            </Pressable>
-          </View>
-        ))}
+              <Text
+                style={[
+                  tableStyles.plotCodeCell,
+                  tableStyles.rowPrimary,
+                  inactive && tableStyles.textInactive,
+                ]}
+                numberOfLines={1}
+              >
+                {item.code}
+              </Text>
+              <Text
+                style={[
+                  tableStyles.plotZoneCell,
+                  tableStyles.rowSecondary,
+                  inactive && tableStyles.textInactive,
+                ]}
+                numberOfLines={1}
+              >
+                {item.name || "-"}
+              </Text>
+              <Text
+                style={[
+                  tableStyles.plotAreaCell,
+                  tableStyles.rowSecondary,
+                  inactive && tableStyles.textInactive,
+                ]}
+                numberOfLines={1}
+              >
+                {item.areaSquareMeters ? `${item.areaSquareMeters} m²` : "-"}
+              </Text>
+              <Pressable
+                style={tableStyles.moreCell}
+                onPress={() => onAction(item)}
+              >
+                <MoreVertical
+                  size={16}
+                  color={inactive ? "#9ca3af" : COLORS.text}
+                />
+              </Pressable>
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -57,37 +99,57 @@ export function CropManagementTable({
 }) {
   return (
     <View>
-      <Text style={tableStyles.summary}>Tổng số: {total}</Text>
+      <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.cropHeader}>
-          <Text style={tableStyles.headerText}>TÊN LOẠI CÂY</Text>
-          <Text style={tableStyles.headerText}>TRẠNG THÁI</Text>
+          <Text style={[tableStyles.headerText, tableStyles.flexCell]}>
+            TÊN LOẠI CÂY
+          </Text>
+          <View style={tableStyles.moreCell} />
         </View>
         {rows.map((item) => {
           const Icon = cropIcon(item.name);
+          const inactive = isManagementItemInactive(item);
           return (
-            <View key={item.id || item.name} style={tableStyles.cropRow}>
+            <View
+              key={item.id || item.name}
+              style={[
+                tableStyles.cropRow,
+                inactive && tableStyles.rowInactive,
+              ]}
+            >
               <View style={tableStyles.cropIdentity}>
                 <View
                   style={[
                     tableStyles.cropAvatar,
                     { backgroundColor: getCropBgColor(item.name) },
+                    inactive && { opacity: 0.5 },
                   ]}
                 >
                   {item.icon ? (
                     <Text style={tableStyles.cropIconText}>{item.icon}</Text>
                   ) : (
-                    <Icon size={20} color={getCropColor(item.name)} />
+                    <Icon size={16} color={getCropColor(item.name)} />
                   )}
                 </View>
-                <Text style={tableStyles.cropName}>{item.name}</Text>
+                <Text
+                  style={[
+                    tableStyles.cropName,
+                    inactive && tableStyles.textInactive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
               </View>
-              <ManagementStatus item={item} />
               <Pressable
-                style={tableStyles.moreButton}
+                style={tableStyles.moreCell}
                 onPress={() => onAction(item)}
               >
-                <MoreVertical size={20} color={COLORS.text} />
+                <MoreVertical
+                  size={16}
+                  color={inactive ? "#9ca3af" : COLORS.text}
+                />
               </Pressable>
             </View>
           );
@@ -108,36 +170,70 @@ export function AccountManagementTable({
 }) {
   return (
     <View>
-      <Text style={tableStyles.summary}>Tổng số: {total}</Text>
-      <View style={tableStyles.accountTable}>
+      <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
+      <View style={tableStyles.cardTable}>
         <View style={tableStyles.accountHeader}>
-          <Text style={[tableStyles.headerText, tableStyles.accountCell]}>
-            USERNAME
+          <Text style={[tableStyles.headerText, tableStyles.accountUserCell]}>
+            USERNAME / HỌ TÊN
           </Text>
-          <Text style={[tableStyles.headerText, tableStyles.accountStatusCell]}>
-            TRẠNG THÁI
+          <Text style={[tableStyles.headerText, tableStyles.accountRoleCell]}>
+            VAI TRÒ
           </Text>
-          <View style={tableStyles.accountMoreCell} />
+          <View style={tableStyles.moreCell} />
         </View>
-        {rows.map((item, index) => (
-          <View
-            key={item.id || item.username || String(index)}
-            style={tableStyles.accountRow}
-          >
-            <Text style={tableStyles.accountCell} numberOfLines={1}>
-              {item.username || item.name}
-            </Text>
-            <View style={tableStyles.accountStatusCell}>
-              <ManagementStatus item={item} />
-            </View>
-            <Pressable
-              style={tableStyles.accountMoreCell}
-              onPress={() => onAction(item)}
+        {rows.map((item, index) => {
+          const inactive = Boolean(item.isRevoked);
+          return (
+            <View
+              key={item.id || item.username || String(index)}
+              style={[
+                tableStyles.accountRow,
+                inactive && tableStyles.rowInactive,
+              ]}
             >
-              <MoreVertical size={20} color={COLORS.text} />
-            </Pressable>
-          </View>
-        ))}
+              <View style={tableStyles.accountUserCell}>
+                <Text
+                  style={[
+                    tableStyles.rowPrimary,
+                    inactive && tableStyles.textInactive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.username || item.name}
+                </Text>
+                {item.name && item.name !== item.username ? (
+                  <Text
+                    style={[
+                      tableStyles.rowSubText,
+                      inactive && tableStyles.textInactive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {item.name}
+                  </Text>
+                ) : null}
+              </View>
+              <Text
+                style={[
+                  tableStyles.accountRoleCell,
+                  tableStyles.rowSecondary,
+                  inactive && tableStyles.textInactive,
+                ]}
+              >
+                {item.role === "ADMIN" ? "Quản trị viên" : "Nông dân"}
+              </Text>
+              <Pressable
+                style={tableStyles.moreCell}
+                onPress={() => onAction(item)}
+              >
+                <MoreVertical
+                  size={16}
+                  color={inactive ? "#9ca3af" : COLORS.text}
+                />
+              </Pressable>
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -154,44 +250,59 @@ export function PlantDiseaseManagementTable({
 }) {
   return (
     <View>
-      <Text style={tableStyles.summary}>Tổng số: {total}</Text>
+      <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.diseaseHeader}>
-          <Text style={[tableStyles.headerText, tableStyles.diseaseGroupCell]}>
-            NHÓM
+          <Text style={[tableStyles.headerText, tableStyles.diseaseTypeCell]}>
+            LOẠI BỆNH CÂY
           </Text>
           <Text style={[tableStyles.headerText, tableStyles.diseaseNameCell]}>
-            BỆNH CÂY
+            TÊN BỆNH CÂY
           </Text>
-          <View style={tableStyles.accountMoreCell} />
+          <View style={tableStyles.moreCell} />
         </View>
-        {rows.map((item) => (
-          <View
-            key={item.id || `${item.group}-${item.type}-${item.name}`}
-            style={tableStyles.diseaseRow}
-          >
-            <Text
-              style={[tableStyles.diseaseGroupCell, tableStyles.rowPrimary]}
-              numberOfLines={2}
+        {rows.map((item) => {
+          const inactive = isManagementItemInactive(item);
+          return (
+            <View
+              key={item.id || `${item.group}-${item.type}-${item.name}`}
+              style={[
+                tableStyles.diseaseRow,
+                inactive && tableStyles.rowInactive,
+              ]}
             >
-              {item.group}
-            </Text>
-            <View style={tableStyles.diseaseNameCell}>
-              <Text style={tableStyles.cropName} numberOfLines={1}>
+              <Text
+                style={[
+                  tableStyles.diseaseTypeCell,
+                  tableStyles.rowSecondary,
+                  inactive && tableStyles.textInactive,
+                ]}
+                numberOfLines={1}
+              >
+                {item.type || "-"}
+              </Text>
+              <Text
+                style={[
+                  tableStyles.diseaseNameCell,
+                  tableStyles.rowPrimary,
+                  inactive && tableStyles.textInactive,
+                ]}
+                numberOfLines={1}
+              >
                 {item.name}
               </Text>
-              <Text style={tableStyles.diseaseTypeText} numberOfLines={1}>
-                {item.type}
-              </Text>
+              <Pressable
+                style={tableStyles.moreCell}
+                onPress={() => onAction(item)}
+              >
+                <MoreVertical
+                  size={16}
+                  color={inactive ? "#9ca3af" : COLORS.text}
+                />
+              </Pressable>
             </View>
-            <Pressable
-              style={tableStyles.accountMoreCell}
-              onPress={() => onAction(item)}
-            >
-              <MoreVertical size={20} color={COLORS.text} />
-            </Pressable>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
@@ -204,46 +315,45 @@ const sharedRowBorder = {
 
 const tableStyles = StyleSheet.create({
   summary: {
-    minHeight: 36,
-    paddingHorizontal: 16,
+    minHeight: 24,
+    paddingHorizontal: 12,
     color: COLORS.body,
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "700",
-    lineHeight: 20,
-  },
-  plainTable: {
-    width: "100%",
+    lineHeight: 16,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   cardTable: {
     width: "100%",
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#f3f4f6",
     backgroundColor: "#fff",
     overflow: "hidden",
     ...Platform.select({
-      web: { boxShadow: "0 0 8px rgba(0,0,0,0.08)" },
+      web: { boxShadow: "0 0 6px rgba(0,0,0,0.05)" },
       default: {
         shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
         shadowOffset: { width: 0, height: 0 },
         elevation: 2,
       },
     }),
   },
   plotHeader: {
-    height: 45,
+    minHeight: 32,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f9fafb",
-    borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#f3f4f6",
+    borderBottomColor: "#f3f4f6",
   },
   cropHeader: {
-    height: 46,
-    paddingHorizontal: 16,
+    minHeight: 32,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -251,47 +361,54 @@ const tableStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
   },
-  headerCell: {
-    flex: 1,
-    paddingHorizontal: 16,
+  accountHeader: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
   },
-  headerCellRight: {
-    width: 150,
-    paddingLeft: 16,
+  diseaseHeader: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
   },
   headerText: {
     color: "#9ca3af",
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: "700",
-    lineHeight: 20,
+    lineHeight: 14,
+    letterSpacing: 0.5,
   },
   plotRow: {
-    minHeight: 56,
-    paddingHorizontal: 16,
+    minHeight: 38,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
     ...sharedRowBorder,
   },
-  plotCell: {
-    flex: 1,
-    minWidth: 0,
+  plotCodeCell: {
+    flex: 1.1,
+    paddingRight: 4,
   },
-  rowPrimary: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "700",
-    lineHeight: 20,
+  plotZoneCell: {
+    flex: 1.2,
+    paddingRight: 4,
   },
-  moreButton: {
-    width: 28,
-    height: 28,
-    alignItems: "center",
-    justifyContent: "center",
+  plotAreaCell: {
+    flex: 0.9,
+    paddingRight: 4,
   },
   cropRow: {
-    minHeight: 72,
-    paddingHorizontal: 16,
+    minHeight: 42,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
@@ -302,90 +419,90 @@ const tableStyles = StyleSheet.create({
     minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   cropAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   cropIconText: {
     color: COLORS.text,
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 18,
     textAlign: "center",
   },
   cropName: {
     flex: 1,
     color: COLORS.text,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  accountTable: {
-    width: "100%",
-  },
-  accountHeader: {
-    minHeight: 40,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
   },
   accountRow: {
-    minHeight: 56,
-    paddingHorizontal: 16,
+    minHeight: 42,
+    paddingHorizontal: 10,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
     backgroundColor: "#fff",
     ...sharedRowBorder,
   },
-  accountCell: {
+  accountUserCell: {
     flex: 1,
-    color: COLORS.text,
-    fontSize: 14,
-    lineHeight: 20,
+    paddingRight: 4,
   },
-  accountStatusCell: {
-    flex: 1.28,
+  accountRoleCell: {
+    width: 90,
+    paddingRight: 4,
   },
-  accountMoreCell: {
-    width: 24,
-    height: 24,
+  diseaseRow: {
+    minHeight: 40,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    ...sharedRowBorder,
+  },
+  diseaseTypeCell: {
+    flex: 1,
+    paddingRight: 4,
+  },
+  diseaseNameCell: {
+    flex: 1.3,
+    paddingRight: 4,
+  },
+  flexCell: {
+    flex: 1,
+  },
+  moreCell: {
+    width: 26,
+    height: 26,
     alignItems: "center",
     justifyContent: "center",
   },
-  diseaseHeader: {
-    minHeight: 46,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#f9fafb",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
-  },
-  diseaseRow: {
-    minHeight: 68,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#fff",
-    ...sharedRowBorder,
-  },
-  diseaseGroupCell: {
-    width: 104,
-  },
-  diseaseNameCell: {
-    flex: 1,
-    minWidth: 0,
-  },
-  diseaseTypeText: {
-    color: COLORS.muted,
+  rowPrimary: {
+    color: COLORS.text,
     fontSize: 12,
+    fontWeight: "600",
     lineHeight: 16,
+  },
+  rowSecondary: {
+    color: "#4b5563",
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  rowSubText: {
+    color: "#9ca3af",
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  rowInactive: {
+    backgroundColor: "#f9fafb",
+  },
+  textInactive: {
+    color: "#9ca3af",
+    textDecorationLine: "line-through",
   },
 });

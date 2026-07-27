@@ -19,9 +19,10 @@ import {
   PlusCircle,
   UserIcon,
 } from "lucide-react-native";
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Easing,
   Image,
   Modal,
   Pressable,
@@ -29,6 +30,9 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function ManagementDrawer({
   visible,
@@ -47,7 +51,10 @@ export function ManagementDrawer({
   logout: () => Promise<void>;
   onAdminCreatePost?: () => void;
 }) {
-  const drawerTranslateX = useRef(new Animated.Value(-292)).current;
+  const insets = useSafeAreaInsets();
+  const [rendered, setRendered] = useState(visible);
+  const anim = useRef(new Animated.Value(0)).current;
+
   const role = normalizeRole(user?.role as string);
   const pathname = usePathname();
   const activeRoute = pathname.split("?")[0];
@@ -67,18 +74,44 @@ export function ManagementDrawer({
           : "posts";
 
   useEffect(() => {
-    if (!visible) return;
+    if (visible) {
+      setRendered(true);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (rendered) {
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setRendered(false);
+        }
+      });
+    }
+  }, [anim, rendered, visible]);
 
-    drawerTranslateX.setValue(-292);
-    Animated.timing(drawerTranslateX, {
+  const handleClose = useCallback(() => {
+    Animated.timing(anim, {
       toValue: 0,
-      duration: 220,
+      duration: 200,
+      easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-  }, [drawerTranslateX, visible]);
+    }).start(({ finished }) => {
+      if (finished) {
+        setRendered(false);
+        onClose();
+      }
+    });
+  }, [anim, onClose]);
 
   const navigate = (route: string, target: TabRouteId) => {
-    onClose();
+    handleClose();
     const direction = tabDirectionForTarget(
       drawerTabItems,
       currentTabId,
@@ -91,7 +124,7 @@ export function ManagementDrawer({
     if (setVariant) {
       setVariant(value);
     }
-    onClose();
+    handleClose();
     const direction = tabDirectionForTarget(
       drawerTabItems,
       currentTabId,
@@ -104,7 +137,7 @@ export function ManagementDrawer({
   };
 
   const createPostFromDrawer = () => {
-    onClose();
+    handleClose();
     if (onAdminCreatePost) {
       onAdminCreatePost();
       return;
@@ -121,18 +154,39 @@ export function ManagementDrawer({
     } as any);
   };
 
+  const translateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-292, 0],
+  });
+
+  const scrimOpacity = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  if (!rendered) return null;
+
   return (
     <Modal
-      visible={visible}
+      visible={rendered}
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      statusBarTranslucent
+      onRequestClose={handleClose}
     >
       <View style={drawerStyles.drawerLayer}>
+        <AnimatedPressable
+          style={[drawerStyles.drawerScrim, { opacity: scrimOpacity }]}
+          onPress={handleClose}
+        />
         <Animated.View
           style={[
             drawerStyles.drawer,
-            { transform: [{ translateX: drawerTranslateX }] },
+            {
+              paddingTop: Math.max(insets.top, LAYOUT.screenTop),
+              paddingBottom: Math.max(insets.bottom, LAYOUT.screenTop),
+              transform: [{ translateX }],
+            },
           ]}
         >
           <View style={drawerStyles.drawerBrand}>
@@ -284,7 +338,6 @@ export function ManagementDrawer({
             </Pressable>
           </View>
         </Animated.View>
-        <Pressable style={drawerStyles.drawerScrim} onPress={onClose} />
       </View>
     </Modal>
   );
@@ -294,10 +347,10 @@ const drawerStyles = StyleSheet.create({
   drawerLayer: {
     flex: 1,
     flexDirection: "row",
-    backgroundColor: "transparent",
   },
   drawerScrim: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
   },
   drawer: {
     width: 288,
@@ -307,64 +360,66 @@ const drawerStyles = StyleSheet.create({
     paddingBottom: LAYOUT.screenTop,
     borderRightWidth: 1,
     borderRightColor: "#e5e7eb",
+    zIndex: 1,
   },
   drawerBrand: {
-    height: 70,
+    height: 52,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     marginBottom: LAYOUT.sectionGap,
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
   },
   drawerLogo: {
-    width: 50,
-    height: 52,
+    width: 36,
+    height: 38,
   },
   drawerTitle: {
     color: "#166534",
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 18,
     fontWeight: "800",
   },
   drawerRole: {
     color: "#9ca3af",
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 14,
   },
   drawerItem: {
-    minHeight: 44,
+    minHeight: 38,
     borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
-    paddingHorizontal: 12,
-    gap: 12,
+    paddingHorizontal: 10,
+    gap: 10,
   },
   drawerItemActive: {
     backgroundColor: COLORS.greenSoft,
   },
   drawerText: {
     color: COLORS.body,
-    fontSize: 16,
+    fontSize: 13,
+    lineHeight: 17,
     fontWeight: "600",
   },
   drawerTextActive: {
     color: COLORS.green,
   },
   drawerSubItem: {
-    minHeight: 36,
+    minHeight: 32,
     borderRadius: 8,
     justifyContent: "center",
-    paddingLeft: 44,
+    paddingLeft: 38,
   },
   drawerSubItemActive: {
     backgroundColor: "rgba(240,253,244,0.7)",
   },
   drawerSubText: {
     color: COLORS.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 16,
   },
   drawerFooter: {
     marginTop: "auto",
@@ -380,7 +435,7 @@ const drawerStyles = StyleSheet.create({
   },
   drawerPublishText: {
     color: COLORS.green,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
   },
   logoutRow: {
@@ -390,7 +445,7 @@ const drawerStyles = StyleSheet.create({
   },
   logoutText: {
     color: COLORS.danger,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
   },
 });

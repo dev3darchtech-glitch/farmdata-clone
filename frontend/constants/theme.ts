@@ -14,28 +14,28 @@ export const COLORS = {
 };
 
 export const LAYOUT = {
-  screenX: 35,
-  screenTop: 24,
-  screenGap: 24,
-  sheetX: 24,
-  sheetContentX: 35,
-  sheetTop: 24,
-  sheetBottom: 28,
-  modalX: 35,
-  modalY: 24,
-  fieldX: 16,
-  sectionGap: 16,
+  screenX: 16,
+  screenTop: 6,
+  screenGap: 10,
+  sheetX: 16,
+  sheetContentX: 16,
+  sheetTop: 10,
+  sheetBottom: 14,
+  modalX: 16,
+  modalY: 10,
+  fieldX: 12,
+  sectionGap: 8,
 };
 
 export const TYPOGRAPHY = {
   fontFamily: "Be Vietnam",
-  title: 20,
-  body: 16,
-  label: 14,
-  helper: 12,
-  titleLine: 24,
-  bodyLine: 20,
-  relaxedLine: 24,
+  title: 16,
+  body: 13,
+  label: 12,
+  helper: 11,
+  titleLine: 20,
+  bodyLine: 17,
+  relaxedLine: 20,
 };
 
 export const Colors = {

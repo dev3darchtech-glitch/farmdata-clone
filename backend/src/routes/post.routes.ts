@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   createPost,
+  deletePost,
   getPostById,
   getPosts,
 } from "../controllers/post.controller";
@@ -38,6 +39,17 @@ router.get(
   authenticateToken,
   requireRole("FARMER", "ADMIN"),
   getPostById,
+);
+
+/**
+ * DELETE /api/posts/:id
+ * Only admin author who created the post can delete it.
+ */
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireRole("ADMIN"),
+  deletePost,
 );
 
 export default router;

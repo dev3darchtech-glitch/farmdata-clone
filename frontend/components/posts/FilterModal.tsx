@@ -1,7 +1,27 @@
+import { LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { Calendar, X } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { LAYOUT, TYPOGRAPHY } from "@/constants/theme";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+
+export type DateRangePreset = "all" | "today" | "7days" | "30days" | "custom";
+
+export type DateRangeFilter = {
+  preset: DateRangePreset;
+  startDate?: string;
+  endDate?: string;
+};
 
 const ENV_OPTIONS = [
   { id: "all", label: "Tất cả" },
@@ -18,6 +38,14 @@ const SEVERITY_OPTIONS = [
   { id: "Rất nặng", label: "Rất nặng" },
 ];
 
+const DATE_PRESET_OPTIONS: { id: DateRangePreset; label: string }[] = [
+  { id: "all", label: "Tất cả" },
+  { id: "today", label: "Hôm nay" },
+  { id: "7days", label: "7 ngày qua" },
+  { id: "30days", label: "30 ngày qua" },
+  { id: "custom", label: "Tùy chọn" },
+];
+
 export function FilterModal({
   visible,
   onClose,
@@ -25,6 +53,7 @@ export function FilterModal({
   selectedCrop = "all",
   selectedEnv = "all",
   selectedSeverity = "all",
+  selectedDateRange = { preset: "all" },
   onApply,
   onReset,
 }: {
@@ -36,11 +65,13 @@ export function FilterModal({
   selectedCrop?: string;
   selectedEnv?: string;
   selectedSeverity?: string;
+  selectedDateRange?: DateRangeFilter;
   onApply?: (filters: {
     plot: string;
     crop: string;
     env: string;
     severity: string;
+    dateRange: DateRangeFilter;
   }) => void;
   onReset?: () => void;
 }) {
@@ -48,6 +79,15 @@ export function FilterModal({
   const [localCrop, setLocalCrop] = useState(selectedCrop);
   const [localEnv, setLocalEnv] = useState(selectedEnv);
   const [localSeverity, setLocalSeverity] = useState(selectedSeverity);
+  const [localDatePreset, setLocalDatePreset] = useState<DateRangePreset>(
+    selectedDateRange.preset || "all",
+  );
+  const [localStartDate, setLocalStartDate] = useState(
+    selectedDateRange.startDate || "",
+  );
+  const [localEndDate, setLocalEndDate] = useState(
+    selectedDateRange.endDate || "",
+  );
 
   useEffect(() => {
     if (!visible) return;
@@ -55,7 +95,17 @@ export function FilterModal({
     setLocalCrop(selectedCrop);
     setLocalEnv(selectedEnv);
     setLocalSeverity(selectedSeverity);
-  }, [selectedCrop, selectedEnv, selectedPlot, selectedSeverity, visible]);
+    setLocalDatePreset(selectedDateRange.preset || "all");
+    setLocalStartDate(selectedDateRange.startDate || "");
+    setLocalEndDate(selectedDateRange.endDate || "");
+  }, [
+    selectedCrop,
+    selectedDateRange,
+    selectedEnv,
+    selectedPlot,
+    selectedSeverity,
+    visible,
+  ]);
 
   const handleApply = () => {
     onApply?.({
@@ -63,6 +113,11 @@ export function FilterModal({
       crop: localCrop,
       env: localEnv,
       severity: localSeverity,
+      dateRange: {
+        preset: localDatePreset,
+        startDate: localStartDate,
+        endDate: localEndDate,
+      },
     });
     onClose?.();
   };
@@ -72,80 +127,135 @@ export function FilterModal({
     setLocalCrop("all");
     setLocalEnv("all");
     setLocalSeverity("all");
+    setLocalDatePreset("all");
+    setLocalStartDate("");
+    setLocalEndDate("");
     onReset?.();
   };
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View testID="post-filter-modal" style={styles.scrim}>
-        <Pressable style={styles.scrimFill} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Bộ lọc</Text>
-            <Pressable
-              accessibilityRole="button"
-              style={styles.closeButton}
-              onPress={onClose}
-            >
-              <X size={24} color="#848484" />
-            </Pressable>
-          </View>
-
-          <View style={styles.content}>
-            <FilterSection title="Môi trường">
-              <View style={styles.row}>
-                {ENV_OPTIONS.map((env) => (
-                  <FilterChip
-                    key={env.id}
-                    label={env.label}
-                    selected={localEnv === env.id}
-                    onPress={() => setLocalEnv(env.id)}
-                  />
-                ))}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View testID="post-filter-modal" style={styles.scrim}>
+          <Pressable style={styles.scrimFill} onPress={onClose} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%" }}
+          >
+            <View style={styles.sheet}>
+              <View style={styles.handleWrap}>
+                <View style={styles.handle} />
               </View>
-            </FilterSection>
-
-            <FilterSection title="Mức độ triệu chứng">
-              <View style={styles.grid}>
-                {SEVERITY_OPTIONS.map((severity) => (
-                  <FilterChip
-                    key={severity.id}
-                    label={severity.label}
-                    selected={localSeverity === severity.id}
-                    onPress={() => setLocalSeverity(severity.id)}
-                  />
-                ))}
+              <View style={styles.header}>
+                <Text style={styles.title}>Bộ lọc bài đăng</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.closeButton}
+                  onPress={onClose}
+                >
+                  <X size={18} color="#6b7280" />
+                </Pressable>
               </View>
-            </FilterSection>
 
-            <FilterSection title="Khoảng thời gian">
-              <Pressable accessibilityRole="button" style={styles.dateInput}>
-                <Calendar size={20} color="#b3b3b3" />
-                <Text style={styles.dateText}>Chọn khoảng thời gian</Text>
-              </Pressable>
-            </FilterSection>
-          </View>
+              <ScrollView
+                style={{ maxHeight: 380 }}
+                contentContainerStyle={styles.content}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <FilterSection title="Môi trường">
+                  <View style={styles.row}>
+                    {ENV_OPTIONS.map((env) => (
+                      <FilterChip
+                        key={env.id}
+                        label={env.label}
+                        selected={localEnv === env.id}
+                        onPress={() => setLocalEnv(env.id)}
+                      />
+                    ))}
+                  </View>
+                </FilterSection>
 
-          <View style={styles.footer}>
-            <Pressable style={styles.applyButton} onPress={handleApply}>
-              <Text style={styles.applyText}>Áp dụng</Text>
-            </Pressable>
-            <Pressable style={styles.resetButton} onPress={handleReset}>
-              <Text style={styles.resetText}>Xóa bộ lọc</Text>
-            </Pressable>
-          </View>
+                <FilterSection title="Mức độ triệu chứng">
+                  <View style={styles.grid}>
+                    {SEVERITY_OPTIONS.map((severity) => (
+                      <FilterChip
+                        key={severity.id}
+                        label={severity.label}
+                        selected={localSeverity === severity.id}
+                        onPress={() => setLocalSeverity(severity.id)}
+                      />
+                    ))}
+                  </View>
+                </FilterSection>
+
+                <FilterSection title="Khoảng thời gian">
+                  <View style={styles.grid}>
+                    {DATE_PRESET_OPTIONS.map((preset) => (
+                      <FilterChip
+                        key={preset.id}
+                        label={preset.label}
+                        selected={localDatePreset === preset.id}
+                        onPress={() => setLocalDatePreset(preset.id)}
+                      />
+                    ))}
+                  </View>
+
+                  {localDatePreset === "custom" ? (
+                    <View style={styles.customDateRow}>
+                      <View style={styles.customDateField}>
+                        <Text style={styles.customDateLabel}>Từ ngày:</Text>
+                        <Pressable style={styles.dateInput}>
+                          <Calendar size={16} color="#4b5563" />
+                          <TextInput
+                            style={styles.dateTextInput}
+                            value={localStartDate}
+                            onChangeText={setLocalStartDate}
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor="#9ca3af"
+                          />
+                        </Pressable>
+                      </View>
+                      <View style={styles.customDateField}>
+                        <Text style={styles.customDateLabel}>Đến ngày:</Text>
+                        <Pressable style={styles.dateInput}>
+                          <Calendar size={16} color="#4b5563" />
+                          <TextInput
+                            style={styles.dateTextInput}
+                            value={localEndDate}
+                            onChangeText={setLocalEndDate}
+                            placeholder="YYYY-MM-DD"
+                            placeholderTextColor="#9ca3af"
+                          />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : null}
+                </FilterSection>
+              </ScrollView>
+
+              <View style={styles.footer}>
+                <Pressable style={styles.resetButton} onPress={handleReset}>
+                  <Text style={styles.resetText}>Xóa bộ lọc</Text>
+                </Pressable>
+                <Pressable style={styles.applyButton} onPress={handleApply}>
+                  <Text style={styles.applyText}>Áp dụng</Text>
+                </Pressable>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
 
 function FilterSection({
-  title,
   children,
+  title,
 }: {
-  title: string;
   children: React.ReactNode;
+  title: string;
 }) {
   return (
     <View style={styles.section}>
@@ -157,19 +267,19 @@ function FilterSection({
 
 function FilterChip({
   label,
-  selected,
   onPress,
+  selected,
 }: {
   label: string;
-  selected: boolean;
   onPress: () => void;
+  selected?: boolean;
 }) {
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
       style={[styles.chip, selected && styles.chipActive]}
+      onPress={onPress}
     >
       <Text style={[styles.chipText, selected && styles.chipTextActive]}>
         {label}
@@ -186,22 +296,35 @@ const styles = StyleSheet.create({
   },
   scrimFill: { flex: 1 },
   sheet: {
-    minHeight: 629,
-    maxWidth: 400,
     width: "100%",
-    alignSelf: "center",
+    alignSelf: "stretch",
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: "#d1d5db",
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 50,
-    shadowOffset: { width: 0, height: -12 },
-    elevation: 16,
+    shadowOpacity: 0.15,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 24,
+  },
+  handleWrap: {
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: "#d1d5db",
   },
   header: {
-    height: 73,
+    height: 44,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
     paddingHorizontal: LAYOUT.modalX,
@@ -211,8 +334,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#111827",
-    fontSize: TYPOGRAPHY.title,
-    lineHeight: TYPOGRAPHY.titleLine,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: "700",
   },
   closeButton: {
@@ -220,25 +343,27 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 999,
+    borderRadius: 16,
+    backgroundColor: "#f3f4f6",
   },
   content: {
     paddingHorizontal: LAYOUT.modalX,
-    paddingTop: LAYOUT.modalY,
-    gap: LAYOUT.screenGap,
+    paddingTop: 10,
+    paddingBottom: 10,
+    gap: 12,
   },
-  section: { gap: LAYOUT.sectionGap },
+  section: { gap: 8 },
   sectionTitle: {
     color: "#111827",
-    fontSize: TYPOGRAPHY.body,
-    lineHeight: TYPOGRAPHY.bodyLine,
-    fontWeight: "500",
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
   },
   row: { flexDirection: "row", gap: 8 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 15 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8 },
   chip: {
-    width: 101,
-    height: 41,
+    paddingHorizontal: 12,
+    height: 34,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e0e0e0",
@@ -252,60 +377,79 @@ const styles = StyleSheet.create({
   },
   chipText: {
     color: "#565656",
-    fontSize: TYPOGRAPHY.body,
-    lineHeight: TYPOGRAPHY.bodyLine,
+    fontSize: 12,
+    lineHeight: 16,
   },
   chipTextActive: { color: "#fff" },
   dateInput: {
-    height: 52,
-    borderRadius: 12,
+    height: 42,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#e0e0e0",
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
+    backgroundColor: "#fafafa",
+  },
+  dateTextInput: {
+    flex: 1,
+    fontSize: 12,
+    color: "#111827",
+    padding: 0,
+  },
+  customDateRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  customDateField: {
+    flex: 1,
+    gap: 4,
+  },
+  customDateLabel: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: "500",
   },
   dateText: {
     color: "#b3b3b3",
-    fontSize: TYPOGRAPHY.body,
-    lineHeight: TYPOGRAPHY.bodyLine,
+    fontSize: 12,
+    lineHeight: 16,
   },
   footer: {
     paddingHorizontal: LAYOUT.modalX,
-    paddingTop: LAYOUT.sectionGap,
-    paddingBottom: LAYOUT.modalY,
-    gap: 12,
+    paddingTop: 10,
+    paddingBottom: 16,
+    flexDirection: "row",
+    gap: 10,
   },
   applyButton: {
-    height: 52,
-    borderRadius: 12,
+    flex: 1,
+    height: 42,
+    borderRadius: 10,
     backgroundColor: "#31582b",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#dcfce7",
-    shadowOpacity: 1,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 2,
   },
   applyText: {
     color: "#fff",
-    fontSize: TYPOGRAPHY.body,
-    lineHeight: TYPOGRAPHY.bodyLine,
-    fontWeight: "500",
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: "700",
   },
   resetButton: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#31582b",
+    height: 42,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#c0c9bd",
     alignItems: "center",
     justifyContent: "center",
   },
   resetText: {
-    color: "#31582b",
-    fontSize: TYPOGRAPHY.body,
-    lineHeight: TYPOGRAPHY.bodyLine,
+    color: "#414940",
+    fontSize: 13,
+    lineHeight: 17,
   },
 });

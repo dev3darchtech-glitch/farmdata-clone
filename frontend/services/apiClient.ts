@@ -266,6 +266,25 @@ export async function fetchPostById(postId: string): Promise<Post | null> {
   return data as Post;
 }
 
+export async function deletePostAPI(postId: string): Promise<void> {
+  if (!postId) return;
+
+  const res = await fetch(
+    `${BACKEND_URL}/posts/${encodeURIComponent(postId)}`,
+    {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    },
+  ).catch(() => {
+    throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể xóa bài đăng.");
+  }
+}
+
 export async function createManualPostAPI(postData: {
   cropType: string;
   growthStage: GrowthStageId;

@@ -4,6 +4,37 @@ import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
+export function PostsSkeletonList() {
+  return (
+    <View style={postStateStyles.postsSkeletonList}>
+      {[0, 1, 2].map((item) => (
+        <View key={item} style={postStateStyles.postsSkeletonCard}>
+          <View style={postStateStyles.postsSkeletonImage} />
+          <View style={postStateStyles.postsSkeletonTextBlock}>
+            <View style={postStateStyles.postsSkeletonRow}>
+              <View
+                style={[postStateStyles.postsSkeletonLine, { width: 48 }]}
+              />
+              <View
+                style={[postStateStyles.postsSkeletonLine, { width: 128 }]}
+              />
+            </View>
+            <View
+              style={[postStateStyles.postsSkeletonLineSmall, { width: 80 }]}
+            />
+            <View
+              style={[postStateStyles.postsSkeletonLineSmall, { width: 112 }]}
+            />
+            <View
+              style={[postStateStyles.postsSkeletonLineSmall, { width: 144 }]}
+            />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function PostsLoadingState() {
   return (
     <ScrollView
@@ -24,32 +55,7 @@ export function PostsLoadingState() {
           />
         ))}
       </View>
-      <View style={postStateStyles.postsSkeletonList}>
-        {[0, 1, 2].map((item) => (
-          <View key={item} style={postStateStyles.postsSkeletonCard}>
-            <View style={postStateStyles.postsSkeletonImage} />
-            <View style={postStateStyles.postsSkeletonTextBlock}>
-              <View style={postStateStyles.postsSkeletonRow}>
-                <View
-                  style={[postStateStyles.postsSkeletonLine, { width: 48 }]}
-                />
-                <View
-                  style={[postStateStyles.postsSkeletonLine, { width: 128 }]}
-                />
-              </View>
-              <View
-                style={[postStateStyles.postsSkeletonLineSmall, { width: 80 }]}
-              />
-              <View
-                style={[postStateStyles.postsSkeletonLineSmall, { width: 112 }]}
-              />
-              <View
-                style={[postStateStyles.postsSkeletonLineSmall, { width: 144 }]}
-              />
-            </View>
-          </View>
-        ))}
-      </View>
+      <PostsSkeletonList />
     </ScrollView>
   );
 }
@@ -149,8 +155,8 @@ const postStateStyles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingHorizontal: LAYOUT.screenX,
-    paddingTop: 104,
-    paddingBottom: 96,
+    paddingTop: 48,
+    paddingBottom: 48,
   },
   postsEmptyIllustrationWrap: {
     width: 192,

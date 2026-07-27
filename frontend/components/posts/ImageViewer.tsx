@@ -5,7 +5,7 @@ import {
   envName,
   formatPostDate,
   severityDotColor,
-  stagePostName,
+  stageName,
 } from "@/utils/captureDisplay";
 import {
   buildPostUrl,
@@ -40,10 +40,14 @@ export function ImageViewer({
   post,
   initialIndex,
   onClose,
+  canDelete,
+  onDelete,
 }: {
   post: Post | null;
   initialIndex: number;
   onClose: () => void;
+  canDelete?: boolean;
+  onDelete?: () => void;
 }) {
   const [index, setIndex] = useState(0);
   useEffect(() => {
@@ -56,6 +60,9 @@ export function ImageViewer({
   const uri = post.images[index];
   const imageCount = post.images.length;
   const currentDriveFile = post.driveFiles?.[index];
+  const diseaseDisplayName =
+    post.diseaseName?.trim() || post.diseaseType?.trim() || "Bệnh cây";
+
   const saveCurrentImage = async () => {
     if (!uri) return;
     try {
@@ -99,14 +106,14 @@ export function ImageViewer({
   };
   const showInfo = () => {
     Alert.alert(
-      `${post.cropType} - ${stagePostName(post.growthStage)}`,
+      `${post.cropType} - ${stageName(post.growthStage)}`,
       currentDriveFile?.description ||
         [
           post.plotId ? `Mã luống: ${post.plotId}` : undefined,
           post.stationMeasurements?.weatherCode !== undefined
             ? `Thời tiết: ${getCaptureWeatherLabel(post.stationMeasurements.weatherCode)}`
             : `Môi trường: ${envName(post.envMode)}`,
-          `Tình trạng: ${post.symptomDescription} - Mức độ ${post.severity}`,
+          `Bệnh cây: ${diseaseDisplayName} - Mức độ ${post.severity}`,
           `Thời gian: ${formatPostDate(post.createdAt)}`,
         ]
           .filter(Boolean)
@@ -175,7 +182,7 @@ export function ImageViewer({
             {post.plotId || "Không có mã luống"}
           </Text>
           <Text style={imageViewerStyles.viewerTitleText}>
-            {post.cropType} - {stagePostName(post.growthStage)}
+            {post.cropType} - {stageName(post.growthStage)}
           </Text>
           <Text style={imageViewerStyles.viewerEnvironmentText}>
             {post.stationMeasurements?.weatherCode !== undefined
@@ -190,7 +197,7 @@ export function ImageViewer({
               ]}
             />
             <Text style={imageViewerStyles.viewerSymptomText}>
-              {post.symptomDescription} - Mức độ {post.severity}
+              {diseaseDisplayName} - Mức độ {post.severity}
             </Text>
           </View>
           <View style={imageViewerStyles.viewerDateRow}>
@@ -210,32 +217,45 @@ export function ImageViewer({
             </View>
             <Text style={imageViewerStyles.viewerActionText}>Chia sẻ</Text>
           </Pressable>
-          <Pressable
-            style={imageViewerStyles.viewerActionButton}
-            onPress={() =>
-              Alert.alert(
-                "Chưa hỗ trợ xoá ảnh",
-                "Ảnh đang được quản lý từ bài đăng.",
-              )
-            }
-          >
-            <View
-              style={[
-                imageViewerStyles.viewerActionIcon,
-                imageViewerStyles.viewerDeleteIcon,
-              ]}
+          {canDelete ? (
+            <Pressable
+              style={imageViewerStyles.viewerActionButton}
+              onPress={() => {
+                Alert.alert(
+                  "Xác nhận xóa bài post",
+                  "Bạn có chắc chắn muốn xóa bài post này không? Thao tác này không thể hoàn tác.",
+                  [
+                    { text: "Hủy", style: "cancel" },
+                    {
+                      text: "Xóa",
+                      style: "destructive",
+                      onPress: () => {
+                        onClose();
+                        onDelete?.();
+                      },
+                    },
+                  ],
+                );
+              }}
             >
-              <Trash2 size={20} color="#ef4444" />
-            </View>
-            <Text
-              style={[
-                imageViewerStyles.viewerActionText,
-                imageViewerStyles.viewerDeleteText,
-              ]}
-            >
-              Xóa
-            </Text>
-          </Pressable>
+              <View
+                style={[
+                  imageViewerStyles.viewerActionIcon,
+                  imageViewerStyles.viewerDeleteIcon,
+                ]}
+              >
+                <Trash2 size={20} color="#ef4444" />
+              </View>
+              <Text
+                style={[
+                  imageViewerStyles.viewerActionText,
+                  imageViewerStyles.viewerDeleteText,
+                ]}
+              >
+                Xóa
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             style={imageViewerStyles.viewerActionButton}
             onPress={showInfo}

@@ -130,14 +130,18 @@ export const createSession = async (req: Request, res: Response) => {
     );
 
   // Upload session photos to creator Admin's Google Drive storage with label names
-  const driveFiles = await uploadImagesToAdminDrive(
-    user.id,
-    images,
-    cropType,
+  const driveFiles = await uploadImagesToAdminDrive({
+    farmerEmailOrId: user.id,
+    imageUris: images,
+    plotId: cleanPlotId,
+    cropType: cropType.trim(),
+    envMode,
     growthStage,
-    normalizedSeverity,
-    imageDescription,
-  );
+    diseaseName: normalizedDisease?.diseaseName,
+    severity: normalizedSeverity,
+    description: imageDescription,
+    destination: "capture",
+  });
   const driveImageLinks = driveFiles
     .map((file) => file.webContentLink || file.webViewLink)
     .filter((link): link is string => Boolean(link));

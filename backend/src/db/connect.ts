@@ -84,43 +84,11 @@ export async function seedDefaultsIfEmpty() {
       { name: "Bắp cải", category: "Rau ăn lá", icon: "🥬" },
     ]);
 
-    await PostModel.create({
-      postId: "POST-1001",
-      sessionId: "SESS-1001",
-      user: {
-        id: farmerUser._id.toString(),
-        name: "Nguyễn Văn An",
-        email: "an.nguyen@farm.vn",
-        role: "FARMER",
-      },
-      cropType: "Cà chua",
-      plotId: "L-001",
-      growthStage: "flowering",
-      envMode: "greenhouse",
-      symptomDescription: "Đốm vàng lá chân và héo nhẹ gân lá",
-      severity: "Vừa",
-      images: [
-        "https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=800&auto=format&fit=crop&q=80",
-      ],
-      driveFiles: [
-        {
-          fileId: "GDRIVE-ADMIN-FILE-1001",
-          webViewLink: "https://drive.google.com/file/d/mock_file_id/view",
-          fileName: "farm_capture_photo_1.jpg",
-        },
-      ],
-      stationMeasurements: {
-        temperature: 28.5,
-        lightUvIndex: 65,
-        windSpeed: 12.0,
-        co2Level: 420,
-      },
-      status: "PUBLISHED",
-      createdAt: new Date(),
-    });
-
     console.log("🌱 Default MongoDB database seed completed successfully.");
   } else {
+    // Clean up any old mock posts if present
+    await PostModel.deleteMany({ postId: "POST-1001" });
+
     const usersWithoutUsername = await UserModel.find({
       $or: [
         { username: { $exists: false } },

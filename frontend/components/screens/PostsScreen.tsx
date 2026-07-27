@@ -1,7 +1,7 @@
 import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { getCropTypes, getPlots } from "@/services/adminService";
-import { getPosts } from "@/services/postService";
+import { deletePost, getPosts } from "@/services/postService";
 import { CropTypeInfo, EnvMode, PlotInfo, Post } from "@/types";
 import { ManagementVariant } from "@/types/ui";
 import {
@@ -11,13 +11,18 @@ import {
 } from "@/utils/captureDisplay";
 import { useLocalSearchParams } from "expo-router";
 import {
+  ArrowDownAZ,
+  ArrowDownWideNarrow,
+  ArrowUpAZ,
+  ArrowUpNarrowWide,
+  ArrowUpDown,
   Plus,
   Search,
   SlidersHorizontal,
-  SortAscIcon,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -25,20 +30,84 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AdminPostComposer } from "../posts/AdminPostComposer";
-import { FilterModal } from "../posts/FilterModal";
+import { DateRangeFilter, FilterModal } from "../posts/FilterModal";
 import { ImageViewer } from "../posts/ImageViewer";
 import { PostCard } from "../posts/PostCard";
 import {
   PostsEmptyState,
   PostsErrorState,
   PostsLoadingState,
+  PostsSkeletonList,
 } from "../posts/PostStates";
 import { SortModal } from "../posts/SortModal";
-import { EmptyState } from "../shared/EmptyState";
 import { InputText } from "../shared/InputText";
 
 import { AppScreenLayout } from "../shared/AppScreenLayout";
+
+function getSortIcon(mode: string) {
+  switch (mode) {
+    case "newest":
+      return ArrowDownWideNarrow;
+    case "oldest":
+      return ArrowUpNarrowWide;
+    case "plotAsc":
+    case "cropAsc":
+      return ArrowDownAZ;
+    case "plotDesc":
+    case "cropDesc":
+      return ArrowUpAZ;
+    default:
+      return ArrowUpDown;
+  }
+}
+
+function matchesDateRange(
+  createdAt: string | number,
+  dateRange?: DateRangeFilter,
+): boolean {
+  if (!dateRange || dateRange.preset === "all") return true;
+
+  const postTime = new Date(createdAt).getTime();
+  if (isNaN(postTime)) return true;
+
+  const now = new Date();
+
+  if (dateRange.preset === "today") {
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).getTime();
+    const endOfToday = startOfToday + 86400000 - 1;
+    return postTime >= startOfToday && postTime <= endOfToday;
+  }
+
+  if (dateRange.preset === "7days") {
+    const sevenDaysAgo = now.getTime() - 7 * 86400000;
+    return postTime >= sevenDaysAgo;
+  }
+
+  if (dateRange.preset === "30days") {
+    const thirtyDaysAgo = now.getTime() - 30 * 86400000;
+    return postTime >= thirtyDaysAgo;
+  }
+
+  if (dateRange.preset === "custom") {
+    if (dateRange.startDate) {
+      const startMs = new Date(`${dateRange.startDate}T00:00:00`).getTime();
+      if (!isNaN(startMs) && postTime < startMs) return false;
+    }
+    if (dateRange.endDate) {
+      const endMs = new Date(`${dateRange.endDate}T23:59:59`).getTime();
+      if (!isNaN(endMs) && postTime > endMs) return false;
+    }
+    return true;
+  }
+
+  return true;
+}
 
 export function PostsScreen() {
   const { user } = useAuth();
@@ -50,6 +119,7 @@ export function PostsScreen() {
   const [query, setQuery] = useState("");
   const [env, setEnv] = useState<"all" | EnvMode>("all");
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [filtering, setFiltering] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [viewerPost, setViewerPost] = useState<Post | null>(null);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -62,50 +132,74 @@ export function PostsScreen() {
   const [selectedCrop, setSelectedCrop] = useState("all");
   const [selectedEnv, setSelectedEnv] = useState("all");
   const [selectedSeverity, setSelectedSeverity] = useState("all");
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRangeFilter>({
+    preset: "all",
+  });
   const [composerOpen, setComposerOpen] = useState(false);
   const [masterPlots, setMasterPlots] = useState<PlotInfo[]>([]);
   const [masterCrops, setMasterCrops] = useState<CropTypeInfo[]>([]);
 
+  const insets = useSafeAreaInsets();
   const effectiveEnv = selectedEnv !== "all" ? selectedEnv : env;
+  const isInitialMount = useRef(true);
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
-    setLoadError(null);
-    try {
-      const data = await getPosts(role, user?.id, {
-        crop: selectedCrop,
-        env: effectiveEnv,
-        plot: selectedPlot,
-        q: query,
-        severity: selectedSeverity,
-        sort: sortMode,
-      });
-      setPosts(
-        data.map((post) =>
-          normalizePostIdentity(post as Post & { _id?: string }),
-        ),
-      );
-    } catch (err: any) {
-      setLoadError(err?.message || "Lỗi tải dữ liệu");
-      setPosts([]);
-    } finally {
-      setRefreshing(false);
-      setLoadingPosts(false);
-    }
-  }, [
-    effectiveEnv,
-    query,
-    role,
-    selectedCrop,
-    selectedPlot,
-    selectedSeverity,
-    sortMode,
-    user?.id,
-  ]);
+  const fetchPostsData = useCallback(
+    async (isPullToRefresh = false) => {
+      if (isPullToRefresh) {
+        setRefreshing(true);
+      } else if (isInitialMount.current) {
+        setLoadingPosts(true);
+      } else {
+        setFiltering(true);
+      }
+      setLoadError(null);
+      try {
+        const data = await getPosts(role, user?.id, {
+          crop: selectedCrop,
+          env: effectiveEnv,
+          plot: selectedPlot,
+          q: query,
+          severity: selectedSeverity,
+          sort: sortMode,
+        });
+        const dateFiltered = data.filter((post) =>
+          matchesDateRange(post.createdAt, selectedDateRange),
+        );
+        setPosts(
+          dateFiltered.map((post) =>
+            normalizePostIdentity(post as Post & { _id?: string }),
+          ),
+        );
+      } catch (err: any) {
+        setLoadError(err?.message || "Lỗi tải dữ liệu");
+        setPosts([]);
+      } finally {
+        setRefreshing(false);
+        setLoadingPosts(false);
+        setFiltering(false);
+        isInitialMount.current = false;
+      }
+    },
+    [
+      effectiveEnv,
+      query,
+      role,
+      selectedCrop,
+      selectedDateRange,
+      selectedPlot,
+      selectedSeverity,
+      sortMode,
+      user?.id,
+    ],
+  );
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    fetchPostsData(false);
+  }, [fetchPostsData]);
+
+  const onPullToRefresh = useCallback(() => {
+    fetchPostsData(true);
+  }, [fetchPostsData]);
 
   const loadPostComposerData = useCallback(async () => {
     if (role !== "admin") return;
@@ -138,8 +232,30 @@ export function PostsScreen() {
     return Array.from(set) as string[];
   }, [posts]);
 
-  const showInitialLoading = loadingPosts && !posts.length && !loadError;
-  const showEmptyPosts = !refreshing && !loadError && !posts.length;
+  const isPostAuthorAdmin = useCallback(
+    (targetPost?: Post | null) => {
+      if (!targetPost || !user || role !== "admin") return false;
+      return Boolean(
+        targetPost.user?.id === user.id ||
+          (targetPost.user?.email && targetPost.user.email === user.email) ||
+          (targetPost.user?.name && targetPost.user.name === user.name),
+      );
+    },
+    [role, user],
+  );
+
+  const handleDeletePost = useCallback(
+    async (postId: string) => {
+      try {
+        await deletePost(postId);
+        Alert.alert("Thành công", "Đã xóa bài post thành công.");
+        fetchPostsData(false);
+      } catch (err: any) {
+        Alert.alert("Lỗi", err?.message || "Không thể xóa bài post.");
+      }
+    },
+    [fetchPostsData],
+  );
 
   return (
     <AppScreenLayout
@@ -154,6 +270,12 @@ export function PostsScreen() {
             post={viewerPost}
             initialIndex={viewerIndex}
             onClose={() => setViewerPost(null)}
+            canDelete={isPostAuthorAdmin(viewerPost)}
+            onDelete={() => {
+              if (viewerPost) {
+                handleDeletePost(viewerPost.id);
+              }
+            }}
           />
           <FilterModal
             visible={filterOpen}
@@ -164,12 +286,14 @@ export function PostsScreen() {
             selectedCrop={selectedCrop}
             selectedEnv={selectedEnv}
             selectedSeverity={selectedSeverity}
+            selectedDateRange={selectedDateRange}
             onApply={(filters) => {
               setSelectedPlot(filters.plot);
               setSelectedCrop(filters.crop);
               setSelectedEnv(filters.env);
               setEnv(filters.env as "all" | EnvMode);
               setSelectedSeverity(filters.severity);
+              setSelectedDateRange(filters.dateRange);
             }}
             onReset={() => {
               setSelectedPlot("all");
@@ -177,6 +301,7 @@ export function PostsScreen() {
               setSelectedEnv("all");
               setEnv("all");
               setSelectedSeverity("all");
+              setSelectedDateRange({ preset: "all" });
             }}
           />
           <SortModal
@@ -192,7 +317,7 @@ export function PostsScreen() {
             onClose={() => setComposerOpen(false)}
             onSaved={() => {
               setComposerOpen(false);
-              refresh();
+              fetchPostsData(false);
             }}
           />
         </>
@@ -221,7 +346,7 @@ export function PostsScreen() {
             onPress={() => setFilterOpen(true)}
           >
             <SlidersHorizontal size={16} color="#414940" />
-            <Text style={postsScreenStyles.filterText}>Bộ lọc</Text>
+            {/* <Text style={postsScreenStyles.filterText}>Bộ lọc</Text> */}
           </Pressable>
         </View>
         <View style={postsScreenStyles.filterChipRow}>
@@ -253,54 +378,89 @@ export function PostsScreen() {
               </Pressable>
             ))}
           </View>
-          <Pressable
-            style={postsScreenStyles.sortIconButton}
-            onPress={() => setSortOpen(true)}
-          >
-            <Text style={postsScreenStyles.sortIconText}>
-              <SortAscIcon />
-            </Text>
-          </Pressable>
+          {(() => {
+            const SortIcon = getSortIcon(sortMode);
+            const isCustomSort = sortMode !== "newest";
+            return (
+              <Pressable
+                style={[
+                  postsScreenStyles.sortIconButton,
+                  isCustomSort && postsScreenStyles.sortIconButtonActive,
+                ]}
+                onPress={() => setSortOpen(true)}
+              >
+                <SortIcon
+                  size={18}
+                  color={isCustomSort ? COLORS.green : "#414940"}
+                />
+              </Pressable>
+            );
+          })()}
         </View>
       </View>
-      {showInitialLoading ? (
-        <PostsLoadingState />
-      ) : loadError ? (
-        <PostsErrorState onRetry={refresh} />
-      ) : showEmptyPosts ? (
-        <PostsEmptyState showStartButton={false} />
-      ) : (
-        <ScrollView
-          style={postsScreenStyles.postList}
-          contentContainerStyle={postsScreenStyles.postListContent}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-          }
-        >
-          {posts.length ? (
-            posts.map((post, index) => (
-              <PostCard
-                key={postListKey(post as Post & { _id?: string }, index)}
-                post={post}
-                admin={role === "admin"}
-                onImage={(imageIndex = 0) => {
-                  setViewerPost(post);
-                  setViewerIndex(imageIndex);
-                }}
-              />
-            ))
-          ) : (
-            <EmptyState title="Không có bài đăng phù hợp" />
-          )}
-        </ScrollView>
-      )}
+      <ScrollView
+        style={postsScreenStyles.postList}
+        contentContainerStyle={postsScreenStyles.postListContent}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onPullToRefresh}
+            tintColor={COLORS.green}
+          />
+        }
+      >
+        {loadingPosts ? (
+          <PostsSkeletonList />
+        ) : loadError ? (
+          <PostsErrorState onRetry={() => fetchPostsData(false)} />
+        ) : filtering ? (
+          <View style={{ opacity: 0.6, gap: LAYOUT.sectionGap }}>
+            {posts.length > 0 ? (
+              posts.map((post, index) => (
+                <PostCard
+                  key={postListKey(post as Post & { _id?: string }, index)}
+                  post={post}
+                  admin={role === "admin"}
+                  canDelete={isPostAuthorAdmin(post)}
+                  onImage={(imageIndex = 0) => {
+                    setViewerPost(post);
+                    setViewerIndex(imageIndex);
+                  }}
+                  onDelete={() => handleDeletePost(post.id)}
+                />
+              ))
+            ) : (
+              <PostsSkeletonList />
+            )}
+          </View>
+        ) : posts.length > 0 ? (
+          posts.map((post, index) => (
+            <PostCard
+              key={postListKey(post as Post & { _id?: string }, index)}
+              post={post}
+              admin={role === "admin"}
+              canDelete={isPostAuthorAdmin(post)}
+              onImage={(imageIndex = 0) => {
+                setViewerPost(post);
+                setViewerIndex(imageIndex);
+              }}
+              onDelete={() => handleDeletePost(post.id)}
+            />
+          ))
+        ) : (
+          <PostsEmptyState showStartButton={false} />
+        )}
+      </ScrollView>
       {role === "admin" && !viewerPost ? (
         <Pressable
-          style={postLocalStyles.floatingPublishButton}
+          style={[
+            postLocalStyles.floatingPublishButton,
+            { bottom: 64 + insets.bottom },
+          ]}
           onPress={openPostComposer}
         >
-          <Plus size={28} color="#fff" />
+          <Plus size={20} color="#fff" />
         </Pressable>
       ) : null}
     </AppScreenLayout>
@@ -312,9 +472,9 @@ const postLocalStyles = StyleSheet.create({
     position: "absolute",
     right: LAYOUT.sheetX,
     bottom: 96,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.green,
     alignItems: "center",
     justifyContent: "center",
@@ -329,8 +489,8 @@ const postLocalStyles = StyleSheet.create({
 const postsScreenStyles = StyleSheet.create({
   listHeader: {
     paddingHorizontal: LAYOUT.screenX,
-    paddingTop: LAYOUT.screenTop,
-    gap: LAYOUT.sectionGap,
+    paddingTop: 8,
+    gap: 10,
   },
   searchFilterRow: {
     flexDirection: "row",
@@ -354,7 +514,7 @@ const postsScreenStyles = StyleSheet.create({
     padding: 0,
   },
   filterButton: {
-    width: 86,
+    // width: 86,
     height: 39,
     borderRadius: 12,
     borderWidth: 1,
@@ -406,6 +566,11 @@ const postsScreenStyles = StyleSheet.create({
     backgroundColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sortIconButtonActive: {
+    backgroundColor: COLORS.greenSoft,
+    borderWidth: 1,
+    borderColor: COLORS.green,
   },
   sortIconText: {
     color: "#414940",
