@@ -120,18 +120,39 @@ export function toVietnameseDisease(diseaseName?: string): string {
 export function generatePhotoLabelName(
   plotId?: string,
   cropType?: string,
-  envMode?: string,
-  growthStage?: string,
+  envMode?: string | number,
+  growthStage?: string | Date | number,
   diseaseName?: string,
   index: number = 1,
   dateInput: Date | string | number = new Date(),
+  extension: string = "jpg",
 ): string {
+  // Keep compatibility with the legacy `(crop, stage, index, date)` call.
+  if (typeof envMode === "number") {
+    const legacyDate =
+      growthStage instanceof Date ||
+      typeof growthStage === "number" ||
+      typeof growthStage === "string"
+        ? growthStage
+        : new Date();
+    const legacyStage = cropType || "Stage";
+    const legacyCrop = String(plotId || "Crop")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]/g, "");
+    const normalizedExtension = extension.replace(/^\./, "").toLowerCase();
+    return `${legacyCrop}_${legacyStage}_${formatVietnamFileTimestamp(legacyDate)}_${envMode}.${normalizedExtension}`;
+  }
+
   const plotPart = toVietnamesePlot(plotId);
   const cropPart = toVietnameseCrop(cropType);
   const envPart = toVietnameseEnv(envMode);
-  const stagePart = toVietnameseStage(growthStage);
+  const stagePart = toVietnameseStage(
+    typeof growthStage === "string" ? growthStage : undefined,
+  );
   const diseasePart = toVietnameseDisease(diseaseName);
   const vnTimestamp = formatVietnamFileTimestamp(dateInput);
 
-  return `${plotPart}+${cropPart}+${envPart}+${stagePart}+${diseasePart}+${vnTimestamp}_${index}.jpg`;
+  const normalizedExtension = extension.replace(/^\./, "").toLowerCase();
+  return `${plotPart}+${cropPart}+${envPart}+${stagePart}+${diseasePart}+${vnTimestamp}_${index}.${normalizedExtension}`;
 }

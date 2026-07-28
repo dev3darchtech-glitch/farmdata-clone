@@ -531,35 +531,58 @@ function buildPostWatermarkSvg(
 async function applyPostImageWatermark(
   image: { buffer: Buffer; mimeType: string },
   watermark: PostImageWatermarkInput,
+  outputFormat: "jpeg" | "png" | "webp",
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   const metadata = await sharp(image.buffer).metadata();
   const width = metadata.width || 1200;
   const height = metadata.height || 900;
   const overlay = Buffer.from(buildPostWatermarkSvg(width, height, watermark));
-  const buffer = await sharp(image.buffer)
+  const markedImage = sharp(image.buffer)
     .rotate()
-    .composite([{ input: overlay, gravity: "center" }])
-    .jpeg({ quality: 90, mozjpeg: true })
-    .toBuffer();
+    .composite([{ input: overlay, gravity: "center" }]);
+  const buffer =
+    outputFormat === "png"
+      ? await markedImage.png().toBuffer()
+      : outputFormat === "webp"
+        ? await markedImage.webp({ quality: 90 }).toBuffer()
+        : await markedImage.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
 
   return {
     buffer,
-    mimeType: "image/jpeg",
+    mimeType: image.mimeType,
   };
 }
 
 async function normalizeImageForDrive(image: {
   buffer: Buffer;
   mimeType: string;
-}): Promise<{ buffer: Buffer; mimeType: "image/jpeg" }> {
-  // Drive filenames use the .jpg extension. Re-encode the bytes as JPEG so
-  // WebP uploads cannot be stored with a mismatched extension or MIME type.
-  const buffer = await sharp(image.buffer)
-    .rotate()
-    .jpeg({ quality: 90, mozjpeg: true })
-    .toBuffer();
+}): Promise<{ buffer: Buffer; mimeType: string; extension: string }> {
+  const metadata = await sharp(image.buffer).metadata();
+  const format = metadata.format;
 
-  return { buffer, mimeType: "image/jpeg" };
+  if (format === "jpeg") {
+    return {
+      buffer: await sharp(image.buffer).rotate().jpeg({ quality: 90, mozjpeg: true }).toBuffer(),
+      mimeType: "image/jpeg",
+      extension: "jpg",
+    };
+  }
+  if (format === "png") {
+    return {
+      buffer: await sharp(image.buffer).rotate().png().toBuffer(),
+      mimeType: "image/png",
+      extension: "png",
+    };
+  }
+  if (format === "webp") {
+    return {
+      buffer: await sharp(image.buffer).rotate().webp({ quality: 90 }).toBuffer(),
+      mimeType: "image/webp",
+      extension: "webp",
+    };
+  }
+
+  throw new Error(`Unsupported image format: ${format || image.mimeType}`);
 }
 
 async function makeDriveFileReadable(
@@ -621,6 +644,7 @@ async function addMarkOverlay(
       country?: string;
     };
   },
+  outputFormat: "jpeg" | "png" | "webp" = "jpeg",
 ): Promise<Buffer> {
   try {
     const sharpImg = sharp(imageBuffer);
@@ -710,7 +734,7 @@ async function addMarkOverlay(
       .join("\n");
 
     const svgText = `
-      <svg width="${width}" height="${height}">
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
           .watermark-bar {
             fill: rgba(0, 0, 0, 0.75);
@@ -761,10 +785,10 @@ async function addMarkOverlay(
       });
     }
 
-    return await sharpImg
-      .composite(compositeList)
-      .jpeg({ quality: 90, mozjpeg: true })
-      .toBuffer();
+    const markedImage = sharpImg.composite(compositeList);
+    if (outputFormat === "png") return markedImage.png().toBuffer();
+    if (outputFormat === "webp") return markedImage.webp({ quality: 90 }).toBuffer();
+    return markedImage.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
   } catch (err) {
     console.warn(
       "Failed to create mark overlay, returning original buffer:",
@@ -805,6 +829,14 @@ async function uploadImagesToDrive(
   const uploadedFiles: IDriveFile[] = [];
 
   for (let i = 0; i < imageUris.length; i++) {
+    const rawImage = await imageUriToBuffer(imageUris[i]);
+    const normalizedImage = await normalizeImageForDrive(rawImage);
+    const outputFormat =
+      normalizedImage.extension === "png"
+        ? "png"
+        : normalizedImage.extension === "webp"
+          ? "webp"
+          : "jpeg";
     const labelName = generatePhotoLabelName(
       plotId,
       cropType,
@@ -812,14 +844,14 @@ async function uploadImagesToDrive(
       growthStage,
       diseaseName,
       i + 1,
+      undefined,
+      normalizedImage.extension,
     );
     const fileDescription =
       typeof description === "function" ? description(i + 1) : description;
-    const rawImage = await imageUriToBuffer(imageUris[i]);
-    const normalizedImage = await normalizeImageForDrive(rawImage);
     const uploadImage =
       watermark && destination === "post"
-        ? await applyPostImageWatermark(normalizedImage, watermark)
+        ? await applyPostImageWatermark(normalizedImage, watermark, outputFormat)
         : normalizedImage;
 
     // 1. Upload original image
@@ -857,7 +889,7 @@ async function uploadImagesToDrive(
       captureLocation: options.captureLocation,
       weatherCode: options.weatherCode,
       temperature: options.temperature,
-    });
+    }, outputFormat);
     const baseName = labelName.substring(0, labelName.lastIndexOf("."));
     const extension = labelName.substring(labelName.lastIndexOf("."));
     const markLabelName = `${baseName}_MARK${extension}`;
@@ -867,7 +899,7 @@ async function uploadImagesToDrive(
       requestBody: {
         name: markLabelName,
         parents: [folderId],
-        mimeType: "image/jpeg",
+        mimeType: uploadImage.mimeType,
         ...(fileDescription ? { description: fileDescription } : {}),
       },
       media: mediaMark,
