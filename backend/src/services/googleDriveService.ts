@@ -381,14 +381,16 @@ function escapeSvgText(value: unknown): string {
 }
 
 function toAsciiWatermarkText(value: unknown): string {
-  return String(value ?? "")
-    .replace(/Đ/g, "D")
-    .replace(/đ/g, "d")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    // Cloud Run may not have the same glyph fonts as the local test image.
-    // Keep the SVG text strictly ASCII so unsupported glyphs cannot render as boxes.
-    .replace(/[^\x20-\x7E]/g, "");
+  return (
+    String(value ?? "")
+      .replace(/Đ/g, "D")
+      .replace(/đ/g, "d")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      // Cloud Run may not have the same glyph fonts as the local test image.
+      // Keep the SVG text strictly ASCII so unsupported glyphs cannot render as boxes.
+      .replace(/[^\x20-\x7E]/g, "")
+  );
 }
 
 function wrapText(value: string, maxChars: number): string[] {
@@ -565,7 +567,10 @@ async function normalizeImageForDrive(image: {
 
   if (format === "jpeg") {
     return {
-      buffer: await sharp(image.buffer).rotate().jpeg({ quality: 90, mozjpeg: true }).toBuffer(),
+      buffer: await sharp(image.buffer)
+        .rotate()
+        .jpeg({ quality: 90, mozjpeg: true })
+        .toBuffer(),
       mimeType: "image/jpeg",
       extension: "jpg",
     };
@@ -579,7 +584,10 @@ async function normalizeImageForDrive(image: {
   }
   if (format === "webp") {
     return {
-      buffer: await sharp(image.buffer).rotate().webp({ quality: 90 }).toBuffer(),
+      buffer: await sharp(image.buffer)
+        .rotate()
+        .webp({ quality: 90 })
+        .toBuffer(),
       mimeType: "image/webp",
       extension: "webp",
     };
@@ -790,7 +798,8 @@ async function addMarkOverlay(
 
     const markedImage = sharpImg.composite(compositeList);
     if (outputFormat === "png") return markedImage.png().toBuffer();
-    if (outputFormat === "webp") return markedImage.webp({ quality: 90 }).toBuffer();
+    if (outputFormat === "webp")
+      return markedImage.webp({ quality: 90 }).toBuffer();
     return markedImage.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
   } catch (err) {
     console.warn(
@@ -852,18 +861,16 @@ async function uploadImagesToDrive(
     );
     const fileDescription =
       typeof description === "function" ? description(i + 1) : description;
-    const uploadImage =
-      watermark && destination === "post"
-        ? await applyPostImageWatermark(normalizedImage, watermark, outputFormat)
-        : normalizedImage;
-
     // 1. Upload original image
-    const media = bufferToUploadMedia(uploadImage.buffer, uploadImage.mimeType);
+    const media = bufferToUploadMedia(
+      normalizedImage.buffer,
+      normalizedImage.mimeType,
+    );
     const response = await drive.files.create({
       requestBody: {
         name: labelName,
         parents: [folderId],
-        mimeType: uploadImage.mimeType,
+        mimeType: normalizedImage.mimeType,
         ...(fileDescription ? { description: fileDescription } : {}),
       },
       media,
@@ -882,45 +889,6 @@ async function uploadImagesToDrive(
         ? `https://drive.google.com/uc?export=view&id=${response.data.id}`
         : undefined);
 
-    // 2. Process marked image with overlay
-    const markedBuffer = await addMarkOverlay(uploadImage.buffer, {
-      adminEmail: options.adminEmail,
-      plotId,
-      cropType,
-      diseaseName,
-      envMode,
-      captureLocation: options.captureLocation,
-      weatherCode: options.weatherCode,
-      temperature: options.temperature,
-    }, outputFormat);
-    const baseName = labelName.substring(0, labelName.lastIndexOf("."));
-    const extension = labelName.substring(labelName.lastIndexOf("."));
-    const markLabelName = `${baseName}_MARK${extension}`;
-
-    const mediaMark = bufferToUploadMedia(markedBuffer, uploadImage.mimeType);
-    const responseMark = await drive.files.create({
-      requestBody: {
-        name: markLabelName,
-        parents: [folderId],
-        mimeType: uploadImage.mimeType,
-        ...(fileDescription ? { description: fileDescription } : {}),
-      },
-      media: mediaMark,
-      fields: "id, webViewLink, webContentLink",
-    });
-
-    const fileIdMark = responseMark.data.id || `DRIVE-${Date.now()}-${i}-MARK`;
-    if (responseMark.data.id) {
-      await makeDriveFileReadable(drive, responseMark.data.id);
-    }
-
-    const watermarkWebViewLink = responseMark.data.webViewLink || undefined;
-    const watermarkWebContentLink =
-      responseMark.data.webContentLink ||
-      (responseMark.data.id
-        ? `https://drive.google.com/uc?export=view&id=${responseMark.data.id}`
-        : undefined);
-
     uploadedFiles.push({
       fileId,
       webViewLink,
@@ -928,10 +896,93 @@ async function uploadImagesToDrive(
       fileName: labelName,
       folderPath,
       description: fileDescription,
-      watermarkFileId: fileIdMark,
-      watermarkWebViewLink,
-      watermarkWebContentLink,
     });
+
+    // 2. Watermark is best-effort. A rendering failure must not discard the
+    // original image or make createSession fail after the Drive upload.
+    try {
+      const markedBuffer =
+        watermark && destination === "post"
+          ? (
+              await applyPostImageWatermark(
+                normalizedImage,
+                watermark,
+                outputFormat,
+              )
+            ).buffer
+          : await addMarkOverlay(
+              normalizedImage.buffer,
+              {
+                adminEmail: options.adminEmail,
+                plotId,
+                cropType,
+                diseaseName,
+                envMode,
+                captureLocation: options.captureLocation,
+                weatherCode: options.weatherCode,
+                temperature: options.temperature,
+              },
+              outputFormat,
+            );
+      const markedMetadata = await sharp(markedBuffer).metadata();
+      const markedMimeType =
+        markedMetadata.format === "png"
+          ? "image/png"
+          : markedMetadata.format === "webp"
+            ? "image/webp"
+            : markedMetadata.format === "jpeg"
+              ? "image/jpeg"
+              : undefined;
+      if (!markedMimeType || markedMimeType !== normalizedImage.mimeType) {
+        throw new Error(
+          `Watermark output format mismatch: ${markedMetadata.format || "unknown"} vs ${normalizedImage.mimeType}`,
+        );
+      }
+      console.log("[GoogleDriveService] Watermark encoded:", {
+        format: markedMetadata.format,
+        mimeType: markedMimeType,
+        width: markedMetadata.width,
+        height: markedMetadata.height,
+        bytes: markedBuffer.length,
+      });
+
+      const baseName = labelName.substring(0, labelName.lastIndexOf("."));
+      const extension = labelName.substring(labelName.lastIndexOf("."));
+      const markLabelName = `${baseName}_MARK${extension}`;
+      const responseMark = await drive.files.create({
+        requestBody: {
+          name: markLabelName,
+          parents: [folderId],
+          mimeType: normalizedImage.mimeType,
+          ...(fileDescription ? { description: fileDescription } : {}),
+        },
+        media: bufferToUploadMedia(markedBuffer, normalizedImage.mimeType),
+        fields: "id, webViewLink, webContentLink",
+      });
+
+      const fileIdMark = responseMark.data.id || `DRIVE-${Date.now()}-${i}-MARK`;
+      if (responseMark.data.id) {
+        await makeDriveFileReadable(drive, responseMark.data.id);
+      }
+      const watermarkWebViewLink = responseMark.data.webViewLink || undefined;
+      const watermarkWebContentLink =
+        responseMark.data.webContentLink ||
+        (responseMark.data.id
+          ? `https://drive.google.com/uc?export=view&id=${responseMark.data.id}`
+          : undefined);
+      uploadedFiles[uploadedFiles.length - 1] = {
+        ...uploadedFiles[uploadedFiles.length - 1],
+        watermarkFileId: fileIdMark,
+        watermarkWebViewLink,
+        watermarkWebContentLink,
+      };
+    } catch (error) {
+      console.error("[GoogleDriveService] Watermark upload skipped:", {
+        message: error instanceof Error ? error.message : String(error),
+        originalFileId: fileId,
+        originalMimeType: normalizedImage.mimeType,
+      });
+    }
   }
 
   return uploadedFiles;

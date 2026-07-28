@@ -220,7 +220,7 @@ export function severityDotColor(severity?: SymptomSeverity) {
 export function metricLabel(key: WeatherMetricKey) {
   return {
     temperature: "Nhiệt độ",
-    lightUvIndex: "Ánh sáng/UV",
+    lightUvIndex: "Ánh sáng",
     windSpeed: "Gió",
     co2Level: "CO₂",
     humidity: "Độ ẩm",
@@ -287,6 +287,7 @@ export function formatDate(value: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Ho_Chi_Minh",
   }).format(date);
 }
 

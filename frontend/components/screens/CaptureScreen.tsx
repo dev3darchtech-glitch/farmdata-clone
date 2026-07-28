@@ -15,8 +15,8 @@ import {
   validateCaptureSession,
 } from "@/services/postService";
 import {
+  createEmptyOutdoorWeatherData,
   fetchOutdoorWeather,
-  MOCK_OUTDOOR_WEATHER,
 } from "@/services/weatherService";
 import {
   CropTypeInfo,
@@ -145,23 +145,24 @@ export function CaptureScreen() {
   const [cropType, setCropType] = useState("");
   const [growthStage, setGrowthStage] = useState<GrowthStageId | undefined>();
   const [envMode, setEnvMode] = useState<EnvMode>("outdoor");
+  const initialStationData = createEmptyOutdoorWeatherData();
   const [stationWeather, setStationWeather] = useState<WeatherCondition>(
-    MOCK_OUTDOOR_WEATHER.current,
+    initialStationData.current,
   );
   const [stationT24, setStationT24] = useState<WeatherCondition | undefined>(
-    MOCK_OUTDOOR_WEATHER.t24,
+    initialStationData.t24,
   );
   const [stationT48, setStationT48] = useState<WeatherCondition | undefined>(
-    MOCK_OUTDOOR_WEATHER.t48,
+    initialStationData.t48,
   );
   const [stationUpdatedAt, setStationUpdatedAt] = useState(
-    MOCK_OUTDOOR_WEATHER.timestamp,
+    initialStationData.timestamp,
   );
   const [stationLatitude, setStationLatitude] = useState(
-    MOCK_OUTDOOR_WEATHER.latitude,
+    initialStationData.latitude,
   );
   const [stationLongitude, setStationLongitude] = useState(
-    MOCK_OUTDOOR_WEATHER.longitude,
+    initialStationData.longitude,
   );
   const [captureLocation, setCaptureLocation] = useState<
     LocationData | undefined
@@ -192,6 +193,7 @@ export function CaptureScreen() {
   const isMountedRef = useRef<boolean>(true);
   const hasHydratedDraftRef = useRef(false);
   const clearDraftAfterSubmitRef = useRef(false);
+  const hydratedDraftLocationRef = useRef<LocationData | undefined>(undefined);
   const draftStorageKey = `${CAPTURE_DRAFT_STORAGE_PREFIX}:${user?.id || "guest"}`;
 
   const applyWeatherForLocation = useCallback((location: LocationData) => {
@@ -217,10 +219,14 @@ export function CaptureScreen() {
       .catch(() => {
         try {
           if (!isMountedRef.current) return;
-          setStationWeather(MOCK_OUTDOOR_WEATHER.current);
-          setStationT24(MOCK_OUTDOOR_WEATHER.t24);
-          setStationT48(MOCK_OUTDOOR_WEATHER.t48);
-          setStationUpdatedAt(MOCK_OUTDOOR_WEATHER.timestamp);
+          const emptyStationData = createEmptyOutdoorWeatherData(
+            location.latitude,
+            location.longitude,
+          );
+          setStationWeather(emptyStationData.current);
+          setStationT24(emptyStationData.t24);
+          setStationT48(emptyStationData.t48);
+          setStationUpdatedAt(emptyStationData.timestamp);
           setStationLatitude(location.latitude);
           setStationLongitude(location.longitude);
         } catch {}
@@ -260,16 +266,9 @@ export function CaptureScreen() {
         if (typeof draft.cropType === "string") setCropType(draft.cropType);
         if (draft.growthStage) setGrowthStage(draft.growthStage);
         if (draft.envMode) setEnvMode(draft.envMode);
-        if (draft.captureLocation) setCaptureLocation(draft.captureLocation);
-        if (draft.stationWeather) setStationWeather(draft.stationWeather);
-        if (draft.stationT24) setStationT24(draft.stationT24);
-        if (draft.stationT48) setStationT48(draft.stationT48);
-        if (draft.stationUpdatedAt) setStationUpdatedAt(draft.stationUpdatedAt);
-        if (draft.stationLatitude !== undefined) {
-          setStationLatitude(draft.stationLatitude);
-        }
-        if (draft.stationLongitude !== undefined) {
-          setStationLongitude(draft.stationLongitude);
+        if (draft.captureLocation) {
+          setCaptureLocation(draft.captureLocation);
+          hydratedDraftLocationRef.current = draft.captureLocation;
         }
         if (draft.localMeasurements !== undefined) {
           setLocalMeasurements(draft.localMeasurements);
@@ -295,6 +294,9 @@ export function CaptureScreen() {
       .finally(() => {
         if (isMounted) {
           hasHydratedDraftRef.current = true;
+          if (hydratedDraftLocationRef.current) {
+            applyWeatherForLocation(hydratedDraftLocationRef.current);
+          }
         }
       });
 
@@ -326,16 +328,25 @@ export function CaptureScreen() {
           try {
             if (!isMounted) return;
             setCaptureLocation(loc);
+            hydratedDraftLocationRef.current = loc;
             return applyWeatherForLocation(loc);
           } catch {}
         })
         .catch(() => {
           try {
             if (!isMounted) return;
-            setStationWeather(MOCK_OUTDOOR_WEATHER.current);
-            setStationUpdatedAt(MOCK_OUTDOOR_WEATHER.timestamp);
-            setStationLatitude(MOCK_OUTDOOR_WEATHER.latitude);
-            setStationLongitude(MOCK_OUTDOOR_WEATHER.longitude);
+            if (hydratedDraftLocationRef.current) {
+              applyWeatherForLocation(hydratedDraftLocationRef.current);
+              return;
+            }
+
+            const emptyStationData = createEmptyOutdoorWeatherData();
+            setStationWeather(emptyStationData.current);
+            setStationT24(emptyStationData.t24);
+            setStationT48(emptyStationData.t48);
+            setStationUpdatedAt(emptyStationData.timestamp);
+            setStationLatitude(undefined);
+            setStationLongitude(undefined);
           } catch {}
         });
 
@@ -360,15 +371,18 @@ export function CaptureScreen() {
       }, 60000);
     } else {
       // In Jest tests, initialize synchronously to prevent async leaks
-      setStationWeather(MOCK_OUTDOOR_WEATHER.current);
-      setStationUpdatedAt(MOCK_OUTDOOR_WEATHER.timestamp);
-      setStationLatitude(MOCK_OUTDOOR_WEATHER.latitude);
-      setStationLongitude(MOCK_OUTDOOR_WEATHER.longitude);
+      const emptyStationData = createEmptyOutdoorWeatherData();
+      setStationWeather(emptyStationData.current);
+      setStationT24(emptyStationData.t24);
+      setStationT48(emptyStationData.t48);
+      setStationUpdatedAt(emptyStationData.timestamp);
+      setStationLatitude(undefined);
+      setStationLongitude(undefined);
       setCaptureLocation({
-        latitude: MOCK_OUTDOOR_WEATHER.latitude ?? 0,
-        longitude: MOCK_OUTDOOR_WEATHER.longitude ?? 0,
+        latitude: 0,
+        longitude: 0,
         accuracy: 0,
-        timestamp: MOCK_OUTDOOR_WEATHER.timestamp ?? new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -380,6 +394,7 @@ export function CaptureScreen() {
       }
     };
   }, [applyWeatherForLocation, draftStorageKey, isAuthenticated, user?.id]);
+
 
   const captureDraft: CaptureScreenDraft = useMemo(
     () => ({

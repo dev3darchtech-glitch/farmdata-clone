@@ -12,52 +12,40 @@ export const PHYSICAL_BOUNDS = {
   CO2_LEVEL: { MIN: 200, MAX: 5000 },
 } as const;
 
-export const MOCK_OUTDOOR_WEATHER: EnvironmentalData = {
-  mode: "outdoor",
-  latitude: 10.790861,
-  longitude: 106.71088,
-  current: {
-    temperature: 28.5,
-    lightUvIndex: 6.5,
-    windSpeed: 12.0,
-    co2Level: 415,
-    humidity: 74,
-    weatherCode: 0,
-  },
-  t24: {
-    temperature: 27.0,
-    lightUvIndex: 5.8,
-    windSpeed: 10.5,
-    co2Level: 412,
-    humidity: 76,
-    weatherCode: 1,
-  },
-  t48: {
-    temperature: 29.1,
-    lightUvIndex: 7.2,
-    windSpeed: 14.2,
-    co2Level: 418,
-    humidity: 71,
-    weatherCode: 2,
-  },
-  isOverridden: false,
-  isFallback: true,
-  timestamp: new Date().toISOString(),
-};
+export function createEmptyWeatherCondition(): WeatherCondition {
+  return {
+    temperature: NaN,
+    lightUvIndex: NaN,
+    windSpeed: NaN,
+    co2Level: NaN,
+  };
+}
+
+export function createEmptyOutdoorWeatherData(
+  lat?: number,
+  lon?: number,
+): EnvironmentalData {
+  return {
+    mode: "outdoor",
+    latitude: lat,
+    longitude: lon,
+    current: createEmptyWeatherCondition(),
+    t24: createEmptyWeatherCondition(),
+    t48: createEmptyWeatherCondition(),
+    isOverridden: false,
+    isFallback: true,
+    timestamp: new Date().toISOString(),
+  };
+}
 
 export function createDefaultGreenhouseData(): EnvironmentalData {
   return {
     mode: "greenhouse",
     latitude: undefined,
     longitude: undefined,
-    current: {
-      temperature: NaN,
-      lightUvIndex: NaN,
-      windSpeed: NaN,
-      co2Level: NaN,
-    },
-    t24: { temperature: NaN, lightUvIndex: NaN, windSpeed: NaN, co2Level: NaN },
-    t48: { temperature: NaN, lightUvIndex: NaN, windSpeed: NaN, co2Level: NaN },
+    current: createEmptyWeatherCondition(),
+    t24: createEmptyWeatherCondition(),
+    t48: createEmptyWeatherCondition(),
     isOverridden: false,
     isFallback: false,
     timestamp: new Date().toISOString(),
@@ -92,7 +80,7 @@ export function validateWeatherCondition(
     condition.lightUvIndex > PHYSICAL_BOUNDS.LIGHT_UV_INDEX.MAX
   ) {
     errors[`${prefix}.lightUvIndex`] =
-      `Cường độ sáng/UV phải từ ${PHYSICAL_BOUNDS.LIGHT_UV_INDEX.MIN} đến ${PHYSICAL_BOUNDS.LIGHT_UV_INDEX.MAX}`;
+      `Cường độ ánh sáng phải từ ${PHYSICAL_BOUNDS.LIGHT_UV_INDEX.MIN} đến ${PHYSICAL_BOUNDS.LIGHT_UV_INDEX.MAX}`;
   }
 
   if (
@@ -182,37 +170,36 @@ export function validateGreenhouseParams(
   };
 }
 
+function toVietnamIsoString(value?: string): string | undefined {
+  if (!value) return undefined;
+  if (/[zZ]|[+-]\d{2}:\d{2}$/.test(value)) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+  }
+
+  const parsed = new Date(`${value}+07:00`);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
 export async function fetchOutdoorWeather(
   lat: number,
   lon: number,
 ): Promise<EnvironmentalData> {
   if (!validateCoordinates(lat, lon)) {
-    return {
-      ...MOCK_OUTDOOR_WEATHER,
-      latitude: lat,
-      longitude: lon,
-      isFallback: true,
-      timestamp: new Date().toISOString(),
-    };
+    return createEmptyOutdoorWeatherData(lat, lon);
   }
 
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,windspeed_10m,uv_index,weather_code&past_days=2`;
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,windspeed_10m,shortwave_radiation,weather_code&past_days=2&timezone=Asia%2FHo_Chi_Minh`;
 
     const response = await fetch(apiUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      return {
-        ...MOCK_OUTDOOR_WEATHER,
-        latitude: lat,
-        longitude: lon,
-        isFallback: true,
-        timestamp: new Date().toISOString(),
-      };
+      return createEmptyOutdoorWeatherData(lat, lon);
     }
 
     const json = await response.json();
@@ -220,31 +207,42 @@ export async function fetchOutdoorWeather(
     const curTemp = json?.current_weather?.temperature ?? 28.5;
     const curWind = json?.current_weather?.windspeed ?? 12.0;
     const curWeatherCode = json?.current_weather?.weathercode ?? 0;
+    const currentWeatherTime = json?.current_weather?.time;
 
     const hourlyTemps: number[] = json?.hourly?.temperature_2m ?? [];
     const hourlyHumidity: number[] = json?.hourly?.relative_humidity_2m ?? [];
     const hourlyWinds: number[] = json?.hourly?.windspeed_10m ?? [];
-    const hourlyUvs: number[] = json?.hourly?.uv_index ?? [];
+    const hourlyLightLevels: number[] = json?.hourly?.shortwave_radiation ?? [];
     const hourlyWeatherCodes: number[] = json?.hourly?.weather_code ?? [];
     const hourlyTimes: string[] = json?.hourly?.time ?? [];
 
-    const len = hourlyTemps.length;
-    const t24Index = Math.max(0, len - 25);
-    const t48Index = Math.max(0, len - 49);
+    const fallbackCurrentIndex = Math.max(0, hourlyTimes.length - 1);
+    const resolvedCurrentIndex = currentWeatherTime
+      ? hourlyTimes.indexOf(currentWeatherTime)
+      : -1;
+    const currentIndex =
+      resolvedCurrentIndex >= 0 ? resolvedCurrentIndex : fallbackCurrentIndex;
+    const t24Index = Math.max(0, currentIndex - 24);
+    const t48Index = Math.max(0, currentIndex - 48);
 
-    const curUv = len > 0 ? (hourlyUvs[len - 1] ?? 6.5) : 6.5;
-    const curHumidity = len > 0 ? (hourlyHumidity[len - 1] ?? 74) : 74;
+    const curLightLevel =
+      hourlyLightLevels.length > 0
+        ? (hourlyLightLevels[currentIndex] ?? 350)
+        : 350;
+    const curHumidity =
+      hourlyHumidity.length > 0 ? (hourlyHumidity[currentIndex] ?? 74) : 74;
 
-    const currentTimestamp = json?.current_weather?.time
-      ? new Date(json.current_weather.time).toISOString()
-      : new Date().toISOString();
+    const currentTimestamp =
+      toVietnamIsoString(currentWeatherTime) ?? new Date().toISOString();
 
     const t24Timestamp = hourlyTimes[t24Index]
-      ? new Date(hourlyTimes[t24Index]).toISOString()
+      ? (toVietnamIsoString(hourlyTimes[t24Index]) ??
+        new Date(Date.now() - 24 * 3600 * 1000).toISOString())
       : new Date(Date.now() - 24 * 3600 * 1000).toISOString();
 
     const t48Timestamp = hourlyTimes[t48Index]
-      ? new Date(hourlyTimes[t48Index]).toISOString()
+      ? (toVietnamIsoString(hourlyTimes[t48Index]) ??
+        new Date(Date.now() - 48 * 3600 * 1000).toISOString())
       : new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
     const outdoorData: EnvironmentalData = {
@@ -253,7 +251,7 @@ export async function fetchOutdoorWeather(
       longitude: Number(json?.longitude ?? lon),
       current: {
         temperature: Number(curTemp),
-        lightUvIndex: Number(curUv),
+        lightUvIndex: Number(curLightLevel),
         windSpeed: Number(curWind),
         co2Level: 415,
         humidity: Number(curHumidity),
@@ -262,7 +260,7 @@ export async function fetchOutdoorWeather(
       },
       t24: {
         temperature: hourlyTemps[t24Index] ?? 27.0,
-        lightUvIndex: hourlyUvs[t24Index] ?? 5.8,
+        lightUvIndex: hourlyLightLevels[t24Index] ?? 320,
         windSpeed: hourlyWinds[t24Index] ?? 10.5,
         co2Level: 412,
         humidity: hourlyHumidity[t24Index] ?? 76,
@@ -271,7 +269,7 @@ export async function fetchOutdoorWeather(
       },
       t48: {
         temperature: hourlyTemps[t48Index] ?? 29.1,
-        lightUvIndex: hourlyUvs[t48Index] ?? 7.2,
+        lightUvIndex: hourlyLightLevels[t48Index] ?? 410,
         windSpeed: hourlyWinds[t48Index] ?? 14.2,
         co2Level: 418,
         humidity: hourlyHumidity[t48Index] ?? 71,
@@ -285,12 +283,6 @@ export async function fetchOutdoorWeather(
 
     return outdoorData;
   } catch (error) {
-    return {
-      ...MOCK_OUTDOOR_WEATHER,
-      latitude: lat,
-      longitude: lon,
-      isFallback: true,
-      timestamp: new Date().toISOString(),
-    };
+    return createEmptyOutdoorWeatherData(lat, lon);
   }
 }

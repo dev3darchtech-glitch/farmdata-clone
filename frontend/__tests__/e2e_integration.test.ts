@@ -23,7 +23,6 @@ import {
   validateSymptomPercentage,
 } from "@/services/symptomService";
 import {
-  MOCK_OUTDOOR_WEATHER,
   PHYSICAL_BOUNDS,
   createDefaultGreenhouseData,
   fetchOutdoorWeather,
@@ -237,15 +236,24 @@ describe("End-to-End Integration Suite & Complete User Journey (R1 - R5)", () =>
   // ==========================================
   describe("R3: Environmental Parameters Engine (Outdoor vs Greenhouse)", () => {
     test("3.1 Outdoor API auto-fetch T0, T-24, T-48 weather metrics & physical bounds validation", async () => {
+      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
+        const hour = String(index % 24).padStart(2, "0");
+        return `2026-07-28T${hour}:00`;
+      });
       const mockApiResponse = {
         current_weather: {
           temperature: 29.5,
           windspeed: 14.0,
+          weathercode: 1,
+          time: hourlyTimes[30],
         },
         hourly: {
           temperature_2m: Array(50).fill(28.5),
+          relative_humidity_2m: Array(50).fill(68),
           windspeed_10m: Array(50).fill(12.0),
-          uv_index: Array(50).fill(8.0),
+          shortwave_radiation: Array(50).fill(420),
+          weather_code: Array(50).fill(1),
+          time: hourlyTimes,
         },
       };
 
@@ -260,7 +268,7 @@ describe("End-to-End Integration Suite & Complete User Journey (R1 - R5)", () =>
       expect(envData.isFallback).toBe(false);
       expect(envData.current.temperature).toBe(29.5);
       expect(envData.current.windSpeed).toBe(14.0);
-      expect(envData.current.lightUvIndex).toBe(8.0);
+      expect(envData.current.lightUvIndex).toBe(420);
       expect(envData.current.co2Level).toBe(415);
       expect(envData.t24.temperature).toBe(28.5);
       expect(envData.t48.temperature).toBe(28.5);
@@ -279,9 +287,7 @@ describe("End-to-End Integration Suite & Complete User Journey (R1 - R5)", () =>
 
       expect(envData.mode).toBe("outdoor");
       expect(envData.isFallback).toBe(true);
-      expect(envData.current.temperature).toBe(
-        MOCK_OUTDOOR_WEATHER.current.temperature,
-      );
+      expect(Number.isNaN(envData.current.temperature)).toBe(true);
     });
 
     test("3.3 Greenhouse mode mandatory manual entry validation for all 12 parameters", () => {

@@ -1,6 +1,6 @@
 import {
-  MOCK_OUTDOOR_WEATHER,
   PHYSICAL_BOUNDS,
+  createEmptyOutdoorWeatherData,
   createDefaultGreenhouseData,
   fetchOutdoorWeather,
   validateEnvironmentalData,
@@ -96,18 +96,18 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       expect(extremeWind["test.windSpeed"]).toContain("Tốc độ gió");
     });
 
-    it("detects light / UV index out of bounds (< 0 or > 100,000)", () => {
+    it("detects light level out of bounds (< 0 or > 100,000)", () => {
       const negUv = validateWeatherCondition(
         { ...validCondition, lightUvIndex: -1 },
         "test",
       );
-      expect(negUv["test.lightUvIndex"]).toContain("Cường độ sáng/UV");
+      expect(negUv["test.lightUvIndex"]).toContain("Cường độ ánh sáng");
 
       const extremeUv = validateWeatherCondition(
         { ...validCondition, lightUvIndex: 120000 },
         "test",
       );
-      expect(extremeUv["test.lightUvIndex"]).toContain("Cường độ sáng/UV");
+      expect(extremeUv["test.lightUvIndex"]).toContain("Cường độ ánh sáng");
     });
 
     it("detects CO2 level out of bounds (< 200 or > 5,000 ppm)", () => {
@@ -227,15 +227,24 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
     const lon = 106.7009;
 
     it("successfully fetches outdoor weather data from API", async () => {
+      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
+        const hour = String(index % 24).padStart(2, "0");
+        return `2026-07-28T${hour}:00`;
+      });
       const mockApiResponse = {
         current_weather: {
           temperature: 30.5,
           windspeed: 15.2,
+          weathercode: 2,
+          time: hourlyTimes[30],
         },
         hourly: {
           temperature_2m: Array(50).fill(28.0),
+          relative_humidity_2m: Array(50).fill(70),
           windspeed_10m: Array(50).fill(11.0),
-          uv_index: Array(50).fill(7.5),
+          shortwave_radiation: Array(50).fill(350),
+          weather_code: Array(50).fill(2),
+          time: hourlyTimes,
         },
       };
 
@@ -250,13 +259,92 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       expect(result.isFallback).toBe(false);
       expect(result.current.temperature).toBe(30.5);
       expect(result.current.windSpeed).toBe(15.2);
-      expect(result.current.lightUvIndex).toBe(7.5);
+      expect(result.current.lightUvIndex).toBe(350);
       expect(result.current.co2Level).toBe(415);
       expect(result.t24.temperature).toBe(28.0);
       expect(result.t48.temperature).toBe(28.0);
     });
 
-    it("falls back to MOCK_OUTDOOR_WEATHER on network error", async () => {
+    it("uses the current weather timestamp instead of the last forecast slot", async () => {
+      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, index));
+        return `${base.toISOString().slice(0, 13)}:00`;
+      });
+      const shortwaveRadiation = Array.from(
+        { length: 50 },
+        (_, index) => index * 10,
+      );
+      const relativeHumidity = Array.from({ length: 50 }, (_, index) => 50 + index);
+      const temperatures = Array.from({ length: 50 }, (_, index) => 20 + index);
+      const windSpeeds = Array.from({ length: 50 }, (_, index) => 5 + index);
+
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current_weather: {
+            temperature: 31.2,
+            windspeed: 12.6,
+            weathercode: 3,
+            time: hourlyTimes[30],
+          },
+          hourly: {
+            temperature_2m: temperatures,
+            relative_humidity_2m: relativeHumidity,
+            windspeed_10m: windSpeeds,
+            shortwave_radiation: shortwaveRadiation,
+            weather_code: Array(50).fill(3),
+            time: hourlyTimes,
+          },
+        }),
+      } as any);
+
+      const result = await fetchOutdoorWeather(lat, lon);
+
+      expect(result.current.lightUvIndex).toBe(shortwaveRadiation[30]);
+      expect(result.current.humidity).toBe(relativeHumidity[30]);
+      expect(result.t24.lightUvIndex).toBe(shortwaveRadiation[6]);
+      expect(result.t48.lightUvIndex).toBe(shortwaveRadiation[0]);
+    });
+
+    it("stores T0, T24, and T48 timestamps with Vietnam timezone semantics", async () => {
+      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 27, 0, 0, 0));
+        const current = new Date(base.getTime() + index * 3600 * 1000);
+        const year = current.getUTCFullYear();
+        const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(current.getUTCDate()).padStart(2, "0");
+        const hour = String(current.getUTCHours()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:00`;
+      });
+
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current_weather: {
+            temperature: 30,
+            windspeed: 10,
+            weathercode: 1,
+            time: hourlyTimes[30],
+          },
+          hourly: {
+            temperature_2m: Array(50).fill(28),
+            relative_humidity_2m: Array(50).fill(70),
+            windspeed_10m: Array(50).fill(11),
+            shortwave_radiation: Array(50).fill(350),
+            weather_code: Array(50).fill(1),
+            time: hourlyTimes,
+          },
+        }),
+      } as any);
+
+      const result = await fetchOutdoorWeather(lat, lon);
+
+      expect(result.current.updatedAt).toBe("2026-07-27T23:00:00.000Z");
+      expect(result.t24.updatedAt).toBe("2026-07-26T23:00:00.000Z");
+      expect(result.t48.updatedAt).toBe("2026-07-26T17:00:00.000Z");
+    });
+
+    it("returns empty station data on network error", async () => {
       global.fetch = jest
         .fn()
         .mockRejectedValueOnce(new Error("Network request failed"));
@@ -265,12 +353,12 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       expect(result.mode).toBe("outdoor");
       expect(result.isFallback).toBe(true);
-      expect(result.current.temperature).toBe(
-        MOCK_OUTDOOR_WEATHER.current.temperature,
-      );
+      expect(Number.isNaN(result.current.temperature)).toBe(true);
+      expect(result.latitude).toBe(lat);
+      expect(result.longitude).toBe(lon);
     });
 
-    it("falls back to MOCK_OUTDOOR_WEATHER on HTTP 429 rate limit response", async () => {
+    it("returns empty station data on HTTP 429 rate limit response", async () => {
       global.fetch = jest.fn().mockResolvedValueOnce({
         ok: false,
         status: 429,
@@ -281,12 +369,10 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       expect(result.mode).toBe("outdoor");
       expect(result.isFallback).toBe(true);
-      expect(result.current.windSpeed).toBe(
-        MOCK_OUTDOOR_WEATHER.current.windSpeed,
-      );
+      expect(Number.isNaN(result.current.windSpeed)).toBe(true);
     });
 
-    it("falls back to MOCK_OUTDOOR_WEATHER when timeout occurs", async () => {
+    it("returns empty station data when timeout occurs", async () => {
       global.fetch = jest.fn().mockImplementationOnce(() => {
         return new Promise((_, reject) => {
           const err = new Error("Aborted");
@@ -298,7 +384,7 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       const result = await fetchOutdoorWeather(lat, lon);
 
       expect(result.isFallback).toBe(true);
-      expect(result.current.co2Level).toBe(415);
+      expect(Number.isNaN(result.current.co2Level)).toBe(true);
     });
 
     it("falls back immediately for invalid coordinates without making fetch call", async () => {
@@ -309,6 +395,7 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       expect(mockFetch).not.toHaveBeenCalled();
       expect(result.isFallback).toBe(true);
+      expect(result).toEqual(createEmptyOutdoorWeatherData(999, -500));
     });
   });
 });

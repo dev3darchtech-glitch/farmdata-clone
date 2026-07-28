@@ -92,7 +92,7 @@ export type EnvMode = "outdoor" | "greenhouse";
  */
 export interface WeatherCondition {
   temperature: number; // °C (-10 .. 60)
-  lightUvIndex: number; // UV / Lux (0 .. 100,000)
+  lightUvIndex: number; // Light level / solar radiation legacy field
   windSpeed: number; // km/h (0 .. 150)
   co2Level: number; // ppm (200 .. 5000)
   humidity?: number; // % relative humidity (0 .. 100)
@@ -117,7 +117,7 @@ export interface EnvironmentalData {
   latitude?: number;
   longitude?: number;
   isOverridden?: boolean; // True if outdoor auto-fetched data was manually overridden
-  isFallback?: boolean; // True if outdoor fetch failed and used mock data
+  isFallback?: boolean; // True if outdoor fetch failed and no live station data is available
   timestamp?: string; // ISO timestamp of reading
 }
 

@@ -90,6 +90,7 @@ export const CAPTURE_SEVERITY_OPTIONS: {
 ];
 
 export function getCaptureWeatherLabel(code?: number): string {
+  if (code === undefined || code === null) return "--";
   if (code === 48) return "Sương mù";
   if (code === 53 || code === 55) return "Mưa nhẹ";
   if (code === 61 || code === 65) return "Mưa vừa / to";

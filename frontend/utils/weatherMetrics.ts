@@ -21,7 +21,7 @@ export function getWeatherLabel(code?: number): string {
 export function metricLabel(key: WeatherMetricKey) {
   return {
     temperature: "Nhiệt độ (°C)",
-    lightUvIndex: "Ánh sáng / UV",
+    lightUvIndex: "Ánh sáng (W/m²)",
     windSpeed: "Tốc độ gió (m/s)",
     co2Level: "CO2 (ppm)",
     humidity: "Độ ẩm (%)",
@@ -49,7 +49,7 @@ export function metricValueWithUnit(
   if (value === "--") return value;
   return {
     temperature: `${value}°C`,
-    lightUvIndex: `${value} Lux`,
+    lightUvIndex: `${value} W/m²`,
     windSpeed: `${value} m/s`,
     co2Level: `${value} ppm`,
     humidity: `${value}%`,
