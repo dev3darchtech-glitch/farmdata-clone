@@ -548,6 +548,19 @@ async function applyPostImageWatermark(
   };
 }
 
+async function normalizeImageForDrive(
+  image: { buffer: Buffer; mimeType: string },
+): Promise<{ buffer: Buffer; mimeType: "image/jpeg" }> {
+  // Drive filenames use the .jpg extension. Re-encode the bytes as JPEG so
+  // WebP uploads cannot be stored with a mismatched extension or MIME type.
+  const buffer = await sharp(image.buffer)
+    .rotate()
+    .jpeg({ quality: 90, mozjpeg: true })
+    .toBuffer();
+
+  return { buffer, mimeType: "image/jpeg" };
+}
+
 async function makeDriveFileReadable(
   drive: ReturnType<typeof google.drive>,
   fileId: string,
@@ -799,10 +812,11 @@ async function uploadImagesToDrive(
     const fileDescription =
       typeof description === "function" ? description(i + 1) : description;
     const rawImage = await imageUriToBuffer(imageUris[i]);
+    const normalizedImage = await normalizeImageForDrive(rawImage);
     const uploadImage =
       watermark && destination === "post"
-        ? await applyPostImageWatermark(rawImage, watermark)
-        : rawImage;
+        ? await applyPostImageWatermark(normalizedImage, watermark)
+        : normalizedImage;
 
     // 1. Upload original image
     const media = bufferToUploadMedia(uploadImage.buffer, uploadImage.mimeType);

@@ -169,6 +169,7 @@ export const createSession = async (req: Request, res: Response) => {
       farmerId: user.id,
       farmerName: user.name,
       farmerEmail: user.email,
+      createdByRole: user.role,
       images: postImages,
       driveFiles,
       plotId: cleanPlotId,

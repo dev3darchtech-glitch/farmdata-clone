@@ -36,10 +36,10 @@ export function CaptureSuccessDialog({
           </View>
         </View>
         <Text style={captureResultStyles.captureSuccessTitle}>
-          Session saved successfully!
+          Lưu phiên chụp thành công!
         </Text>
         <Text style={captureResultStyles.captureSuccessDescription}>
-          Post has been automatically created.
+          Phiên chụp đã đuợc đăng
         </Text>
         <View style={captureResultStyles.captureSuccessActions}>
           <Pressable
@@ -48,7 +48,7 @@ export function CaptureSuccessDialog({
           >
             <Camera size={18} color="#fff" />
             <Text style={captureResultStyles.captureSuccessPrimaryText}>
-              Capture new session
+              Tạo phiên chụp mới
             </Text>
           </Pressable>
           <Pressable
@@ -57,7 +57,7 @@ export function CaptureSuccessDialog({
           >
             <FileText size={16} color="#2b2b2b" />
             <Text style={captureResultStyles.captureSuccessSecondaryText}>
-              View Post list
+              Xem bài đăng
             </Text>
           </Pressable>
         </View>

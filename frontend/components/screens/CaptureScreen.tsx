@@ -5,7 +5,10 @@ import {
   getPlantDiseases,
   getPlots,
 } from "@/services/adminService";
-import { captureImageWithMetadata } from "@/services/cameraService";
+import {
+  captureImageWithMetadata,
+  pickCropImagesFromLibrary,
+} from "@/services/cameraService";
 import { getCurrentLocation } from "@/services/locationService";
 import {
   completeCaptureSession,
@@ -27,7 +30,7 @@ import {
   SymptomSeverity,
   WeatherCondition,
 } from "@/types";
-import { SheetKind } from "@/utils/captureDisplay";
+import { normalizeRole, SheetKind } from "@/utils/captureDisplay";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   useCallback,
@@ -131,7 +134,8 @@ const captureScreenStyles = StyleSheet.create({
 });
 
 export function CaptureScreen() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = normalizeRole(user?.role as string) === "admin";
   const scrollViewRef = useRef<ScrollView | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [plots, setPlots] = useState<PlotInfo[]>([]);
@@ -294,16 +298,21 @@ export function CaptureScreen() {
         }
       });
 
-    Promise.all([getPlots(), getCropTypes(), getPlantDiseases()]).then(
-      ([plotData, cropData, diseaseData]) => {
-        try {
+    // Do not make unauthenticated requests: the API returns 401 and the
+    // client intentionally maps failed master-data requests to empty arrays.
+    if (isAuthenticated && user?.id) {
+      Promise.allSettled([getPlots(), getCropTypes(), getPlantDiseases()]).then(
+        ([plotResult, cropResult, diseaseResult]) => {
           if (!isMounted) return;
-          setPlots(plotData);
-          setCrops(cropData);
-          setPlantDiseases(diseaseData);
-        } catch {}
-      },
-    );
+
+          if (plotResult.status === "fulfilled") setPlots(plotResult.value);
+          if (cropResult.status === "fulfilled") setCrops(cropResult.value);
+          if (diseaseResult.status === "fulfilled") {
+            setPlantDiseases(diseaseResult.value);
+          }
+        },
+      );
+    }
 
     const isTestEnv =
       typeof process !== "undefined" &&
@@ -370,7 +379,7 @@ export function CaptureScreen() {
         clearInterval(intervalId);
       }
     };
-  }, [applyWeatherForLocation, draftStorageKey]);
+  }, [applyWeatherForLocation, draftStorageKey, isAuthenticated, user?.id]);
 
   const captureDraft: CaptureScreenDraft = useMemo(
     () => ({
@@ -480,6 +489,37 @@ export function CaptureScreen() {
 
   const addPhoto = async () => {
     try {
+      let source: "camera" | "library" | "cancel" = "camera";
+
+      if (isAdmin) {
+        source = await new Promise<"camera" | "library" | "cancel">(
+          (resolve) => {
+            Alert.alert("Thêm ảnh", "Chọn cách thêm ảnh", [
+              {
+                text: "Chọn từ thư viện",
+                onPress: () => resolve("library"),
+              },
+              { text: "Chụp ảnh", onPress: () => resolve("camera") },
+              {
+                text: "Hủy",
+                style: "cancel",
+                onPress: () => resolve("cancel"),
+              },
+            ]);
+          },
+        );
+      }
+
+      if (source === "cancel") return;
+
+      if (source === "library") {
+        const selectedImages = await pickCropImagesFromLibrary();
+        if (selectedImages.length) {
+          setImages((current) => [...current, ...selectedImages]);
+        }
+        return;
+      }
+
       const result = await captureImageWithMetadata();
       setImages((current) => [...current, result.uri]);
       setCaptureLocation(result.location);
@@ -617,6 +657,7 @@ export function CaptureScreen() {
         <Text style={captureScreenStyles.screenTitle}>Phiên chụp mới</Text>
 
         <CapturePhotoSection
+          actionLabel={isAdmin ? "Thêm ảnh" : "Chụp ảnh"}
           images={images}
           onAddPhoto={addPhoto}
           onRemovePhoto={(index) =>

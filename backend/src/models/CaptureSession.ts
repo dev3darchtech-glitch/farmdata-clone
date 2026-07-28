@@ -4,6 +4,7 @@ import {
   EnvMode,
   GROWTH_STAGE_IDS,
   GrowthStageId,
+  RoleName,
   SessionStatus,
   SYMPTOM_SEVERITY_VALUES,
   SymptomSeverity,
@@ -27,6 +28,7 @@ export interface ICaptureSessionDocument extends Document {
   farmerId: string;
   farmerName: string;
   farmerEmail?: string;
+  createdByRole: RoleName;
   images: string[];
   driveFiles?: IDriveFile[];
   plotId?: string;
@@ -54,6 +56,7 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
     farmerId: { type: String, required: true },
     farmerName: { type: String, required: true },
     farmerEmail: { type: String },
+    createdByRole: { type: String, enum: ["FARMER", "ADMIN"], required: true },
     images: [{ type: String, required: true }],
     driveFiles: [
       {

@@ -181,7 +181,10 @@ export function SelectionSheets(props: SelectionSheetsProps) {
         <CapturePlotOptions
           plotId={props.plotId}
           plots={props.plots}
-          onSelect={props.onPlot}
+          onSelect={(value) => {
+            props.onPlot(value);
+            close();
+          }}
           onClear={() => {
             props.onPlot(undefined);
             close();
@@ -196,7 +199,10 @@ export function SelectionSheets(props: SelectionSheetsProps) {
         <CaptureCropOptions
           cropType={props.cropType}
           crops={props.crops}
-          onSelect={props.onCrop}
+          onSelect={(value) => {
+            props.onCrop(value);
+            close();
+          }}
         />
       </BottomSheet>
       <BottomSheet
@@ -206,7 +212,10 @@ export function SelectionSheets(props: SelectionSheetsProps) {
       >
         <CaptureStageOptions
           growthStage={props.growthStage}
-          onSelect={props.onStage}
+          onSelect={(value) => {
+            props.onStage(value);
+            close();
+          }}
         />
       </BottomSheet>
       <BottomSheet
@@ -564,7 +573,10 @@ export function SelectionSheets(props: SelectionSheetsProps) {
       <CaptureSuccessDialog
         visible={props.sheet === "success"}
         onCaptureNext={close}
-        onViewPosts={() => router.replace("/(tabs)/posts")}
+        onViewPosts={() => {
+          close();
+          router.replace("/(tabs)/posts");
+        }}
       />
       <CaptureErrorDialog
         visible={props.sheet === "error"}

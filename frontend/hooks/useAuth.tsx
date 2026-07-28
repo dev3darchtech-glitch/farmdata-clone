@@ -176,6 +176,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }, [handleLogout, state.tokens?.refreshToken]);
 
+  useEffect(() => {
+    const tokens = state.tokens;
+    if (!state.isAuthenticated || !tokens?.accessToken) return;
+
+    const expiresAt = tokens.issuedAt + tokens.expiresIn * 1000;
+    // Refresh shortly before expiry so normal API requests do not use an
+    // expired access token. A failed refresh invokes handleLogout above.
+    const refreshIn = Math.max(0, expiresAt - Date.now() - 5000);
+    const timeoutId = setTimeout(() => {
+      void handleRefreshToken();
+    }, refreshIn);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    handleRefreshToken,
+    state.isAuthenticated,
+    state.tokens?.accessToken,
+    state.tokens?.expiresIn,
+    state.tokens?.issuedAt,
+  ]);
+
   return (
     <AuthContext.Provider
       value={{
