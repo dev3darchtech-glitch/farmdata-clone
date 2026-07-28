@@ -32,12 +32,15 @@ async function testWatermark() {
     const height = imgMetadata.height || 500;
 
 
-    const dateStr = new Date().toLocaleDateString("vi-VN", {
+    const dateStr = new Intl.DateTimeFormat("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    });
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date());
 
     const email = "minhpnq1807@gmail.com";
     const plot = "L-001";
@@ -107,7 +110,7 @@ async function testWatermark() {
 
     console.log("Generating watermark test overlay SVG...");
 
-    const logoPath = path.resolve(__dirname, "../../frontend/assets/images/logo.svg");
+    const logoPath = path.resolve(__dirname, "../src/assets/images/logo.svg");
     let logoBuffer = null;
     try {
       if (fs.existsSync(logoPath)) {

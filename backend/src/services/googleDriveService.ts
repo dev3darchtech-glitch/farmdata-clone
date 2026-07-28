@@ -9,6 +9,7 @@ import { IDriveFile } from "../models/CaptureSession";
 import { IUserDocument, UserModel } from "../models/User";
 import { CaptureLocation, WeatherCondition } from "../types";
 import {
+  formatVietnamDateTime,
   generatePhotoLabelName,
   toVietnameseCrop,
   toVietnameseDisease,
@@ -33,12 +34,50 @@ const IMAGE_FOLDER_NAME = "Images";
 const POST_FOLDER_NAME = "posts";
 const POST_IMAGE_FOLDER_NAME = "images";
 
+let cachedWatermarkLogoDataUri: string | null | undefined;
+
 function escapeDriveQueryValue(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
 function normalizeFolderName(value: string): string {
   return value.trim().replace(/\s+/g, " ") || "Unspecified";
+}
+
+function resolveWatermarkLogoPath(): string | null {
+  const candidates = [
+    path.resolve(__dirname, "../assets/images/logo.svg"),
+    path.resolve(__dirname, "../../src/assets/images/logo.svg"),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function getWatermarkLogoDataUri(): string | null {
+  if (cachedWatermarkLogoDataUri !== undefined) {
+    return cachedWatermarkLogoDataUri;
+  }
+
+  try {
+    const logoPath = resolveWatermarkLogoPath();
+    if (!logoPath) {
+      cachedWatermarkLogoDataUri = null;
+      return cachedWatermarkLogoDataUri;
+    }
+
+    const svg = fs.readFileSync(logoPath, "utf8");
+    cachedWatermarkLogoDataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  } catch {
+    cachedWatermarkLogoDataUri = null;
+  }
+
+  return cachedWatermarkLogoDataUri;
 }
 
 function isGoogleAuthError(err: unknown) {
@@ -466,8 +505,8 @@ function buildPostWatermarkSvg(
   const bottomHeight = Math.max(142, Math.round(height * 0.2));
   const bottomY = height - bottomHeight;
   const horizontalPadding = Math.max(28, Math.round(width * 0.035));
-  const titleFont = Math.max(34, Math.round(width * 0.031));
-  const bodyFont = Math.max(22, Math.round(width * 0.02));
+  const titleFont = Math.max(28, Math.round(width * 0.026));
+  const bodyFont = Math.max(18, Math.round(width * 0.017));
   const bodyLineHeight = Math.round(bodyFont * 1.45);
   const maxBottomChars = Math.max(34, Math.round(width / (bodyFont * 0.58)));
   const diseaseLines = wrapText(
@@ -489,7 +528,7 @@ function buildPostWatermarkSvg(
     `Gió: ${formatWatermarkValue(station.windSpeed, " km/h")}`,
     `CO2: ${formatWatermarkValue(station.co2Level, " ppm")}`,
   ];
-  const metricFont = Math.max(19, Math.round(width * 0.017));
+  const metricFont = Math.max(16, Math.round(width * 0.014));
   const metricLineHeight = Math.round(metricFont * 1.38);
   const metricBoxWidth = Math.min(
     Math.max(270, Math.round(width * 0.32)),
@@ -498,6 +537,16 @@ function buildPostWatermarkSvg(
   const metricBoxHeight = metricLines.length * metricLineHeight + 34;
   const metricX = width - horizontalPadding - metricBoxWidth;
   const metricY = horizontalPadding;
+  const logoDataUri = getWatermarkLogoDataUri();
+  const logoWidth = Math.max(72, Math.round(width * 0.09));
+  const logoHeight = Math.round((logoWidth * 104) / 110);
+  const logoPadding = 10;
+  const logoBoxWidth = logoWidth + logoPadding * 2;
+  const logoBoxHeight = logoHeight + logoPadding * 2;
+  const logoX = width - horizontalPadding - logoBoxWidth;
+  const logoY = metricY;
+  const metricYOffset = logoBoxHeight + 12;
+  const metricContainerY = metricY + metricYOffset;
 
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -505,7 +554,13 @@ function buildPostWatermarkSvg(
         text { font-family: "DejaVu Sans", sans-serif; }
       </style>
       <rect x="0" y="${bottomY}" width="${width}" height="${bottomHeight}" fill="#0c1210" fill-opacity="0.72" />
-      <rect x="${metricX}" y="${metricY}" width="${metricBoxWidth}" height="${metricBoxHeight}" rx="18" fill="#0c1210" fill-opacity="0.68" />
+      ${
+        logoDataUri
+          ? `<rect x="${logoX}" y="${logoY}" width="${logoBoxWidth}" height="${logoBoxHeight}" rx="18" fill="#0c1210" fill-opacity="0.68" />
+      <image x="${logoX + logoPadding}" y="${logoY + logoPadding}" width="${logoWidth}" height="${logoHeight}" href="${logoDataUri}" preserveAspectRatio="xMidYMid meet" />`
+          : ""
+      }
+      <rect x="${metricX}" y="${metricContainerY}" width="${metricBoxWidth}" height="${metricBoxHeight}" rx="18" fill="#0c1210" fill-opacity="0.68" />
       ${renderSvgTextLines({
         lines: [bottomLines[0]],
         x: horizontalPadding,
@@ -524,7 +579,7 @@ function buildPostWatermarkSvg(
       ${renderSvgTextLines({
         lines: metricLines,
         x: metricX + 20,
-        y: metricY + metricLineHeight + 10,
+        y: metricContainerY + metricLineHeight + 10,
         lineHeight: metricLineHeight,
         fontSize: metricFont,
         fontWeight: 600,
@@ -663,12 +718,7 @@ async function addMarkOverlay(
     const width = imgMetadata.width || 800;
     const height = imgMetadata.height || 600;
 
-    const dateStr = new Date().toLocaleDateString("vi-VN", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    const dateStr = formatVietnamDateTime(new Date()).slice(0, 16);
 
     const email = metadata.adminEmail || "admin@farmdata.com";
     const plot = metadata.plotId || "N/A";
@@ -960,7 +1010,8 @@ async function uploadImagesToDrive(
         fields: "id, webViewLink, webContentLink",
       });
 
-      const fileIdMark = responseMark.data.id || `DRIVE-${Date.now()}-${i}-MARK`;
+      const fileIdMark =
+        responseMark.data.id || `DRIVE-${Date.now()}-${i}-MARK`;
       if (responseMark.data.id) {
         await makeDriveFileReadable(drive, responseMark.data.id);
       }
