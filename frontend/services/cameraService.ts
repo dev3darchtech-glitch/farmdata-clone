@@ -9,8 +9,15 @@ export interface CameraCaptureMetadataResult {
   timestamp: string;
 }
 
-function toJpegDataUri(base64?: string | null): string | undefined {
-  return base64 ? `data:image/jpeg;base64,${base64}` : undefined;
+function toImageDataUri(
+  base64?: string | null,
+  mimeType?: string | null,
+): string | undefined {
+  if (!base64) return undefined;
+  const normalizedMimeType = mimeType?.startsWith("image/")
+    ? mimeType
+    : "image/jpeg";
+  return `data:${normalizedMimeType};base64,${base64}`;
 }
 
 async function requestDeviceCameraPermission(): Promise<void> {
@@ -37,7 +44,12 @@ export async function captureCropImage(
         base64: true,
       });
       if (photo && photo.uri) {
-        return toJpegDataUri(photo.base64) || photo.uri;
+        return (
+          toImageDataUri(
+            photo.base64,
+            (photo as typeof photo & { mimeType?: string }).mimeType,
+          ) || photo.uri
+        );
       }
     }
   } catch {
@@ -52,7 +64,10 @@ export async function captureCropImage(
   });
 
   if (!result.canceled && result.assets && result.assets.length > 0) {
-    return toJpegDataUri(result.assets[0].base64) || result.assets[0].uri;
+    return (
+      toImageDataUri(result.assets[0].base64, result.assets[0].mimeType) ||
+      result.assets[0].uri
+    );
   }
 
   throw new Error("Image capture canceled");
@@ -80,7 +95,7 @@ export async function pickCropImagesFromLibrary(): Promise<string[]> {
   }
 
   return result.assets
-    .map((asset) => toJpegDataUri(asset.base64) || asset.uri)
+    .map((asset) => toImageDataUri(asset.base64, asset.mimeType) || asset.uri)
     .filter((uri): uri is string => Boolean(uri));
 }
 

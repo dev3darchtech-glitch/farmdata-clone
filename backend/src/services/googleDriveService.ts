@@ -385,7 +385,10 @@ function toAsciiWatermarkText(value: unknown): string {
     .replace(/Đ/g, "D")
     .replace(/đ/g, "d")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    // Cloud Run may not have the same glyph fonts as the local test image.
+    // Keep the SVG text strictly ASCII so unsupported glyphs cannot render as boxes.
+    .replace(/[^\x20-\x7E]/g, "");
 }
 
 function wrapText(value: string, maxChars: number): string[] {
