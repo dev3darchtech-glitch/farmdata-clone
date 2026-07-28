@@ -305,11 +305,6 @@ export function CaptureScreen() {
       },
     );
 
-    console.log(
-      "JEST CHECK:",
-      typeof process !== "undefined" ? process.env.NODE_ENV : "no process",
-      typeof process !== "undefined" ? process.env.JEST_WORKER_ID : "no worker",
-    );
     const isTestEnv =
       typeof process !== "undefined" &&
       (process.env.NODE_ENV === "test" ||

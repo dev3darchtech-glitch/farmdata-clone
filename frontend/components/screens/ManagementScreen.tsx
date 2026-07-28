@@ -59,6 +59,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  DEFAULT_CROP_ICON_OPTIONS,
+  DEFAULT_DISEASE_TYPES,
+} from "@/types/constants";
+import {
   ConfirmStatusDialog,
   CsvImportModal,
   ManagementActionMenu,
@@ -78,68 +82,6 @@ import { InputSelection } from "../shared/InputSelection";
 import { InputText } from "../shared/InputText";
 import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { PrimaryButton } from "../shared/PrimaryButton";
-
-const DEFAULT_CROP_ICON_OPTIONS = [
-  "🌱",
-  "🌿",
-  "☘️",
-  "🍀",
-  "🪴",
-  "🎋",
-  "🌾",
-  "🌵",
-  "🌲",
-  "🌳",
-  "🌴",
-  "🍄",
-  "🍄‍🟫",
-  "🌷",
-  "🌹",
-  "🥀",
-  "🪷",
-  "🌺",
-  "🌸",
-  "🌼",
-  "🌻",
-  "🍇",
-  "🍉",
-  "🍅",
-  "🍈",
-  "🍊",
-  "🍋",
-  "🍋‍🟩",
-  "🍌",
-  "🍍",
-  "🥭",
-  "🍎",
-  "🍏",
-  "🍐",
-  "🍑",
-  "🍒",
-  "🍓",
-  "🫐",
-  "🥝",
-  "🫒",
-  "🥥",
-  "🥑",
-  "🥦",
-  "🫑",
-  "🌶️",
-  "🥕",
-  "🥬",
-  "🧅",
-  "🧄",
-  "🥔",
-  "🍠",
-  "🍆",
-  "🥒",
-  "🌽",
-  "🫛",
-  "🫘",
-  "🥜",
-  "🌰",
-  "🫚",
-] as const;
 
 const PLANT_DISEASE_GROUP_OPTIONS: PlantDiseaseGroup[] = [
   "Truyền nhiễm",
@@ -325,13 +267,6 @@ export function ManagementScreen() {
     );
   }, [crops]);
   const availableDiseaseTypes = useMemo(() => {
-    const DEFAULT_DISEASE_TYPES = [
-      "Nấm",
-      "Vi khuẩn",
-      "Tuyến trùng",
-      "Thiếu dinh dưỡng",
-      "Virus",
-    ];
     const existingTypes = plantDiseases
       .map((item) => item.type?.trim())
       .filter((type): type is string => Boolean(type));

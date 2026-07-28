@@ -17,34 +17,20 @@ import {
   WeatherCondition,
 } from "@/types";
 import { SheetKind } from "@/utils/captureDisplay";
-import { triggerHaptic } from "@/utils/platformHelper";
 import { getWeatherLabel } from "@/utils/weatherMetrics";
 import { router } from "expo-router";
-import {
-  Check,
-  ChevronDown,
-  CircleCheck,
-  Cloud,
-  Sprout,
-  Sun,
-} from "lucide-react-native";
+import { Check, ChevronDown, Cloud, Sprout, Sun } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BottomSheet } from "../shared/BottomSheet";
-import { InputText } from "../shared/InputText";
 import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { PrimaryButton } from "../shared/PrimaryButton";
 import {
   CaptureErrorDialog,
   CaptureSuccessDialog,
 } from "./CaptureResultDialogs";
+import { DiseaseOptionList } from "./DiseaseOptionList";
+import { MeasurementInput } from "./MeasurementInput";
 import { StationDetail } from "./StationDetail";
 import { TemperatureSlider } from "./TemperatureSlider";
 
@@ -589,159 +575,9 @@ export function SelectionSheets(props: SelectionSheetsProps) {
   );
 }
 
-function DiseaseOptionList({
-  emptyText,
-  onSelect,
-  options,
-  selectedValue,
-}: {
-  emptyText: string;
-  onSelect: (value: string) => void;
-  options: {
-    key: string;
-    label: string;
-    value: string;
-    description?: string;
-  }[];
-  selectedValue?: string;
-}) {
-  return (
-    <ScrollView
-      contentContainerStyle={selectionSheetStyles.diseaseListContent}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      {options.length > 0 ? (
-        options.map((option) => {
-          const selected = selectedValue === option.value;
-          return (
-            <Pressable
-              key={option.key}
-              style={[
-                selectionSheetStyles.diseaseOption,
-                selected && selectionSheetStyles.diseaseOptionSelected,
-              ]}
-              onPress={() => onSelect(option.value)}
-            >
-              <View style={selectionSheetStyles.diseaseOptionBody}>
-                <Text
-                  style={[
-                    selectionSheetStyles.diseaseOptionText,
-                    selected && selectionSheetStyles.diseaseOptionTextSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                {option.description ? (
-                  <Text style={selectionSheetStyles.diseaseOptionMeta}>
-                    {option.description}
-                  </Text>
-                ) : null}
-              </View>
-              {selected ? <CircleCheck size={20} color={COLORS.green} /> : null}
-            </Pressable>
-          );
-        })
-      ) : (
-        <View style={selectionSheetStyles.diseaseEmpty}>
-          <Text style={selectionSheetStyles.diseaseEmptyText}>{emptyText}</Text>
-        </View>
-      )}
-    </ScrollView>
-  );
-}
-
-function MeasurementInput({
-  label,
-  value,
-  placeholder,
-  onChangeText,
-  full,
-}: {
-  label: string;
-  value: string;
-  placeholder?: string;
-  onChangeText: (value: string) => void;
-  full?: boolean;
-}) {
-  const handleChangeText = (val: string) => {
-    onChangeText(val);
-    if (Platform.OS === "android") {
-      triggerHaptic("light");
-    }
-  };
-
-  return (
-    <InputText
-      containerStyle={[
-        selectionSheetStyles.measurementInputStack,
-        full && selectionSheetStyles.measurementInputStackFull,
-      ]}
-      keyboardType="numeric"
-      label={label}
-      labelStyle={selectionSheetStyles.measurementInputLabel}
-      value={value}
-      placeholder={placeholder}
-      placeholderTextColor="#94a3b8"
-      onChangeText={handleChangeText}
-      style={selectionSheetStyles.measurementInput}
-      variant="plain"
-    />
-  );
-}
-
 const selectionSheetStyles = StyleSheet.create({
   measurementSheetContent: {
     flex: 1,
-  },
-  diseaseListContent: {
-    paddingBottom: LAYOUT.sheetBottom,
-    gap: 6,
-  },
-  diseaseOption: {
-    minHeight: 38,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#fff",
-  },
-  diseaseOptionSelected: {
-    borderColor: COLORS.green,
-    backgroundColor: "#f0f8ed",
-  },
-  diseaseOptionBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  diseaseOptionText: {
-    color: COLORS.body,
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 17,
-  },
-  diseaseOptionTextSelected: {
-    color: COLORS.green,
-  },
-  diseaseOptionMeta: {
-    color: COLORS.muted,
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 1,
-  },
-  diseaseEmpty: {
-    minHeight: 60,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  diseaseEmptyText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 16,
   },
   measurementSheetSubtitle: {
     color: COLORS.body,
@@ -789,16 +625,6 @@ const selectionSheetStyles = StyleSheet.create({
     color: COLORS.body,
     fontSize: 12,
     lineHeight: 16,
-  },
-  measurementInput: {
-    height: 38,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    paddingHorizontal: 12,
-    color: COLORS.muted,
-    backgroundColor: "#fff",
-    fontSize: 13,
   },
   measurementSelect: {
     height: 38,
