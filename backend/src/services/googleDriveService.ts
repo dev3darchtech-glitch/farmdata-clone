@@ -366,7 +366,7 @@ async function imageUriToBuffer(
 
 function bufferToUploadMedia(buffer: Buffer, mimeType: string) {
   return {
-    body: Readable.from(buffer),
+    body: Readable.from([buffer]),
     mimeType,
   };
 }
@@ -548,9 +548,10 @@ async function applyPostImageWatermark(
   };
 }
 
-async function normalizeImageForDrive(
-  image: { buffer: Buffer; mimeType: string },
-): Promise<{ buffer: Buffer; mimeType: "image/jpeg" }> {
+async function normalizeImageForDrive(image: {
+  buffer: Buffer;
+  mimeType: string;
+}): Promise<{ buffer: Buffer; mimeType: "image/jpeg" }> {
   // Drive filenames use the .jpg extension. Re-encode the bytes as JPEG so
   // WebP uploads cannot be stored with a mismatched extension or MIME type.
   const buffer = await sharp(image.buffer)
@@ -760,7 +761,10 @@ async function addMarkOverlay(
       });
     }
 
-    return await sharpImg.composite(compositeList).toBuffer();
+    return await sharpImg
+      .composite(compositeList)
+      .jpeg({ quality: 90, mozjpeg: true })
+      .toBuffer();
   } catch (err) {
     console.warn(
       "Failed to create mark overlay, returning original buffer:",
@@ -824,6 +828,7 @@ async function uploadImagesToDrive(
       requestBody: {
         name: labelName,
         parents: [folderId],
+        mimeType: uploadImage.mimeType,
         ...(fileDescription ? { description: fileDescription } : {}),
       },
       media,
@@ -862,6 +867,7 @@ async function uploadImagesToDrive(
       requestBody: {
         name: markLabelName,
         parents: [folderId],
+        mimeType: "image/jpeg",
         ...(fileDescription ? { description: fileDescription } : {}),
       },
       media: mediaMark,
@@ -1059,6 +1065,14 @@ export async function uploadImagesToAdminDrive(
     isLinked: admin?.googleTokens?.isLinked,
   });
 
+  // Local/test-only override for validating Drive uploads without changing
+  // the admin document. Production continues to use MongoDB-linked tokens.
+  const envAccessToken =
+    env.nodeEnv === "production" ? undefined : process.env.GOOGLE_ACCESS_TOKEN;
+  const envRefreshToken =
+    env.nodeEnv === "production" ? undefined : process.env.GOOGLE_REFRESH_TOKEN;
+  const hasEnvDriveTokens = Boolean(envAccessToken || envRefreshToken);
+
   // Test/mock fallback only. Production must use the creator Admin OAuth.
   if (
     (!admin ||
@@ -1082,12 +1096,13 @@ export async function uploadImagesToAdminDrive(
   }
 
   // If live Admin Google tokens exist, perform actual Google Drive upload via API.
-  if (admin && CLIENT_ID !== "mock_client_id") {
-    const accessToken = admin.googleTokens?.accessToken;
-    const refreshToken = admin.googleTokens?.refreshToken;
+  if ((admin || hasEnvDriveTokens) && CLIENT_ID !== "mock_client_id") {
+    const accessToken = admin?.googleTokens?.accessToken || envAccessToken;
+    const refreshToken = admin?.googleTokens?.refreshToken || envRefreshToken;
 
     if (accessToken || refreshToken) {
-      options.adminEmail = admin?.email || farmer?.email || farmerEmailOrId;
+      const driveOwnerEmail = admin?.email || farmer?.email || farmerEmailOrId;
+      options.adminEmail = options.adminEmail || driveOwnerEmail;
 
       const tryUpload = async (credentials: {
         access_token?: string;
@@ -1111,7 +1126,7 @@ export async function uploadImagesToAdminDrive(
         try {
           console.log(
             "[GoogleDriveService] Initiating Google Drive upload with access token for Admin:",
-            admin.email,
+            driveOwnerEmail,
           );
           return await tryUpload({ access_token: accessToken });
         } catch (err: unknown) {
@@ -1136,7 +1151,7 @@ export async function uploadImagesToAdminDrive(
         try {
           console.log(
             "[GoogleDriveService] Retrying Google Drive upload with refresh token for Admin:",
-            admin.email,
+            driveOwnerEmail,
           );
           return await tryUpload({ refresh_token: refreshToken });
         } catch (err: unknown) {
@@ -1158,7 +1173,11 @@ export async function uploadImagesToAdminDrive(
     }
   }
 
-  if (env.nodeEnv !== "test" && CLIENT_ID !== "mock_client_id") {
+  if (
+    env.nodeEnv !== "test" &&
+    !hasEnvDriveTokens &&
+    CLIENT_ID !== "mock_client_id"
+  ) {
     throw new Error("Admin Google Drive credentials are unavailable");
   }
 
