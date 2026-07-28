@@ -502,7 +502,7 @@ function buildPostWatermarkSvg(
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <style>
-        text { font-family: Arial, Helvetica, sans-serif; }
+        text { font-family: "DejaVu Sans", sans-serif; }
       </style>
       <rect x="0" y="${bottomY}" width="${width}" height="${bottomHeight}" fill="#0c1210" fill-opacity="0.72" />
       <rect x="${metricX}" y="${metricY}" width="${metricBoxWidth}" height="${metricBoxHeight}" rx="18" fill="#0c1210" fill-opacity="0.68" />
@@ -753,7 +753,7 @@ async function addMarkOverlay(
           .watermark-text {
             fill: #ffffff;
             font-size: ${fontSize}px;
-            font-family: sans-serif;
+            font-family: "DejaVu Sans", sans-serif;
             font-weight: bold;
           }
         </style>

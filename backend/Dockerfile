@@ -17,8 +17,14 @@ RUN npm prune --omit=dev
 
 FROM node:20-bookworm-slim AS runner
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends fontconfig fonts-dejavu \
+  && fc-cache -f \
+  && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV FONTCONFIG_PATH=/etc/fonts
 
 WORKDIR /app
 

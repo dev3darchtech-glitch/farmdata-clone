@@ -227,24 +227,32 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
     const lon = 106.7009;
 
     it("successfully fetches outdoor weather data from API", async () => {
-      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
-        const hour = String(index % 24).padStart(2, "0");
-        return `2026-07-28T${hour}:00`;
+      const seriesTimes = Array.from({ length: 193 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, 17, 30, 0));
+        const current = new Date(base.getTime() + index * 15 * 60 * 1000);
+        const year = current.getUTCFullYear();
+        const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(current.getUTCDate()).padStart(2, "0");
+        const hour = String(current.getUTCHours()).padStart(2, "0");
+        const minute = String(current.getUTCMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:${minute}`;
       });
       const mockApiResponse = {
-        current_weather: {
-          temperature: 30.5,
-          windspeed: 15.2,
-          weathercode: 2,
-          time: hourlyTimes[30],
+        current: {
+          temperature_2m: 30.5,
+          relative_humidity_2m: 70,
+          windspeed_10m: 15.2,
+          weather_code: 2,
+          shortwave_radiation: 350,
+          time: seriesTimes[192],
         },
-        hourly: {
-          temperature_2m: Array(50).fill(28.0),
-          relative_humidity_2m: Array(50).fill(70),
-          windspeed_10m: Array(50).fill(11.0),
-          shortwave_radiation: Array(50).fill(350),
-          weather_code: Array(50).fill(2),
-          time: hourlyTimes,
+        minutely_15: {
+          temperature_2m: Array(193).fill(28.0),
+          relative_humidity_2m: Array(193).fill(70),
+          windspeed_10m: Array(193).fill(11.0),
+          shortwave_radiation: Array(193).fill(350),
+          weather_code: Array(193).fill(2),
+          time: seriesTimes,
         },
       };
 
@@ -266,122 +274,139 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
     });
 
     it("uses the current weather timestamp instead of the last forecast slot", async () => {
-      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
-        const base = new Date(Date.UTC(2026, 6, 26, index));
-        return `${base.toISOString().slice(0, 13)}:00`;
+      const seriesTimes = Array.from({ length: 193 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, 17, 30, 0));
+        const current = new Date(base.getTime() + index * 15 * 60 * 1000);
+        const year = current.getUTCFullYear();
+        const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(current.getUTCDate()).padStart(2, "0");
+        const hour = String(current.getUTCHours()).padStart(2, "0");
+        const minute = String(current.getUTCMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:${minute}`;
       });
       const shortwaveRadiation = Array.from(
-        { length: 50 },
+        { length: 193 },
         (_, index) => index * 10,
       );
-      const relativeHumidity = Array.from({ length: 50 }, (_, index) => 50 + index);
-      const temperatures = Array.from({ length: 50 }, (_, index) => 20 + index);
-      const windSpeeds = Array.from({ length: 50 }, (_, index) => 5 + index);
+      const relativeHumidity = Array.from({ length: 193 }, (_, index) => 50 + index);
+      const temperatures = Array.from({ length: 193 }, (_, index) => 20 + index);
+      const windSpeeds = Array.from({ length: 193 }, (_, index) => 5 + index);
 
       global.fetch = jest.fn().mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValueOnce({
-          current_weather: {
-            temperature: 31.2,
-            windspeed: 12.6,
-            weathercode: 3,
-            time: hourlyTimes[30],
+          current: {
+            temperature_2m: 31.2,
+            relative_humidity_2m: relativeHumidity[192],
+            windspeed_10m: 12.6,
+            weather_code: 3,
+            shortwave_radiation: shortwaveRadiation[192],
+            time: seriesTimes[192],
           },
-          hourly: {
+          minutely_15: {
             temperature_2m: temperatures,
             relative_humidity_2m: relativeHumidity,
             windspeed_10m: windSpeeds,
             shortwave_radiation: shortwaveRadiation,
-            weather_code: Array(50).fill(3),
-            time: hourlyTimes,
+            weather_code: Array(193).fill(3),
+            time: seriesTimes,
           },
         }),
       } as any);
 
       const result = await fetchOutdoorWeather(lat, lon);
 
-      expect(result.current.lightUvIndex).toBe(shortwaveRadiation[30]);
-      expect(result.current.humidity).toBe(relativeHumidity[30]);
-      expect(result.t24.lightUvIndex).toBe(shortwaveRadiation[6]);
+      expect(result.current.lightUvIndex).toBe(shortwaveRadiation[192]);
+      expect(result.current.humidity).toBe(relativeHumidity[192]);
+      expect(result.t24.lightUvIndex).toBe(shortwaveRadiation[96]);
       expect(result.t48.lightUvIndex).toBe(shortwaveRadiation[0]);
     });
 
-    it("maps quarter-hour current weather time to the matching hourly slot instead of the last forecast slot", async () => {
-      const hourlyTimes = Array.from({ length: 80 }, (_, index) => {
-        const day = 26 + Math.floor(index / 24);
-        const hour = String(index % 24).padStart(2, "0");
-        return `2026-07-${String(day).padStart(2, "0")}T${hour}:00`;
+    it("keeps the real quarter-hour timestamp for T0, T24, and T48", async () => {
+      const seriesTimes = Array.from({ length: 193 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, 16, 45, 0));
+        const current = new Date(base.getTime() + index * 15 * 60 * 1000);
+        const year = current.getUTCFullYear();
+        const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(current.getUTCDate()).padStart(2, "0");
+        const hour = String(current.getUTCHours()).padStart(2, "0");
+        const minute = String(current.getUTCMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:${minute}`;
       });
       const shortwaveRadiation = Array.from(
-        { length: hourlyTimes.length },
+        { length: seriesTimes.length },
         (_, index) => index,
       );
 
       global.fetch = jest.fn().mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValueOnce({
-          current_weather: {
-            temperature: 30,
-            windspeed: 10,
-            weathercode: 1,
+          current: {
+            temperature_2m: 30,
+            relative_humidity_2m: 70,
+            windspeed_10m: 10,
+            weather_code: 1,
+            shortwave_radiation: shortwaveRadiation[192],
             time: "2026-07-28T16:45",
           },
-          hourly: {
-            temperature_2m: Array(hourlyTimes.length).fill(28),
-            relative_humidity_2m: Array(hourlyTimes.length).fill(70),
-            windspeed_10m: Array(hourlyTimes.length).fill(11),
+          minutely_15: {
+            temperature_2m: Array(seriesTimes.length).fill(28),
+            relative_humidity_2m: Array(seriesTimes.length).fill(70),
+            windspeed_10m: Array(seriesTimes.length).fill(11),
             shortwave_radiation: shortwaveRadiation,
-            weather_code: Array(hourlyTimes.length).fill(1),
-            time: hourlyTimes,
+            weather_code: Array(seriesTimes.length).fill(1),
+            time: seriesTimes,
           },
         }),
       } as any);
 
       const result = await fetchOutdoorWeather(lat, lon);
 
-      const currentIndex = hourlyTimes.indexOf("2026-07-28T16:00");
-      expect(currentIndex).toBeGreaterThanOrEqual(24);
+      const currentIndex = seriesTimes.indexOf("2026-07-28T16:45");
       expect(result.current.lightUvIndex).toBe(shortwaveRadiation[currentIndex]);
-      expect(result.t24.updatedAt).toBe("2026-07-27T09:00:00.000Z");
-      expect(result.t48.updatedAt).toBe("2026-07-26T09:00:00.000Z");
+      expect(result.t24.updatedAt).toBe("2026-07-27T09:45:00.000Z");
+      expect(result.t48.updatedAt).toBe("2026-07-26T09:45:00.000Z");
     });
 
     it("stores T0, T24, and T48 timestamps with Vietnam timezone semantics", async () => {
-      const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
-        const base = new Date(Date.UTC(2026, 6, 27, 0, 0, 0));
-        const current = new Date(base.getTime() + index * 3600 * 1000);
+      const seriesTimes = Array.from({ length: 193 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, 17, 30, 0));
+        const current = new Date(base.getTime() + index * 15 * 60 * 1000);
         const year = current.getUTCFullYear();
         const month = String(current.getUTCMonth() + 1).padStart(2, "0");
         const day = String(current.getUTCDate()).padStart(2, "0");
         const hour = String(current.getUTCHours()).padStart(2, "0");
-        return `${year}-${month}-${day}T${hour}:00`;
+        const minute = String(current.getUTCMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:${minute}`;
       });
 
       global.fetch = jest.fn().mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValueOnce({
-          current_weather: {
-            temperature: 30,
-            windspeed: 10,
-            weathercode: 1,
-            time: hourlyTimes[30],
+          current: {
+            temperature_2m: 30,
+            relative_humidity_2m: 70,
+            windspeed_10m: 10,
+            weather_code: 1,
+            shortwave_radiation: 350,
+            time: seriesTimes[192],
           },
-          hourly: {
-            temperature_2m: Array(50).fill(28),
-            relative_humidity_2m: Array(50).fill(70),
-            windspeed_10m: Array(50).fill(11),
-            shortwave_radiation: Array(50).fill(350),
-            weather_code: Array(50).fill(1),
-            time: hourlyTimes,
+          minutely_15: {
+            temperature_2m: Array(193).fill(28),
+            relative_humidity_2m: Array(193).fill(70),
+            windspeed_10m: Array(193).fill(11),
+            shortwave_radiation: Array(193).fill(350),
+            weather_code: Array(193).fill(1),
+            time: seriesTimes,
           },
         }),
       } as any);
 
       const result = await fetchOutdoorWeather(lat, lon);
 
-      expect(result.current.updatedAt).toBe("2026-07-27T23:00:00.000Z");
-      expect(result.t24.updatedAt).toBe("2026-07-26T23:00:00.000Z");
-      expect(result.t48.updatedAt).toBe("2026-07-26T17:00:00.000Z");
+      expect(result.current.updatedAt).toBe("2026-07-28T10:30:00.000Z");
+      expect(result.t24.updatedAt).toBe("2026-07-27T10:30:00.000Z");
+      expect(result.t48.updatedAt).toBe("2026-07-26T10:30:00.000Z");
     });
 
     it("returns empty station data on network error", async () => {
@@ -435,7 +460,11 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       expect(mockFetch).not.toHaveBeenCalled();
       expect(result.isFallback).toBe(true);
-      expect(result).toEqual(createEmptyOutdoorWeatherData(999, -500));
+      expect(result.latitude).toBe(999);
+      expect(result.longitude).toBe(-500);
+      expect(Number.isNaN(result.current.temperature)).toBe(true);
+      expect(Number.isNaN(result.t24.temperature)).toBe(true);
+      expect(Number.isNaN(result.t48.temperature)).toBe(true);
     });
   });
 });

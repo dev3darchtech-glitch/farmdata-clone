@@ -181,22 +181,18 @@ function toVietnamIsoString(value?: string): string | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
-function resolveCurrentHourlyIndex(
-  hourlyTimes: string[],
+function resolveCurrentSeriesIndex(
+  seriesTimes: string[],
   currentWeatherTime?: string,
 ): number {
-  if (!hourlyTimes.length) return 0;
-  if (!currentWeatherTime) return Math.max(0, hourlyTimes.length - 1);
+  if (!seriesTimes.length) return 0;
+  if (!currentWeatherTime) return Math.max(0, seriesTimes.length - 1);
 
-  const exactIndex = hourlyTimes.indexOf(currentWeatherTime);
+  const exactIndex = seriesTimes.indexOf(currentWeatherTime);
   if (exactIndex >= 0) return exactIndex;
 
-  const currentHour = currentWeatherTime.slice(0, 13) + ":00";
-  const roundedHourIndex = hourlyTimes.indexOf(currentHour);
-  if (roundedHourIndex >= 0) return roundedHourIndex;
-
-  for (let index = hourlyTimes.length - 1; index >= 0; index -= 1) {
-    if (hourlyTimes[index] <= currentWeatherTime) {
+  for (let index = seriesTimes.length - 1; index >= 0; index -= 1) {
+    if (seriesTimes[index] <= currentWeatherTime) {
       return index;
     }
   }
@@ -216,7 +212,7 @@ export async function fetchOutdoorWeather(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,windspeed_10m,shortwave_radiation,weather_code&past_days=2&timezone=Asia%2FHo_Chi_Minh`;
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&minutely_15=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
 
     const response = await fetch(apiUrl, { signal: controller.signal });
     clearTimeout(timeoutId);
@@ -227,42 +223,38 @@ export async function fetchOutdoorWeather(
 
     const json = await response.json();
 
-    const curTemp = json?.current_weather?.temperature ?? 28.5;
-    const curWind = json?.current_weather?.windspeed ?? 12.0;
-    const curWeatherCode = json?.current_weather?.weathercode ?? 0;
-    const currentWeatherTime = json?.current_weather?.time;
+    const curTemp = json?.current?.temperature_2m ?? 28.5;
+    const curWind = json?.current?.windspeed_10m ?? 12.0;
+    const curWeatherCode = json?.current?.weather_code ?? 0;
+    const curHumidityValue = json?.current?.relative_humidity_2m ?? 74;
+    const curLightValue = json?.current?.shortwave_radiation ?? 350;
+    const currentWeatherTime = json?.current?.time;
 
-    const hourlyTemps: number[] = json?.hourly?.temperature_2m ?? [];
-    const hourlyHumidity: number[] = json?.hourly?.relative_humidity_2m ?? [];
-    const hourlyWinds: number[] = json?.hourly?.windspeed_10m ?? [];
-    const hourlyLightLevels: number[] = json?.hourly?.shortwave_radiation ?? [];
-    const hourlyWeatherCodes: number[] = json?.hourly?.weather_code ?? [];
-    const hourlyTimes: string[] = json?.hourly?.time ?? [];
+    const seriesTemps: number[] = json?.minutely_15?.temperature_2m ?? [];
+    const seriesHumidity: number[] = json?.minutely_15?.relative_humidity_2m ?? [];
+    const seriesWinds: number[] = json?.minutely_15?.windspeed_10m ?? [];
+    const seriesLightLevels: number[] = json?.minutely_15?.shortwave_radiation ?? [];
+    const seriesWeatherCodes: number[] = json?.minutely_15?.weather_code ?? [];
+    const seriesTimes: string[] = json?.minutely_15?.time ?? [];
 
-    const currentIndex = resolveCurrentHourlyIndex(
-      hourlyTimes,
+    const currentIndex = resolveCurrentSeriesIndex(
+      seriesTimes,
       currentWeatherTime,
     );
-    const t24Index = Math.max(0, currentIndex - 24);
-    const t48Index = Math.max(0, currentIndex - 48);
-
-    const curLightLevel =
-      hourlyLightLevels.length > 0
-        ? (hourlyLightLevels[currentIndex] ?? 350)
-        : 350;
-    const curHumidity =
-      hourlyHumidity.length > 0 ? (hourlyHumidity[currentIndex] ?? 74) : 74;
+    const intervalsPerDay = 24 * 4;
+    const t24Index = Math.max(0, currentIndex - intervalsPerDay);
+    const t48Index = Math.max(0, currentIndex - intervalsPerDay * 2);
 
     const currentTimestamp =
       toVietnamIsoString(currentWeatherTime) ?? new Date().toISOString();
 
-    const t24Timestamp = hourlyTimes[t24Index]
-      ? (toVietnamIsoString(hourlyTimes[t24Index]) ??
+    const t24Timestamp = seriesTimes[t24Index]
+      ? (toVietnamIsoString(seriesTimes[t24Index]) ??
         new Date(Date.now() - 24 * 3600 * 1000).toISOString())
       : new Date(Date.now() - 24 * 3600 * 1000).toISOString();
 
-    const t48Timestamp = hourlyTimes[t48Index]
-      ? (toVietnamIsoString(hourlyTimes[t48Index]) ??
+    const t48Timestamp = seriesTimes[t48Index]
+      ? (toVietnamIsoString(seriesTimes[t48Index]) ??
         new Date(Date.now() - 48 * 3600 * 1000).toISOString())
       : new Date(Date.now() - 48 * 3600 * 1000).toISOString();
 
@@ -272,29 +264,29 @@ export async function fetchOutdoorWeather(
       longitude: Number(json?.longitude ?? lon),
       current: {
         temperature: Number(curTemp),
-        lightUvIndex: Number(curLightLevel),
+        lightUvIndex: Number(curLightValue),
         windSpeed: Number(curWind),
         co2Level: 415,
-        humidity: Number(curHumidity),
+        humidity: Number(curHumidityValue),
         weatherCode: Number(curWeatherCode),
         updatedAt: currentTimestamp,
       },
       t24: {
-        temperature: hourlyTemps[t24Index] ?? 27.0,
-        lightUvIndex: hourlyLightLevels[t24Index] ?? 320,
-        windSpeed: hourlyWinds[t24Index] ?? 10.5,
+        temperature: seriesTemps[t24Index] ?? 27.0,
+        lightUvIndex: seriesLightLevels[t24Index] ?? 320,
+        windSpeed: seriesWinds[t24Index] ?? 10.5,
         co2Level: 412,
-        humidity: hourlyHumidity[t24Index] ?? 76,
-        weatherCode: Number(hourlyWeatherCodes[t24Index] ?? curWeatherCode),
+        humidity: seriesHumidity[t24Index] ?? 76,
+        weatherCode: Number(seriesWeatherCodes[t24Index] ?? curWeatherCode),
         updatedAt: t24Timestamp,
       },
       t48: {
-        temperature: hourlyTemps[t48Index] ?? 29.1,
-        lightUvIndex: hourlyLightLevels[t48Index] ?? 410,
-        windSpeed: hourlyWinds[t48Index] ?? 14.2,
+        temperature: seriesTemps[t48Index] ?? 29.1,
+        lightUvIndex: seriesLightLevels[t48Index] ?? 410,
+        windSpeed: seriesWinds[t48Index] ?? 14.2,
         co2Level: 418,
-        humidity: hourlyHumidity[t48Index] ?? 71,
-        weatherCode: Number(hourlyWeatherCodes[t48Index] ?? curWeatherCode),
+        humidity: seriesHumidity[t48Index] ?? 71,
+        weatherCode: Number(seriesWeatherCodes[t48Index] ?? curWeatherCode),
         updatedAt: t48Timestamp,
       },
       isOverridden: false,
