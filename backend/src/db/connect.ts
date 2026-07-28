@@ -21,17 +21,12 @@ export async function connectMongoDB(uri?: string) {
   if (mongoose.connection.readyState === 0) {
     try {
       await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 3000 });
-      console.log(`🍃 Connected to MongoDB at ${mongoUri}`);
     } catch (err: any) {
       if (!uri && (!env.hasExplicitMongoUri || isLocalMongoUri(mongoUri))) {
-        console.log(
-          "⚠️ Local MongoDB server is unavailable. Starting MongoMemoryServer fallback...",
-        );
         const { MongoMemoryServer } = await import("mongodb-memory-server");
         const mongoServer = await MongoMemoryServer.create();
         const memUri = mongoServer.getUri();
         await mongoose.connect(memUri);
-        console.log(`🍃 Connected to Fallback In-Memory MongoDB at ${memUri}`);
       } else {
         throw err;
       }

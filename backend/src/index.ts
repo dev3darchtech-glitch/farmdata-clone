@@ -41,9 +41,6 @@ if (env.nodeEnv !== "test") {
       console.log(
         `🚀 FarmData Backend API running at http://${"0.0.0.0"}:${env.port}`,
       );
-      console.log(
-        `📡 Ready for MongoDB, RBAC, and Admin Google Drive uploads.`,
-      );
     });
   });
 }
