@@ -306,6 +306,46 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       expect(result.t48.lightUvIndex).toBe(shortwaveRadiation[0]);
     });
 
+    it("maps quarter-hour current weather time to the matching hourly slot instead of the last forecast slot", async () => {
+      const hourlyTimes = Array.from({ length: 80 }, (_, index) => {
+        const day = 26 + Math.floor(index / 24);
+        const hour = String(index % 24).padStart(2, "0");
+        return `2026-07-${String(day).padStart(2, "0")}T${hour}:00`;
+      });
+      const shortwaveRadiation = Array.from(
+        { length: hourlyTimes.length },
+        (_, index) => index,
+      );
+
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current_weather: {
+            temperature: 30,
+            windspeed: 10,
+            weathercode: 1,
+            time: "2026-07-28T16:45",
+          },
+          hourly: {
+            temperature_2m: Array(hourlyTimes.length).fill(28),
+            relative_humidity_2m: Array(hourlyTimes.length).fill(70),
+            windspeed_10m: Array(hourlyTimes.length).fill(11),
+            shortwave_radiation: shortwaveRadiation,
+            weather_code: Array(hourlyTimes.length).fill(1),
+            time: hourlyTimes,
+          },
+        }),
+      } as any);
+
+      const result = await fetchOutdoorWeather(lat, lon);
+
+      const currentIndex = hourlyTimes.indexOf("2026-07-28T16:00");
+      expect(currentIndex).toBeGreaterThanOrEqual(24);
+      expect(result.current.lightUvIndex).toBe(shortwaveRadiation[currentIndex]);
+      expect(result.t24.updatedAt).toBe("2026-07-27T09:00:00.000Z");
+      expect(result.t48.updatedAt).toBe("2026-07-26T09:00:00.000Z");
+    });
+
     it("stores T0, T24, and T48 timestamps with Vietnam timezone semantics", async () => {
       const hourlyTimes = Array.from({ length: 50 }, (_, index) => {
         const base = new Date(Date.UTC(2026, 6, 27, 0, 0, 0));

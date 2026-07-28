@@ -181,6 +181,29 @@ function toVietnamIsoString(value?: string): string | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
+function resolveCurrentHourlyIndex(
+  hourlyTimes: string[],
+  currentWeatherTime?: string,
+): number {
+  if (!hourlyTimes.length) return 0;
+  if (!currentWeatherTime) return Math.max(0, hourlyTimes.length - 1);
+
+  const exactIndex = hourlyTimes.indexOf(currentWeatherTime);
+  if (exactIndex >= 0) return exactIndex;
+
+  const currentHour = currentWeatherTime.slice(0, 13) + ":00";
+  const roundedHourIndex = hourlyTimes.indexOf(currentHour);
+  if (roundedHourIndex >= 0) return roundedHourIndex;
+
+  for (let index = hourlyTimes.length - 1; index >= 0; index -= 1) {
+    if (hourlyTimes[index] <= currentWeatherTime) {
+      return index;
+    }
+  }
+
+  return 0;
+}
+
 export async function fetchOutdoorWeather(
   lat: number,
   lon: number,
@@ -216,12 +239,10 @@ export async function fetchOutdoorWeather(
     const hourlyWeatherCodes: number[] = json?.hourly?.weather_code ?? [];
     const hourlyTimes: string[] = json?.hourly?.time ?? [];
 
-    const fallbackCurrentIndex = Math.max(0, hourlyTimes.length - 1);
-    const resolvedCurrentIndex = currentWeatherTime
-      ? hourlyTimes.indexOf(currentWeatherTime)
-      : -1;
-    const currentIndex =
-      resolvedCurrentIndex >= 0 ? resolvedCurrentIndex : fallbackCurrentIndex;
+    const currentIndex = resolveCurrentHourlyIndex(
+      hourlyTimes,
+      currentWeatherTime,
+    );
     const t24Index = Math.max(0, currentIndex - 24);
     const t48Index = Math.max(0, currentIndex - 48);
 

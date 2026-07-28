@@ -155,14 +155,21 @@ export const createSession = async (req: Request, res: Response) => {
       weatherCode: normalizedStationMeasurements.weatherCode,
       temperature: normalizedStationMeasurements.temperature,
     });
+    const watermarkLinks = driveFiles
+      .map((file) => file.watermarkWebContentLink || file.watermarkWebViewLink)
+      .filter((link): link is string => Boolean(link));
     const originalFiles = driveFiles.filter(
       (f) => !f.fileName || !f.fileName.includes("_MARK"),
     );
-    const driveImageLinks = originalFiles
+    const originalLinks = originalFiles
       .map((file) => file.webContentLink || file.webViewLink)
       .filter((link): link is string => Boolean(link));
     const postImages =
-      driveImageLinks.length === images.length ? driveImageLinks : images;
+      watermarkLinks.length === images.length
+        ? watermarkLinks
+        : originalLinks.length === images.length
+          ? originalLinks
+          : images;
 
     const newSession = await CaptureSessionModel.create({
       sessionId,
