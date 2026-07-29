@@ -146,6 +146,7 @@ export async function getPosts(
     datePreset?: string;
     startDate?: string;
     endDate?: string;
+    mine?: boolean;
     limit?: number;
     offset?: number;
   } = {},

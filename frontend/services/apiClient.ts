@@ -252,6 +252,7 @@ export async function fetchPostFeed(
     datePreset?: string;
     startDate?: string;
     endDate?: string;
+    mine?: boolean;
     limit?: number;
     offset?: number;
   } = {},
@@ -291,6 +292,9 @@ export async function fetchPostFeed(
     }
     if (filters.endDate?.trim()) {
       url.searchParams.set("endDate", filters.endDate.trim());
+    }
+    if (filters.mine) {
+      url.searchParams.set("mine", "true");
     }
     if (filters.limit !== undefined) {
       url.searchParams.set("limit", String(filters.limit));

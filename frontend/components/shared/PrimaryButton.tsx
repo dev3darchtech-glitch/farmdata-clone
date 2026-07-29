@@ -11,6 +11,7 @@ export function PrimaryButton({
   variant = "filled",
   testID,
   style,
+  textStyle,
 }: {
   label: string;
   onPress?: () => void;
@@ -20,6 +21,7 @@ export function PrimaryButton({
   variant?: "filled" | "outline";
   testID?: string;
   style?: any;
+  textStyle?: any;
 }) {
   return (
     <Pressable
@@ -44,6 +46,7 @@ export function PrimaryButton({
         style={[
           primaryButtonStyles.primaryButtonText,
           variant === "outline" && primaryButtonStyles.outlineButtonText,
+          textStyle,
         ]}
       >
         {label}

@@ -9,7 +9,7 @@ import {
   tabItemsForRole,
   type TabRouteId,
 } from "@/utils/captureDisplay";
-import { router, usePathname } from "expo-router";
+import { router, useGlobalSearchParams, usePathname } from "expo-router";
 import {
   Camera,
   ChevronDown,
@@ -58,8 +58,10 @@ export function ManagementDrawer({
 
   const role = normalizeRole(user?.role as string);
   const pathname = usePathname();
+  const { mine } = useGlobalSearchParams<{ mine?: string }>();
   const activeRoute = pathname.split("?")[0];
   const postsActive = activeRoute.endsWith("/posts");
+  const ownPostsActive = postsActive && mine === "true";
   const managementActive = activeRoute.endsWith("/management");
   const captureActive = activeRoute.endsWith("/capture");
   const profileActive = activeRoute.endsWith("/profile");
@@ -147,6 +149,19 @@ export function ManagementDrawer({
     router.navigate(tabHrefWithDirection("/(tabs)/capture", direction) as any);
   };
 
+  const navigateToOwnPosts = () => {
+    handleClose();
+    const direction = tabDirectionForTarget(
+      drawerTabItems,
+      currentTabId,
+      "posts",
+    );
+    router.navigate({
+      pathname: "/(tabs)/posts",
+      params: { mine: "true", tabDirection: direction },
+    } as any);
+  };
+
   const translateX = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [-292, 0],
@@ -199,23 +214,48 @@ export function ManagementDrawer({
           <Pressable
             style={[
               drawerStyles.drawerItem,
-              postsActive && drawerStyles.drawerItemActive,
+              postsActive && !ownPostsActive && drawerStyles.drawerItemActive,
             ]}
             onPress={() => navigate("/(tabs)/posts", "posts")}
           >
             <FileText
               size={20}
-              color={postsActive ? COLORS.green : COLORS.body}
+              color={
+                postsActive && !ownPostsActive ? COLORS.green : COLORS.body
+              }
             />
             <Text
               style={[
                 drawerStyles.drawerText,
-                postsActive && drawerStyles.drawerTextActive,
+                postsActive && !ownPostsActive && drawerStyles.drawerTextActive,
               ]}
             >
               Bài đăng
             </Text>
           </Pressable>
+
+          {role === "admin" ? (
+            <Pressable
+              style={[
+                drawerStyles.drawerItem,
+                ownPostsActive && drawerStyles.drawerItemActive,
+              ]}
+              onPress={navigateToOwnPosts}
+            >
+              <FileText
+                size={20}
+                color={ownPostsActive ? COLORS.green : COLORS.body}
+              />
+              <Text
+                style={[
+                  drawerStyles.drawerText,
+                  ownPostsActive && drawerStyles.drawerTextActive,
+                ]}
+              >
+                Bài đăng của bạn
+              </Text>
+            </Pressable>
+          ) : null}
 
           {role === "admin" ? (
             <>

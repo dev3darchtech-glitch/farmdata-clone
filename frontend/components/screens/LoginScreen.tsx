@@ -322,6 +322,8 @@ export function LoginScreen() {
                 onPress={submit}
                 loading={isLoading}
                 testID="btn-submit-login"
+                style={loginScreenStyles.loginButton}
+                textStyle={loginScreenStyles.loginButtonText}
               />
               <Pressable
                 testID="btn-google-login"
@@ -474,6 +476,20 @@ const loginScreenStyles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+  },
+  loginButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: COLORS.green,
+    shadowColor: "#000",
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  loginButtonText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   googleButtonDisabled: {
     opacity: 0.6,

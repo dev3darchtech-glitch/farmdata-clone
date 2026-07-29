@@ -9,7 +9,7 @@ import {
   normalizeRole,
   postListKey,
 } from "@/utils/captureDisplay";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import {
   ArrowDownAZ,
   ArrowDownWideNarrow,
@@ -69,6 +69,8 @@ function getSortIcon(mode: string) {
 export function PostsScreen() {
   const { user } = useAuth();
   const role = normalizeRole(user?.role as string);
+  const { mine } = useLocalSearchParams<{ mine?: string }>();
+  const ownPostsOnly = role === "admin" && mine === "true";
   const [posts, setPosts] = useState<Post[]>([]);
   const [sidebarVariant, setSidebarVariant] =
     useState<ManagementVariant>("plots");
@@ -111,6 +113,7 @@ export function PostsScreen() {
       datePreset: selectedDateRange.preset,
       startDate: selectedDateRange.startDate,
       endDate: selectedDateRange.endDate,
+      mine: ownPostsOnly,
       limit: PAGE_SIZE,
     }),
     [
@@ -123,6 +126,7 @@ export function PostsScreen() {
       selectedSeverity,
       selectedDateRange.startDate,
       sortMode,
+      ownPostsOnly,
     ],
   );
 

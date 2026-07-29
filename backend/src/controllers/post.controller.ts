@@ -64,6 +64,7 @@ export const getPosts = async (req: Request, res: Response) => {
       datePreset,
       startDate,
       endDate,
+      mine,
       limit: limitStr,
       offset: offsetStr,
     } = req.query;
@@ -83,6 +84,13 @@ export const getPosts = async (req: Request, res: Response) => {
       status: "COMPLETED",
       farmerId: { $in: adminIds },
     };
+
+    if (mine === "true") {
+      if (req.user?.role !== "ADMIN") {
+        return res.status(403).json({ error: "Không có quyền xem bài đăng này." });
+      }
+      filter.farmerId = req.user.id;
+    }
 
     if (crop && typeof crop === "string" && !["ALL", "all"].includes(crop)) {
       filter.cropType = new RegExp(`^${crop}$`, "i");
