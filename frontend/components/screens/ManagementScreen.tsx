@@ -128,6 +128,14 @@ function parseImportDiseaseGroup(
   return undefined;
 }
 
+function isDuplicateImportError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message.includes("đã tồn tại") ||
+      error.message.includes("đã được sử dụng"))
+  );
+}
+
 export function ManagementScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -734,8 +742,12 @@ export function ManagementScreen() {
             success++;
           }
         }
-      } catch {
-        errors++;
+      } catch (error) {
+        if (isDuplicateImportError(error)) {
+          skipped++;
+        } else {
+          errors++;
+        }
       }
 
       setCsvProgress(Math.round(((i + 1) / total) * 100));
