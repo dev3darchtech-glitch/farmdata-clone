@@ -91,6 +91,43 @@ const PLOT_PAGE_SIZE = 6;
 const PLANT_DISEASE_PAGE_SIZE = 5;
 const DEFAULT_PAGE_SIZE = 7;
 
+function parseImportBoolean(value?: string): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return !["false", "0", "no", "không", "inactive", "ngừng"].includes(
+    normalized || "",
+  );
+}
+
+function parseImportEnvMode(value?: string): PlotInfo["envMode"] | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (["greenhouse", "nhà kính", "nha kinh"].includes(normalized || "")) {
+    return "greenhouse";
+  }
+  if (["outdoor", "ngoài trời", "ngoai troi"].includes(normalized || "")) {
+    return "outdoor";
+  }
+  return undefined;
+}
+
+function parseImportDiseaseGroup(
+  value?: string,
+): PlantDiseaseGroup | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (
+    ["truyền nhiễm", "truyen nhiem", "infectious"].includes(normalized || "")
+  ) {
+    return "Truyền nhiễm";
+  }
+  if (
+    ["không truyền nhiễm", "khong truyen nhiem", "non-infectious"].includes(
+      normalized || "",
+    )
+  ) {
+    return "Không truyền nhiễm";
+  }
+  return undefined;
+}
+
 export function ManagementScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -344,9 +381,7 @@ export function ManagementScreen() {
     try {
       if (variant === "plots") {
         if (!plotForm.code.trim() || !plotForm.name.trim()) return;
-        const areaSquareMeters = Number(
-          plotForm.area.trim().replace(",", "."),
-        );
+        const areaSquareMeters = Number(plotForm.area.trim().replace(",", "."));
         const payload = {
           code: plotForm.code.trim(),
           name: plotForm.name.trim(),
@@ -631,71 +666,71 @@ export function ManagementScreen() {
       try {
         if (variant === "plots") {
           const code = row[fieldMapping.code]?.trim();
-          const name = row[fieldMapping.name]?.trim() || code;
+          const name = row[fieldMapping.name]?.trim();
+          const envMode = parseImportEnvMode(row[fieldMapping.envMode]);
           const rawArea = row[fieldMapping.areaSquareMeters]?.trim();
           const areaSquareMeters = rawArea ? Number(rawArea) : undefined;
-          const description = row[fieldMapping.description]?.trim();
-          const envMode =
-            name?.toLowerCase().includes("nhà kính") ||
-            description?.toLowerCase().includes("nhà kính")
-              ? "greenhouse"
-              : "outdoor";
+          const isActive = parseImportBoolean(row[fieldMapping.isActive]);
 
-          if (!code) {
+          if (!code || !name) {
             skipped++;
+          } else if (
+            !envMode ||
+            (rawArea && !Number.isFinite(areaSquareMeters))
+          ) {
+            errors++;
           } else {
             await addPlot({
               code,
               name,
               envMode,
-              areaSquareMeters:
-                typeof areaSquareMeters === "number" && !isNaN(areaSquareMeters)
-                  ? areaSquareMeters
-                  : undefined,
-              description,
-              isActive: true,
+              areaSquareMeters,
+              isActive,
             });
             success++;
           }
         } else if (variant === "crops") {
           const name = row[fieldMapping.name]?.trim();
           const category = row[fieldMapping.category]?.trim() || "Rau màu";
+          const icon = row[fieldMapping.icon]?.trim();
+          const isActive = parseImportBoolean(row[fieldMapping.isActive]);
 
           if (!name) {
             skipped++;
           } else {
-            await addCropType({ name, category, isActive: true });
+            await addCropType({ name, category, icon, isActive });
             success++;
           }
         } else if (variant === "diseases") {
           const name = row[fieldMapping.name]?.trim();
-          const rawGroup = row[fieldMapping.group]?.trim() || "";
-          const group: PlantDiseaseGroup = rawGroup.includes("Không")
-            ? "Không truyền nhiễm"
-            : "Truyền nhiễm";
-          const type = row[fieldMapping.type]?.trim() || "Bệnh lá";
+          const group = parseImportDiseaseGroup(row[fieldMapping.group]);
+          const type = row[fieldMapping.type]?.trim();
           const description = row[fieldMapping.description]?.trim();
+          const isActive = parseImportBoolean(row[fieldMapping.isActive]);
 
-          if (!name) {
+          if (!name || !type) {
             skipped++;
+          } else if (!group) {
+            errors++;
           } else {
             await addPlantDisease({
               name,
               group,
               type,
               description,
-              isActive: true,
+              isActive,
             });
             success++;
           }
         } else if (variant === "accounts") {
           const name = row[fieldMapping.name]?.trim();
           const username = row[fieldMapping.username]?.trim();
+          const password = row[fieldMapping.password]?.trim();
 
-          if (!name || !username) {
+          if (!name || !username || !password) {
             skipped++;
           } else {
-            await addUser({ name, username, role: "FARMER", password: "123" });
+            await addUser({ name, username, role: "FARMER", password });
             success++;
           }
         }

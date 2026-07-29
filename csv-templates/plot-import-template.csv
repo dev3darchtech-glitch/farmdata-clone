@@ -1,4 +1,4 @@
-code,name,area_sqm,description
-LUONG-01,Luống cà chua 01,120,Khu canh tác ngoài trời
-LUONG-02,Luống dưa leo 02,100,Khu canh tác ngoài trời
-NK-01,Nhà kính rau xà lách,80,Khu nhà kính
+code,name,env_mode,area_sqm,is_active
+LUONG-01,Luống cà chua 01,outdoor,120,true
+LUONG-02,Luống dưa leo 02,outdoor,100,true
+NK-01,Nhà kính rau xà lách,greenhouse,80,true

@@ -121,7 +121,7 @@ export const getPlots = async (req: Request, res: Response) => {
  * POST /api/admin/plots
  */
 export const createPlot = async (req: Request, res: Response) => {
-  const { code, name, envMode, areaSquareMeters } = req.body;
+  const { code, name, envMode, areaSquareMeters, isActive } = req.body;
   if (!code || !name || !isEnvMode(envMode)) {
     return res
       .status(400)
@@ -146,6 +146,7 @@ export const createPlot = async (req: Request, res: Response) => {
     name: name.trim(),
     envMode,
     areaSquareMeters,
+    isActive: typeof isActive === "boolean" ? isActive : true,
     createdByAdminId: adminId,
   });
 
@@ -290,7 +291,7 @@ export const getCrops = async (req: Request, res: Response) => {
  * POST /api/admin/crops
  */
 export const createCrop = async (req: Request, res: Response) => {
-  const { name, category, icon } = req.body;
+  const { name, category, icon, isActive } = req.body;
   if (!name) {
     return res.status(400).json({ error: "Tên loại cây là bắt buộc" });
   }
@@ -311,6 +312,7 @@ export const createCrop = async (req: Request, res: Response) => {
     name: cleanName,
     category: category ? category.trim() : "Rau ăn quả",
     icon: icon || "🌱",
+    isActive: typeof isActive === "boolean" ? isActive : true,
     createdByAdminId: adminId,
   });
 
@@ -452,6 +454,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
   const type = normalizeRequiredText(req.body?.type);
   const name = normalizeRequiredText(req.body?.name);
   const description = normalizeRequiredText(req.body?.description);
+  const isActive = req.body?.isActive;
   const adminId = req.user!.id;
 
   if (!isPlantDiseaseGroup(group)) {
@@ -478,6 +481,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
     type,
     name,
     description: description || undefined,
+    isActive: typeof isActive === "boolean" ? isActive : true,
     createdByAdminId: adminId,
   });
 
