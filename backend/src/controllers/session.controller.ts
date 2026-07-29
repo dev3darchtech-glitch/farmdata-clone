@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { CaptureSessionModel } from "../models/CaptureSession";
+import {
+  CaptureSessionModel,
+  ICaptureSessionDocument,
+} from "../models/CaptureSession";
 import {
   buildCaptureImageDescription,
   deleteFilesFromAdminDrive,
@@ -16,7 +19,18 @@ import {
   SymptomSeverity,
 } from "../types";
 
-function normalizeDiseaseFields(req: Request, res: Response) {
+type NormalizedDisease =
+  | {
+      diseaseGroup: string;
+      diseaseType: string;
+      diseaseName: string;
+    }
+  | undefined;
+
+function normalizeDiseaseFields(
+  req: Request,
+  res: Response,
+): NormalizedDisease {
   const diseaseGroup =
     typeof req.body?.diseaseGroup === "string"
       ? req.body.diseaseGroup.trim()
@@ -31,7 +45,7 @@ function normalizeDiseaseFields(req: Request, res: Response) {
       : "";
 
   if (!diseaseGroup && !diseaseType && !diseaseName) {
-    return {};
+    return undefined;
   }
 
   if (
@@ -62,11 +76,7 @@ async function persistCompletedSession(
     growthStage: GrowthStageId;
     images: string[];
     localMeasurements: any;
-    normalizedDisease?: {
-      diseaseGroup: string;
-      diseaseType: string;
-      diseaseName: string;
-    };
+    normalizedDisease?: NormalizedDisease;
     normalizedSeverity: SymptomSeverity;
     normalizedStationMeasurements: any;
     normalizedSymptomDescription: string;
@@ -79,7 +89,7 @@ async function persistCompletedSession(
   },
   existingSessionId?: string,
   existingDriveFiles?: any[],
-) {
+): Promise<ICaptureSessionDocument | null> {
   const {
     captureLocation,
     cropType,
@@ -235,7 +245,7 @@ export const createSession = async (req: Request, res: Response) => {
     if (!severity || typeof severity !== "string") {
       return res.status(400).json({ error: "Mức độ nghiêm trọng là bắt buộc" });
     }
-    const normalizedSeverity = severity.trim();
+    const normalizedSeverity = severity.trim() as SymptomSeverity;
     if (
       !SYMPTOM_SEVERITY_VALUES.includes(normalizedSeverity as SymptomSeverity)
     ) {
@@ -280,12 +290,14 @@ export const createSession = async (req: Request, res: Response) => {
       stationMeasurementsT48,
     });
 
-    void notifyCaptureSessionCompleted(newSession).catch((error) =>
-      console.warn(
-        "Capture session notification failed:",
-        error instanceof Error ? error.message : String(error),
-      ),
-    );
+    if (newSession) {
+      void notifyCaptureSessionCompleted(newSession).catch((error) =>
+        console.warn(
+          "Capture session notification failed:",
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
+    }
 
     return res.status(201).json({
       session: newSession,
@@ -363,7 +375,7 @@ export const updateSession = async (req: Request, res: Response) => {
     if (!severity || typeof severity !== "string") {
       return res.status(400).json({ error: "Mức độ nghiêm trọng là bắt buộc" });
     }
-    const normalizedSeverity = severity.trim();
+    const normalizedSeverity = severity.trim() as SymptomSeverity;
     if (
       !SYMPTOM_SEVERITY_VALUES.includes(normalizedSeverity as SymptomSeverity)
     ) {
