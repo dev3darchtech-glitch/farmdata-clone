@@ -91,17 +91,34 @@ export const CAPTURE_SEVERITY_OPTIONS: {
 
 export function getCaptureWeatherLabel(code?: number): string {
   if (code === undefined || code === null) return "--";
-  if (code === 48) return "Sương mù";
-  if (code === 53 || code === 55) return "Mưa nhẹ";
-  if (code === 61 || code === 65) return "Mưa vừa / to";
-  if (code === 81 || code === 82) return "Mưa rào";
-  if (code === 73 || code === 75 || code === 77 || code === 85 || code === 86) {
-    return "Mưa tuyết";
-  }
-  return (
-    CAPTURE_WEATHER_OPTIONS.find((option) => option.code === code)?.label ||
-    "--"
-  );
+  if (code === 0) return "Nắng";
+  if (code === 1) return "Ít mây";
+  if (code === 2) return "Có mây";
+  if (code === 3) return "Nhiều mây";
+  if (code === 45 || code === 48) return "Sương mù";
+  if (code === 51) return "Mưa phùn nhẹ";
+  if (code === 53) return "Mưa phùn vừa";
+  if (code === 55) return "Mưa phùn dày";
+  if (code === 56) return "Mưa phùn đóng băng nhẹ";
+  if (code === 57) return "Mưa phùn đóng băng dày";
+  if (code === 61) return "Mưa nhẹ";
+  if (code === 63) return "Mưa vừa";
+  if (code === 65) return "Mưa to";
+  if (code === 66) return "Mưa đóng băng nhẹ";
+  if (code === 67) return "Mưa đóng băng to";
+  if (code === 71) return "Tuyết nhẹ";
+  if (code === 73) return "Tuyết vừa";
+  if (code === 75) return "Tuyết dày";
+  if (code === 77) return "Hạt tuyết";
+  if (code === 80) return "Mưa rào nhẹ";
+  if (code === 81) return "Mưa rào vừa";
+  if (code === 82) return "Mưa rào to";
+  if (code === 85) return "Mưa tuyết nhẹ";
+  if (code === 86) return "Mưa tuyết to";
+  if (code === 95) return "Dông nhẹ / vừa";
+  if (code === 96) return "Dông có mưa đá nhẹ";
+  if (code === 99) return "Dông có mưa đá to";
+  return "--";
 }
 
 export function CapturePlotOptions({

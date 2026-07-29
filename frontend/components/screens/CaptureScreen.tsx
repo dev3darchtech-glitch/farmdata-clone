@@ -68,6 +68,8 @@ import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { LoadingProgressDialog } from "../shared/LoadingProgressDialog";
 import { PrimaryButton } from "../shared/PrimaryButton";
 
+const WEATHER_REFRESH_DEBOUNCE_MS = 5_000;
+
 const CAPTURE_DRAFT_STORAGE_PREFIX = "capture_session_draft";
 
 type CaptureScreenDraft = {
@@ -317,8 +319,8 @@ export function CaptureScreen() {
 
   const applyWeatherForLocation = useCallback((location: LocationData) => {
     const now = Date.now();
-    // Debounce: ignore calls if the last fetch was less than 5 seconds ago to avoid spam
-    if (now - lastFetchTimeRef.current < 5000) {
+    // Create and edit modes share the same five-second refresh window.
+    if (now - lastFetchTimeRef.current < WEATHER_REFRESH_DEBOUNCE_MS) {
       return Promise.resolve();
     }
     lastFetchTimeRef.current = now;
@@ -360,6 +362,15 @@ export function CaptureScreen() {
         } catch {}
       });
   }, []);
+
+  const openStationDetails = useCallback(() => {
+    setSheet("station");
+    const location =
+      captureLocationRef.current || hydratedDraftLocationRef.current;
+    if (location) {
+      void applyWeatherForLocation(location);
+    }
+  }, [applyWeatherForLocation]);
 
   useEffect(() => {
     const showEvent =
@@ -496,7 +507,7 @@ export function CaptureScreen() {
               }
             } catch {}
           });
-      }, 60000);
+      }, WEATHER_REFRESH_DEBOUNCE_MS);
     } else if (!isTestEnv) {
       const refreshEditStationWeather = () => {
         const targetLocation =
@@ -515,7 +526,7 @@ export function CaptureScreen() {
 
       intervalId = setInterval(() => {
         refreshEditStationWeather();
-      }, 60000);
+      }, WEATHER_REFRESH_DEBOUNCE_MS);
     } else {
       // In Jest tests, initialize synchronously to prevent async leaks
       const emptyStationData = createEmptyOutdoorWeatherData();
@@ -848,7 +859,7 @@ export function CaptureScreen() {
           captureLocation={captureLocation}
           envMode={envMode}
           onEnvModeChange={setEnvMode}
-          onOpenStation={() => setSheet("station")}
+          onOpenStation={openStationDetails}
           order={2}
           stationWeather={stationWeather}
         />

@@ -339,7 +339,9 @@ export async function fetchOutdoorWeather(
 
     const [json, airQualityJson] = await Promise.all([
       response.json(),
-      airQualityResponse?.ok ? airQualityResponse.json().catch(() => null) : null,
+      airQualityResponse?.ok
+        ? airQualityResponse.json().catch(() => null)
+        : null,
     ]);
 
     const curTemp = json?.current?.temperature_2m;
@@ -386,7 +388,8 @@ export async function fetchOutdoorWeather(
       lightUvIndex: typeof curLightValue === "number" ? curLightValue : NaN,
       windSpeed: typeof curWind === "number" ? curWind : NaN,
       co2Level:
-        typeof airQualityCurrentCo2 === "number" && !Number.isNaN(airQualityCurrentCo2)
+        typeof airQualityCurrentCo2 === "number" &&
+        !Number.isNaN(airQualityCurrentCo2)
           ? airQualityCurrentCo2
           : typeof currentSeriesTime === "string"
             ? (resolveSeriesValueAtOrBefore(
@@ -398,7 +401,11 @@ export async function fetchOutdoorWeather(
       humidity:
         typeof curHumidityValue === "number" ? curHumidityValue : undefined,
       weatherCode:
-        typeof curWeatherCode === "number" ? curWeatherCode : undefined,
+        typeof curWeatherCode === "number"
+          ? curWeatherCode
+          : typeof seriesWeatherCodes[currentIndex] === "number"
+            ? seriesWeatherCodes[currentIndex]
+            : undefined,
       updatedAt: currentTimestamp,
     };
     const t12Snapshot = buildWeatherSnapshot({

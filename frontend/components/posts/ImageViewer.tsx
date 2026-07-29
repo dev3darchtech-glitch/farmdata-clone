@@ -1,7 +1,13 @@
 import { getCaptureWeatherLabel } from "@/components/shared/CaptureFormParts";
 import { COLORS, LAYOUT } from "@/constants/theme";
 import { Post } from "@/types";
-import { envName, formatPostDate, stageName } from "@/utils/captureDisplay";
+import {
+  envName,
+  formatMetric,
+  formatPostDate,
+  stageName,
+} from "@/utils/captureDisplay";
+import { formatVietnamDateTime } from "@/utils/dateHelper";
 import {
   buildPostUrl,
   downloadImageOnWeb,
@@ -14,6 +20,7 @@ import {
   Download,
   Image as ImageIcon,
   Info,
+  Pencil,
   Share2,
   Trash2,
   X,
@@ -25,6 +32,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -32,16 +40,46 @@ import {
 
 import { BottomSheet } from "@/components/shared/BottomSheet";
 
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
+
+  return (
+    <View style={imageViewerStyles.tableRow}>
+      <Text style={imageViewerStyles.tableLabel}>{label}</Text>
+      <Text style={imageViewerStyles.tableValue}>{value}</Text>
+    </View>
+  );
+}
+
+function InfoSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={imageViewerStyles.infoSection}>
+      <Text style={imageViewerStyles.infoSectionTitle}>{title}</Text>
+      <View style={imageViewerStyles.tableContainer}>{children}</View>
+    </View>
+  );
+}
+
 export function ImageViewer({
   post,
   initialIndex,
   onClose,
+  canEdit,
+  onEdit,
   canDelete,
   onDelete,
 }: {
   post: Post | null;
   initialIndex: number;
   onClose: () => void;
+  canEdit?: boolean;
+  onEdit?: () => void;
   canDelete?: boolean;
   onDelete?: () => void;
 }) {
@@ -58,8 +96,16 @@ export function ImageViewer({
   if (!post) return null;
   const uri = post.images[index];
   const imageCount = post.images.length;
-  const diseaseDisplayName =
-    post.diseaseName?.trim() || post.diseaseType?.trim() || "Bệnh cây";
+  const weatherLabel = (weatherCode?: number | null) =>
+    typeof weatherCode === "number"
+      ? getCaptureWeatherLabel(weatherCode)
+      : "--";
+  const weatherSnapshots = [
+    { label: "T0", measurement: post.stationMeasurements },
+    { label: "T12", measurement: post.stationMeasurementsT12 },
+    { label: "T24", measurement: post.stationMeasurementsT24 },
+    { label: "T48", measurement: post.stationMeasurementsT48 },
+  ];
 
   const saveCurrentImage = async () => {
     if (!uri) return;
@@ -166,6 +212,22 @@ export function ImageViewer({
               </View>
               <Text style={imageViewerStyles.viewerActionText}>Chia sẻ</Text>
             </Pressable>
+            {canEdit ? (
+              <Pressable
+                style={imageViewerStyles.viewerActionButton}
+                onPress={() => {
+                  onClose();
+                  onEdit?.();
+                }}
+              >
+                <View style={imageViewerStyles.viewerActionIcon}>
+                  <Pencil size={16} color={COLORS.muted} />
+                </View>
+                <Text style={imageViewerStyles.viewerActionText}>
+                  Chỉnh sửa
+                </Text>
+              </Pressable>
+            ) : null}
             {canDelete ? (
               <Pressable
                 style={imageViewerStyles.viewerActionButton}
@@ -221,51 +283,157 @@ export function ImageViewer({
           visible={infoVisible}
           title="Thông tin chi tiết"
           onClose={() => setInfoVisible(false)}
+          full
         >
-          <View style={imageViewerStyles.tableContainer}>
-            <View style={imageViewerStyles.tableRow}>
-              <Text style={imageViewerStyles.tableLabel}>Loại cây</Text>
-              <Text style={imageViewerStyles.tableValue}>{post.cropType}</Text>
-            </View>
-            <View style={imageViewerStyles.tableRow}>
-              <Text style={imageViewerStyles.tableLabel}>Giai đoạn</Text>
-              <Text style={imageViewerStyles.tableValue}>
-                {stageName(post.growthStage)}
-              </Text>
-            </View>
-            <View style={imageViewerStyles.tableRow}>
-              <Text style={imageViewerStyles.tableLabel}>Mã luống</Text>
-              <Text style={imageViewerStyles.tableValue}>
-                {post.plotId || "N/A"}
-              </Text>
-            </View>
-            <View style={imageViewerStyles.tableRow}>
-              <Text style={imageViewerStyles.tableLabel}>Thời tiết</Text>
-              <Text style={imageViewerStyles.tableValue}>
-                {post.stationMeasurements?.weatherCode !== undefined
-                  ? getCaptureWeatherLabel(post.stationMeasurements.weatherCode)
-                  : envName(post.envMode)}
-              </Text>
-            </View>
-            <View style={imageViewerStyles.tableRow}>
-              <Text style={imageViewerStyles.tableLabel}>Bệnh cây</Text>
-              <Text style={imageViewerStyles.tableValue}>
-                {diseaseDisplayName}
-              </Text>
-            </View>
-            <View style={imageViewerStyles.tableRow}>
-              <Text style={imageViewerStyles.tableLabel}>Mức độ</Text>
-              <Text style={imageViewerStyles.tableValue}>{post.severity}</Text>
-            </View>
-            <View
-              style={[imageViewerStyles.tableRow, { borderBottomWidth: 0 }]}
-            >
-              <Text style={imageViewerStyles.tableLabel}>Thời gian</Text>
-              <Text style={imageViewerStyles.tableValue}>
-                {formatPostDate(post.createdAt)}
-              </Text>
-            </View>
-          </View>
+          <ScrollView
+            contentContainerStyle={imageViewerStyles.infoContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <InfoSection title="Thông tin cây trồng & bệnh">
+              <InfoRow label="Loại cây" value={post.cropType} />
+              <InfoRow label="Mã luống" value={post.plotId} />
+              <InfoRow label="Giai đoạn" value={stageName(post.growthStage)} />
+              <InfoRow label="Môi trường" value={envName(post.envMode)} />
+              <InfoRow label="Nhóm bệnh" value={post.diseaseGroup} />
+              <InfoRow label="Loại bệnh" value={post.diseaseType} />
+              <InfoRow label="Tên bệnh" value={post.diseaseName} />
+              <InfoRow label="Mức độ" value={post.severity} />
+              <InfoRow
+                label="Mô tả triệu chứng"
+                value={post.symptomDescription}
+              />
+              <InfoRow
+                label="Thời gian"
+                value={formatPostDate(post.createdAt)}
+              />
+            </InfoSection>
+
+            {weatherSnapshots.map(({ label, measurement }) => (
+              <InfoSection key={label} title={`Dữ liệu trạm thời tiết (${label})`}>
+                  <InfoRow
+                    label="Thời điểm"
+                    value={
+                      measurement?.updatedAt
+                        ? formatVietnamDateTime(measurement.updatedAt)
+                        : "--"
+                    }
+                  />
+                  <InfoRow
+                    label="Thời tiết"
+                    value={weatherLabel(measurement?.weatherCode)}
+                  />
+                  <InfoRow
+                    label="Nhiệt độ"
+                    value={
+                      measurement?.temperature !== undefined
+                        ? `${formatMetric(measurement.temperature, 1)}°C`
+                        : "--"
+                    }
+                  />
+                  <InfoRow
+                    label="Độ ẩm"
+                    value={
+                      measurement?.humidity !== undefined
+                        ? `${measurement.humidity}%`
+                        : "--"
+                    }
+                  />
+                  <InfoRow
+                    label="Ánh sáng"
+                    value={
+                      Number.isFinite(measurement?.lightUvIndex)
+                        ? `${measurement?.lightUvIndex} W/m²`
+                        : "--"
+                    }
+                  />
+                  <InfoRow
+                    label="Gió"
+                    value={
+                      measurement?.windSpeed !== undefined
+                        ? `${measurement.windSpeed} km/h`
+                        : "--"
+                    }
+                  />
+                  <InfoRow
+                    label="CO₂"
+                    value={
+                      Number.isFinite(measurement?.co2Level)
+                        ? `${measurement?.co2Level} ppm`
+                        : "--"
+                    }
+                  />
+              </InfoSection>
+            ))}
+
+            {post.localMeasurements ? (
+              <InfoSection title="Số đo tại nơi">
+                <InfoRow
+                  label="Nhiệt độ"
+                  value={
+                    post.localMeasurements.temperature !== undefined
+                      ? `${post.localMeasurements.temperature}°C`
+                      : undefined
+                  }
+                />
+                <InfoRow
+                  label="Độ ẩm"
+                  value={
+                    post.localMeasurements.humidity !== undefined
+                      ? `${post.localMeasurements.humidity}%`
+                      : undefined
+                  }
+                />
+                <InfoRow
+                  label="Ánh sáng"
+                  value={
+                    post.localMeasurements.lightUvIndex !== undefined
+                      ? `${post.localMeasurements.lightUvIndex} lux`
+                      : undefined
+                  }
+                />
+                <InfoRow
+                  label="Tốc độ gió"
+                  value={
+                    post.localMeasurements.windSpeed !== undefined
+                      ? `${post.localMeasurements.windSpeed} m/s`
+                      : undefined
+                  }
+                />
+                <InfoRow
+                  label="CO2"
+                  value={
+                    post.localMeasurements.co2Level !== undefined
+                      ? `${post.localMeasurements.co2Level} ppm`
+                      : undefined
+                  }
+                />
+                <InfoRow label="pH đất" value={post.localMeasurements.soilPh} />
+                <InfoRow label="EC đất" value={post.localMeasurements.soilEc} />
+                <InfoRow label="DO đất" value={post.localMeasurements.soilDo} />
+                <InfoRow
+                  label="Độ ẩm đất"
+                  value={post.localMeasurements.soilHumidity}
+                />
+              </InfoSection>
+            ) : null}
+
+            {post.captureLocation ? (
+              <InfoSection title="Vị trí GPS">
+                <InfoRow
+                  label="Vĩ độ"
+                  value={String(post.captureLocation.latitude)}
+                />
+                <InfoRow
+                  label="Kinh độ"
+                  value={String(post.captureLocation.longitude)}
+                />
+                <InfoRow
+                  label="Địa chỉ"
+                  value={post.captureLocation.formattedAddress}
+                />
+              </InfoSection>
+            ) : null}
+          </ScrollView>
         </BottomSheet>
       </View>
     </Modal>
@@ -390,7 +558,19 @@ const imageViewerStyles = StyleSheet.create({
     borderColor: "#e5e7eb",
     overflow: "hidden",
     backgroundColor: "#fff",
-    marginVertical: 10,
+  },
+  infoContent: {
+    paddingVertical: 10,
+    paddingBottom: 24,
+  },
+  infoSection: {
+    marginBottom: 18,
+  },
+  infoSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1f2937",
+    marginBottom: 8,
   },
   tableRow: {
     flexDirection: "row",
@@ -411,5 +591,6 @@ const imageViewerStyles = StyleSheet.create({
     fontSize: 14,
     color: "#1f2937",
     fontWeight: "500",
+    textAlign: "right",
   },
 });

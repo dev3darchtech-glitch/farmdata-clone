@@ -48,6 +48,12 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
+function weatherLabel(weatherCode?: number | null) {
+  return typeof weatherCode === "number"
+    ? getCaptureWeatherLabel(weatherCode)
+    : "--";
+}
+
 export function PostDetailScreen() {
   const { user } = useAuth();
   const role = normalizeRole(user?.role as string);
@@ -145,6 +151,8 @@ export function PostDetailScreen() {
           post={post}
           initialIndex={viewerIndex}
           onClose={() => setViewerVisible(false)}
+          canEdit={canEdit}
+          onEdit={handleEdit}
           canDelete={canDelete}
           onDelete={handleDelete}
         />
@@ -304,7 +312,7 @@ export function PostDetailScreen() {
 
         {/* Dữ liệu thời tiết trạm */}
         <Text style={postDetailStyles.sectionTitle}>
-          Dữ liệu trạm thời tiết (T0)
+          Dữ liệu trạm thời tiết
         </Text>
         <View style={postDetailStyles.dataCard}>
           <DetailRow
@@ -316,12 +324,8 @@ export function PostDetailScreen() {
             }
           />
           <DetailRow
-            label="Thời tiết"
-            value={
-              post.stationMeasurements?.weatherCode !== undefined
-                ? getCaptureWeatherLabel(post.stationMeasurements.weatherCode)
-                : envName(post.envMode)
-            }
+            label="Thời tiết (T0)"
+            value={weatherLabel(post.stationMeasurements?.weatherCode)}
           />
           <DetailRow
             label="Nhiệt độ (T0)"
@@ -358,6 +362,10 @@ export function PostDetailScreen() {
                 }
               />
               <DetailRow
+                label="Thời tiết (T12)"
+                value={weatherLabel(post.stationMeasurementsT12.weatherCode)}
+              />
+              <DetailRow
                 label="Nhiệt độ (T12)"
                 value={
                   post.stationMeasurementsT12.temperature !== undefined
@@ -386,6 +394,10 @@ export function PostDetailScreen() {
                 }
               />
               <DetailRow
+                label="Thời tiết (T24)"
+                value={weatherLabel(post.stationMeasurementsT24.weatherCode)}
+              />
+              <DetailRow
                 label="Nhiệt độ (T24)"
                 value={
                   post.stationMeasurementsT24.temperature !== undefined
@@ -412,6 +424,10 @@ export function PostDetailScreen() {
                     ? formatVietnamDateTime(post.stationMeasurementsT48.updatedAt)
                     : undefined
                 }
+              />
+              <DetailRow
+                label="Thời tiết (T48)"
+                value={weatherLabel(post.stationMeasurementsT48.weatherCode)}
               />
               <DetailRow
                 label="Nhiệt độ (T48)"

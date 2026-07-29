@@ -241,6 +241,10 @@ export function PostsScreen() {
             post={viewerPost}
             initialIndex={viewerIndex}
             onClose={() => setViewerPost(null)}
+            canEdit={isPostAuthorAdmin(viewerPost)}
+            onEdit={() => {
+              if (viewerPost) handleEditPost(viewerPost);
+            }}
             canDelete={isPostAuthorAdmin(viewerPost)}
             onDelete={() => {
               if (viewerPost) {
