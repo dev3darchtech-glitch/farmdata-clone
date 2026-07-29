@@ -695,7 +695,7 @@ export function ManagementScreen() {
           if (!name || !username) {
             skipped++;
           } else {
-            await addUser({ name, username, role: "farmer", password: "123" });
+            await addUser({ name, username, role: "FARMER", password: "123" });
             success++;
           }
         }

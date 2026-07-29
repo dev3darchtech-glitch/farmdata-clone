@@ -79,7 +79,66 @@ export function CsvImportModal({
   return (
     <>
       <DrawerSheet visible={Boolean(mode)} title={sheetTitle} onClose={onClose}>
-        {mode === "select" ? (
+        {activePickerField ? (
+          <View style={feedbackStyles.sheetBodyStack}>
+            <Text style={feedbackStyles.mappingHintText}>
+              Chọn cột CSV cho: {activePickerField.label}
+            </Text>
+            <ScrollView style={{ maxHeight: 280 }}>
+              <Pressable
+                style={feedbackStyles.mappingPickerOption}
+                onPress={() => {
+                  onFieldMappingChange?.(activePickerField.key, "");
+                  setActivePickerKey(null);
+                }}
+              >
+                <Text
+                  style={[
+                    feedbackStyles.mappingPickerOptionText,
+                    !fieldMapping[activePickerField.key] &&
+                      feedbackStyles.mappingPickerActiveText,
+                  ]}
+                >
+                  -- Bỏ qua / Không chọn --
+                </Text>
+                {!fieldMapping[activePickerField.key] ? (
+                  <Check size={18} color={COLORS.green} />
+                ) : null}
+              </Pressable>
+              {parsedCsv?.headers.map((header) => {
+                const isSelected = fieldMapping[activePickerField.key] === header;
+                return (
+                  <Pressable
+                    key={header}
+                    style={feedbackStyles.mappingPickerOption}
+                    onPress={() => {
+                      onFieldMappingChange?.(activePickerField.key, header);
+                      setActivePickerKey(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        feedbackStyles.mappingPickerOptionText,
+                        isSelected && feedbackStyles.mappingPickerActiveText,
+                      ]}
+                    >
+                      Cột: {header}
+                    </Text>
+                    {isSelected ? <Check size={18} color={COLORS.green} /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <View style={feedbackStyles.sheetFooterRow}>
+              <Pressable
+                style={feedbackStyles.outlineSheetButton}
+                onPress={() => setActivePickerKey(null)}
+              >
+                <Text style={feedbackStyles.outlineSheetButtonText}>Quay lại</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : mode === "select" ? (
           <View style={feedbackStyles.sheetBodyStack}>
             <Text style={feedbackStyles.selectDescription}>
               Tải lên file danh sách dạng CSV từ kho lưu trữ thiết bị của bạn.
@@ -220,61 +279,6 @@ export function CsvImportModal({
         )}
       </DrawerSheet>
 
-      <DrawerSheet
-        visible={Boolean(activePickerKey)}
-        title={`Chọn cột CSV cho "${activePickerField?.label || ""}"`}
-        onClose={() => setActivePickerKey(null)}
-      >
-        <ScrollView style={{ maxHeight: 280 }}>
-          <Pressable
-            style={feedbackStyles.mappingPickerOption}
-            onPress={() => {
-              if (activePickerKey) {
-                onFieldMappingChange?.(activePickerKey, "");
-              }
-              setActivePickerKey(null);
-            }}
-          >
-            <Text
-              style={[
-                feedbackStyles.mappingPickerOptionText,
-                !fieldMapping[activePickerKey || ""] &&
-                  feedbackStyles.mappingPickerActiveText,
-              ]}
-            >
-              -- Bỏ qua / Không chọn --
-            </Text>
-            {!fieldMapping[activePickerKey || ""] ? (
-              <Check size={18} color={COLORS.green} />
-            ) : null}
-          </Pressable>
-          {parsedCsv?.headers.map((header) => {
-            const isSelected = fieldMapping[activePickerKey || ""] === header;
-            return (
-              <Pressable
-                key={header}
-                style={feedbackStyles.mappingPickerOption}
-                onPress={() => {
-                  if (activePickerKey) {
-                    onFieldMappingChange?.(activePickerKey, header);
-                  }
-                  setActivePickerKey(null);
-                }}
-              >
-                <Text
-                  style={[
-                    feedbackStyles.mappingPickerOptionText,
-                    isSelected && feedbackStyles.mappingPickerActiveText,
-                  ]}
-                >
-                  Cột: {header}
-                </Text>
-                {isSelected ? <Check size={18} color={COLORS.green} /> : null}
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </DrawerSheet>
     </>
   );
 }
