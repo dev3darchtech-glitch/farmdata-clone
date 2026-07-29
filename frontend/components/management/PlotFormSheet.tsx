@@ -5,14 +5,13 @@ import { KeyboardFormScrollView } from "@/components/shared/KeyboardFormScrollVi
 import { COLORS, LAYOUT } from "@/constants/theme";
 import { EnvMode } from "@/types";
 import { envName } from "@/utils/captureDisplay";
-import { PLOT_ZONE_OPTIONS } from "@/utils/management";
 import { Check } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export type PlotFormValue = {
   code: string;
-  zone: string;
+  name: string;
   envMode: EnvMode;
   area: string;
   status: string;
@@ -33,12 +32,10 @@ export function PlotFormSheet({
   onSubmit: () => void;
   editing?: boolean;
 }) {
-  const [zoneOpen, setZoneOpen] = useState(false);
   const [envModeOpen, setEnvModeOpen] = useState(false);
 
   useEffect(() => {
     if (!visible) {
-      setZoneOpen(false);
       setEnvModeOpen(false);
     }
   }, [visible]);
@@ -57,6 +54,14 @@ export function PlotFormSheet({
           onChangeText={(code) => onChange({ ...value, code })}
           style={plotSheetStyles.input}
           placeholder="Nhập mã số luống"
+        />
+        <InputText
+          label="Tên luống"
+          required
+          value={value.name}
+          onChangeText={(name) => onChange({ ...value, name })}
+          style={plotSheetStyles.input}
+          placeholder="Nhập tên luống"
         />
         <View style={plotSheetStyles.field}>
           <InputSelection
@@ -97,50 +102,13 @@ export function PlotFormSheet({
             </View>
           ) : null}
         </View>
-        <View style={plotSheetStyles.field}>
-          <InputSelection
-            fieldStyle={plotSheetStyles.select}
-            label="Khu vực"
-            onPress={() => setZoneOpen((current) => !current)}
-            placeholder="Chọn khu vực"
-            value={value.zone}
-          />
-          {zoneOpen ? (
-            <View style={plotSheetStyles.zoneOptionList}>
-              {PLOT_ZONE_OPTIONS.map((zone) => {
-                const selected = value.zone === zone;
-                return (
-                  <Pressable
-                    key={zone}
-                    style={[
-                      plotSheetStyles.zoneOptionRow,
-                      selected && plotSheetStyles.zoneOptionActive,
-                    ]}
-                    onPress={() => {
-                      onChange({ ...value, zone });
-                      setZoneOpen(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        plotSheetStyles.zoneOptionText,
-                        selected && plotSheetStyles.zoneOptionTextActive,
-                      ]}
-                    >
-                      {zone}
-                    </Text>
-                    {selected ? <Check size={18} color={COLORS.green} /> : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-        </View>
         <InputText
-          keyboardType="numeric"
+          keyboardType="decimal-pad"
           label="Diện tích (m²)"
           value={value.area}
-          onChangeText={(area) => onChange({ ...value, area })}
+          onChangeText={(area) =>
+            onChange({ ...value, area: area.replace(",", ".") })
+          }
           style={plotSheetStyles.input}
           placeholder="Nhập diện tích"
         />
@@ -159,9 +127,10 @@ export function PlotFormSheet({
         <Pressable
           style={[
             plotSheetStyles.saveButton,
-            !value.code.trim() && plotSheetStyles.disabledButton,
+            (!value.code.trim() || !value.name.trim()) &&
+              plotSheetStyles.disabledButton,
           ]}
-          disabled={!value.code.trim()}
+          disabled={!value.code.trim() || !value.name.trim()}
           onPress={onSubmit}
         >
           <Text style={plotSheetStyles.saveText}>Lưu</Text>

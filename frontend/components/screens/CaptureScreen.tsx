@@ -497,6 +497,25 @@ export function CaptureScreen() {
             } catch {}
           });
       }, 60000);
+    } else if (!isTestEnv) {
+      const refreshEditStationWeather = () => {
+        const targetLocation =
+          captureLocationRef.current || hydratedDraftLocationRef.current;
+        if (!targetLocation) return;
+
+        try {
+          if (!isMounted) return;
+          setStationLatitude(targetLocation.latitude);
+          setStationLongitude(targetLocation.longitude);
+          applyWeatherForLocation(targetLocation);
+        } catch {}
+      };
+
+      refreshEditStationWeather();
+
+      intervalId = setInterval(() => {
+        refreshEditStationWeather();
+      }, 60000);
     } else {
       // In Jest tests, initialize synchronously to prevent async leaks
       const emptyStationData = createEmptyOutdoorWeatherData();

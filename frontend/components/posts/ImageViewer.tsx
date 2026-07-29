@@ -171,8 +171,8 @@ export function ImageViewer({
                 style={imageViewerStyles.viewerActionButton}
                 onPress={() => {
                   Alert.alert(
-                    "Xác nhận xóa bài post",
-                    "Bạn có chắc chắn muốn xóa bài post này không? Thao tác này không thể hoàn tác.",
+                    "Xác nhận xóa bài đăng",
+                    "Bạn có chắc chắn muốn xóa bài đăng này không? Thao tác này không thể hoàn tác.",
                     [
                       { text: "Hủy", style: "cancel" },
                       {

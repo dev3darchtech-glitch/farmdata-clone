@@ -2,8 +2,6 @@ import { PlotInfo, User } from "@/types";
 import { type ManagementVariant } from "@/types/ui";
 import { envName } from "./captureDisplay";
 
-export const PLOT_ZONE_OPTIONS = ["Khu A", "Khu B", "Khu C", "Khu D"];
-
 export function isManagementItemActive(item: any): boolean {
   const status = String(item?.status || item?.state || "").toLowerCase();
   return !(

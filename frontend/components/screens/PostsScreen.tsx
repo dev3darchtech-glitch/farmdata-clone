@@ -1,6 +1,7 @@
 import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { deletePost, getPosts } from "@/services/postService";
+import { setPendingEditPost } from "@/stores/editPostStore";
 import { EnvMode, Post } from "@/types";
 import { ManagementVariant } from "@/types/ui";
 import {
@@ -8,7 +9,6 @@ import {
   normalizeRole,
   postListKey,
 } from "@/utils/captureDisplay";
-import { setPendingEditPost } from "@/stores/editPostStore";
 import { router } from "expo-router";
 import {
   ArrowDownAZ,
@@ -220,10 +220,10 @@ export function PostsScreen() {
     async (postId: string) => {
       try {
         await deletePost(postId);
-        Alert.alert("Thành công", "Đã xóa bài post thành công.");
+        Alert.alert("Thành công", "Đã xóa bài đăng thành công.");
         fetchPostsData(false);
       } catch (err: any) {
-        Alert.alert("Lỗi", err?.message || "Không thể xóa bài post.");
+        Alert.alert("Lỗi", err?.message || "Không thể xóa bài đăng.");
       }
     },
     [fetchPostsData],

@@ -24,7 +24,7 @@ export function PlotManagementTable({
             MÃ LUỐNG
           </Text>
           <Text style={[tableStyles.headerText, tableStyles.plotZoneCell]}>
-            KHU VỰC
+            TÊN LUỐNG
           </Text>
           <Text style={[tableStyles.headerText, tableStyles.plotEnvCell]}>
             MÔI TRƯỜNG

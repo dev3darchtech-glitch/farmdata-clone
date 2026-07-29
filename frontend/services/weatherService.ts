@@ -318,7 +318,7 @@ export async function fetchOutdoorWeather(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const weatherApiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&minutely_15=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
+    const weatherApiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,shortwave_radiation&minutely_15=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,shortwave_radiation&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
     const airQualityApiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=carbon_dioxide&hourly=carbon_dioxide&past_hours=48&forecast_hours=1&timezone=Asia%2FHo_Chi_Minh`;
 
     const [response, airQualityResponse] = await Promise.all([
@@ -343,7 +343,8 @@ export async function fetchOutdoorWeather(
     ]);
 
     const curTemp = json?.current?.temperature_2m;
-    const curWind = json?.current?.windspeed_10m;
+    const curWind =
+      json?.current?.wind_speed_10m ?? json?.current?.windspeed_10m;
     const curWeatherCode = json?.current?.weather_code;
     const curHumidityValue = json?.current?.relative_humidity_2m;
     const curLightValue = json?.current?.shortwave_radiation;
@@ -352,7 +353,10 @@ export async function fetchOutdoorWeather(
     const seriesTemps: number[] = json?.minutely_15?.temperature_2m ?? [];
     const seriesHumidity: number[] =
       json?.minutely_15?.relative_humidity_2m ?? [];
-    const seriesWinds: number[] = json?.minutely_15?.windspeed_10m ?? [];
+    const seriesWinds: number[] =
+      json?.minutely_15?.wind_speed_10m ??
+      json?.minutely_15?.windspeed_10m ??
+      [];
     const seriesLightLevels: number[] =
       json?.minutely_15?.shortwave_radiation ?? [];
     const seriesWeatherCodes: number[] = json?.minutely_15?.weather_code ?? [];

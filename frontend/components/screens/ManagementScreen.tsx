@@ -134,7 +134,7 @@ export function ManagementScreen() {
   });
   const [plotForm, setPlotForm] = useState<PlotFormValue>({
     code: "",
-    zone: "",
+    name: "",
     envMode: "outdoor" as const,
     area: "",
     status: "Đang sử dụng",
@@ -313,7 +313,7 @@ export function ManagementScreen() {
     setDiseaseForm({ group: "Truyền nhiễm", type: "", name: "" });
     setPlotForm({
       code: "",
-      zone: "",
+      name: "",
       envMode: "outdoor",
       area: "",
       status: "Đang sử dụng",
@@ -331,7 +331,7 @@ export function ManagementScreen() {
     setDiseaseForm({ group: "Truyền nhiễm", type: "", name: "" });
     setPlotForm({
       code: "",
-      zone: "",
+      name: "",
       envMode: "outdoor",
       area: "",
       status: "Đang sử dụng",
@@ -343,11 +343,13 @@ export function ManagementScreen() {
   const addItem = async () => {
     try {
       if (variant === "plots") {
-        if (!plotForm.code.trim()) return;
-        const areaSquareMeters = Number(plotForm.area);
+        if (!plotForm.code.trim() || !plotForm.name.trim()) return;
+        const areaSquareMeters = Number(
+          plotForm.area.trim().replace(",", "."),
+        );
         const payload = {
           code: plotForm.code.trim(),
-          name: plotForm.zone.trim() || plotForm.code.trim(),
+          name: plotForm.name.trim(),
           envMode: plotForm.envMode,
           ...(Number.isFinite(areaSquareMeters) && areaSquareMeters > 0
             ? { areaSquareMeters }
@@ -439,7 +441,7 @@ export function ManagementScreen() {
       setEditingPlot(plot);
       setPlotForm({
         code: plot.code || "",
-        zone: plot.name || "",
+        name: plot.name || "",
         envMode: plot.envMode || "outdoor",
         area: plot.areaSquareMeters ? String(plot.areaSquareMeters) : "",
         status: isManagementItemActive(plot) ? "Đang sử dụng" : "Ngừng sử dụng",

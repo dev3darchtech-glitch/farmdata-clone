@@ -259,13 +259,13 @@ export const deletePost = async (req: Request, res: Response) => {
 
     if (!isAuthor) {
       return res.status(403).json({
-        error: "Chỉ admin tác giả đăng bài viết này mới có quyền xóa bài post.",
+        error: "Chỉ admin tác giả đăng bài viết này mới có quyền xóa bài đăng.",
       });
     }
 
     await CaptureSessionModel.deleteOne({ _id: session._id });
-    return res.json({ message: "Đã xóa bài post thành công." });
+    return res.json({ message: "Đã xóa bài đăng thành công." });
   } catch (error) {
-    return res.status(500).json({ error: "Không thể xóa bài post." });
+    return res.status(500).json({ error: "Không thể xóa bài đăng." });
   }
 };

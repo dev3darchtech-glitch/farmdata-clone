@@ -36,16 +36,14 @@ export const SYSTEM_FIELDS_BY_VARIANT: Record<
     },
     {
       key: "name",
-      label: "Tên luống / Khu vực",
+      label: "Tên luống",
       required: true,
       aliases: [
         "name",
         "tên",
         "tenluong",
         "tên luống",
-        "khu vực",
         "label",
-        "tên khu vực",
         "plot_name",
       ],
     },

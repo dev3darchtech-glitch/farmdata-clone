@@ -27,6 +27,59 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
     });
   });
 
+  describe("fetchOutdoorWeather snapshots", () => {
+    it("maps T0, T12, T24, and T48 to their respective timestamps", async () => {
+      const start = new Date(Date.UTC(2026, 6, 27, 0, 0));
+      const times = Array.from({ length: 193 }, (_, index) => {
+        const timestamp = new Date(start.getTime() + index * 15 * 60 * 1000);
+        return timestamp.toISOString().slice(0, 16);
+      });
+      const temperatures = Array.from({ length: 193 }, (_, index) => index);
+
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            current: {
+              temperature_2m: 999,
+              relative_humidity_2m: 55,
+              wind_speed_10m: 10,
+              weather_code: 1,
+              shortwave_radiation: 100,
+              time: times[192],
+            },
+            minutely_15: {
+              time: times,
+              temperature_2m: temperatures,
+              relative_humidity_2m: temperatures,
+              wind_speed_10m: temperatures,
+              weather_code: temperatures,
+              shortwave_radiation: temperatures,
+            },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            current: { carbon_dioxide: 420 },
+            hourly: { time: [], carbon_dioxide: [] },
+          }),
+        });
+
+      const weather = await fetchOutdoorWeather(10.7769, 106.7009);
+
+      expect(weather.current.temperature).toBe(999);
+      expect(weather.current.updatedAt).toBe("2026-07-28T17:00:00.000Z");
+      expect(weather.t12?.temperature).toBe(144);
+      expect(weather.t12?.updatedAt).toBe("2026-07-28T05:00:00.000Z");
+      expect(weather.t24.temperature).toBe(96);
+      expect(weather.t24.updatedAt).toBe("2026-07-27T17:00:00.000Z");
+      expect(weather.t48.temperature).toBe(0);
+      expect(weather.t48.updatedAt).toBe("2026-07-26T17:00:00.000Z");
+    });
+  });
+
   describe("createDefaultGreenhouseData", () => {
     it("creates greenhouse default state with NaN for all 12 metric fields", () => {
       const data = createDefaultGreenhouseData();

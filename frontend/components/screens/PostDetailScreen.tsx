@@ -13,6 +13,7 @@ import {
   severityDotColor,
   stageName,
 } from "@/utils/captureDisplay";
+import { formatVietnamDateTime } from "@/utils/dateHelper";
 import { buildPostUrl } from "@/utils/postImage";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
@@ -111,8 +112,8 @@ export function PostDetailScreen() {
 
   const handleDelete = () => {
     Alert.alert(
-      "Xác nhận xóa bài post",
-      "Bạn có chắc chắn muốn xóa bài post này không? Thao tác này không thể hoàn tác.",
+      "Xác nhận xóa bài đăng",
+      "Bạn có chắc chắn muốn xóa bài đăng này không? Thao tác này không thể hoàn tác.",
       [
         { text: "Hủy", style: "cancel" },
         {
@@ -122,11 +123,11 @@ export function PostDetailScreen() {
             setDeleting(true);
             try {
               await deletePost(post.id);
-              Alert.alert("Thành công", "Đã xóa bài post thành công.", [
+              Alert.alert("Thành công", "Đã xóa bài đăng thành công.", [
                 { text: "OK", onPress: () => router.back() },
               ]);
             } catch (err: any) {
-              Alert.alert("Lỗi", err?.message || "Không thể xóa bài post.");
+              Alert.alert("Lỗi", err?.message || "Không thể xóa bài đăng.");
             } finally {
               setDeleting(false);
             }
@@ -307,6 +308,14 @@ export function PostDetailScreen() {
         </Text>
         <View style={postDetailStyles.dataCard}>
           <DetailRow
+            label="Thời điểm (T0)"
+            value={
+              post.stationMeasurements?.updatedAt
+                ? formatVietnamDateTime(post.stationMeasurements.updatedAt)
+                : undefined
+            }
+          />
+          <DetailRow
             label="Thời tiết"
             value={
               post.stationMeasurements?.weatherCode !== undefined
@@ -341,7 +350,15 @@ export function PostDetailScreen() {
           {post.stationMeasurementsT12 ? (
             <>
               <DetailRow
-                label="Nhiệt độ (T-12)"
+                label="Thời điểm (T12)"
+                value={
+                  post.stationMeasurementsT12.updatedAt
+                    ? formatVietnamDateTime(post.stationMeasurementsT12.updatedAt)
+                    : undefined
+                }
+              />
+              <DetailRow
+                label="Nhiệt độ (T12)"
                 value={
                   post.stationMeasurementsT12.temperature !== undefined
                     ? `${formatMetric(post.stationMeasurementsT12.temperature, 1)}°C`
@@ -349,7 +366,7 @@ export function PostDetailScreen() {
                 }
               />
               <DetailRow
-                label="Độ ẩm (T-12)"
+                label="Độ ẩm (T12)"
                 value={
                   post.stationMeasurementsT12.humidity !== undefined
                     ? `${post.stationMeasurementsT12.humidity}%`
@@ -361,7 +378,15 @@ export function PostDetailScreen() {
           {post.stationMeasurementsT24 ? (
             <>
               <DetailRow
-                label="Nhiệt độ (T-24)"
+                label="Thời điểm (T24)"
+                value={
+                  post.stationMeasurementsT24.updatedAt
+                    ? formatVietnamDateTime(post.stationMeasurementsT24.updatedAt)
+                    : undefined
+                }
+              />
+              <DetailRow
+                label="Nhiệt độ (T24)"
                 value={
                   post.stationMeasurementsT24.temperature !== undefined
                     ? `${formatMetric(post.stationMeasurementsT24.temperature, 1)}°C`
@@ -369,7 +394,7 @@ export function PostDetailScreen() {
                 }
               />
               <DetailRow
-                label="Độ ẩm (T-24)"
+                label="Độ ẩm (T24)"
                 value={
                   post.stationMeasurementsT24.humidity !== undefined
                     ? `${post.stationMeasurementsT24.humidity}%`
@@ -381,7 +406,15 @@ export function PostDetailScreen() {
           {post.stationMeasurementsT48 ? (
             <>
               <DetailRow
-                label="Nhiệt độ (T-48)"
+                label="Thời điểm (T48)"
+                value={
+                  post.stationMeasurementsT48.updatedAt
+                    ? formatVietnamDateTime(post.stationMeasurementsT48.updatedAt)
+                    : undefined
+                }
+              />
+              <DetailRow
+                label="Nhiệt độ (T48)"
                 value={
                   post.stationMeasurementsT48.temperature !== undefined
                     ? `${formatMetric(post.stationMeasurementsT48.temperature, 1)}°C`
@@ -389,7 +422,7 @@ export function PostDetailScreen() {
                 }
               />
               <DetailRow
-                label="Độ ẩm (T-48)"
+                label="Độ ẩm (T48)"
                 value={
                   post.stationMeasurementsT48.humidity !== undefined
                     ? `${post.stationMeasurementsT48.humidity}%`

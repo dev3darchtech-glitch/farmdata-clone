@@ -5,9 +5,9 @@ import { PlotModel } from "../models/Plot";
 import { PlantDiseaseGroup } from "../types";
 
 const DEFAULT_PLOTS = [
-  { code: "L-001", name: "Luống 01 - Khu A (Nhà kính)", envMode: "greenhouse" },
-  { code: "L-002", name: "Luống 02 - Khu A (Nhà kính)", envMode: "greenhouse" },
-  { code: "L-003", name: "Luống 03 - Khu B (Ngoài trời)", envMode: "outdoor" },
+  { code: "L-001", name: "Luống 01", envMode: "greenhouse" },
+  { code: "L-002", name: "Luống 02", envMode: "greenhouse" },
+  { code: "L-003", name: "Luống 03", envMode: "outdoor" },
 ] as const;
 
 const DEFAULT_CROPS = [

@@ -252,11 +252,12 @@ export function formatCaptureLocationName(location?: LocationData) {
 }
 
 export function plotSheetMeta(plot: PlotInfo) {
-  const primaryZone = plot.name.split("-")[0]?.trim() || plot.name.trim();
   const area = plot.areaSquareMeters
     ? `${plot.areaSquareMeters} m²`
     : undefined;
-  return [envName(plot.envMode), primaryZone, area].filter(Boolean).join(" • ");
+  return [envName(plot.envMode), plot.name.trim(), area]
+    .filter(Boolean)
+    .join(" • ");
 }
 
 export function normalizePostIdentity(post: Post & { _id?: string }) {
