@@ -1,5 +1,6 @@
 import { PlotInfo, User } from "@/types";
 import { type ManagementVariant } from "@/types/ui";
+import { envName } from "./captureDisplay";
 
 export const PLOT_ZONE_OPTIONS = ["Khu A", "Khu B", "Khu C", "Khu D"];
 
@@ -21,7 +22,7 @@ export function isManagementItemInactive(item: any): boolean {
 
 export function formatPlotMeta(item: PlotInfo): string {
   const area = item.areaSquareMeters ? ` - ${item.areaSquareMeters} m²` : "";
-  return `${item.name || item.code}${area}`;
+  return `${envName(item.envMode)} - ${item.name || item.code}${area}`;
 }
 
 export function getFarmerDisplayCode(item: User, index: number): string {

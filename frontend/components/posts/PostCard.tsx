@@ -7,7 +7,12 @@ import {
   severityDotColor,
   stageName,
 } from "@/utils/captureDisplay";
-import { Calendar, Image as ImageIcon, Trash2 } from "lucide-react-native";
+import {
+  Calendar,
+  Image as ImageIcon,
+  Pencil,
+  Trash2,
+} from "lucide-react-native";
 import React from "react";
 import {
   Alert,
@@ -23,14 +28,18 @@ export function PostCard({
   post,
   admin,
   canDelete,
+  canEdit,
   onImage,
   onDelete,
+  onEdit,
 }: {
   post: Post;
   admin?: boolean;
   canDelete?: boolean;
+  canEdit?: boolean;
   onImage: (index?: number) => void;
   onDelete?: () => void;
+  onEdit?: () => void;
 }) {
   const imageCount = post.images.length;
   const visibleImages = post.images.slice(0, Math.min(imageCount, 4));
@@ -106,6 +115,15 @@ export function PostCard({
           <Text style={postCardStyles.postTitle} numberOfLines={1}>
             {post.cropType} - {stageName(post.growthStage)}
           </Text>
+          {canEdit ? (
+            <Pressable
+              style={postCardStyles.editCardButton}
+              onPress={onEdit}
+              hitSlop={8}
+            >
+              <Pencil size={15} color={COLORS.green} />
+            </Pressable>
+          ) : null}
           {canDelete ? (
             <Pressable
               style={postCardStyles.deleteCardButton}
@@ -289,6 +307,13 @@ const postCardStyles = StyleSheet.create({
     padding: 4,
     borderRadius: 6,
     backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editCardButton: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: "#f0fdf4",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1,10 +1,12 @@
 import {
   CaptureSession,
   CropTypeInfo,
-  PlotInfo,
-  PlantDiseaseInfo,
-  Post,
   GrowthStageId,
+  ListQuery,
+  PaginatedListResult,
+  PlantDiseaseInfo,
+  PlotInfo,
+  Post,
   SymptomSeverity,
   User,
   UserRole,
@@ -45,6 +47,7 @@ function mapPlot(p: any): PlotInfo {
     id: p._id || p.id,
     code: p.code,
     name: p.name,
+    envMode: p.envMode === "greenhouse" ? "greenhouse" : "outdoor",
     areaSquareMeters: p.areaSquareMeters,
     isActive: p.isActive !== false,
     status: p.status,
@@ -74,11 +77,20 @@ function mapPlantDisease(d: any): PlantDiseaseInfo {
   };
 }
 
-export interface PaginatedPlantDiseases {
-  items: PlantDiseaseInfo[];
-  total: number;
-  page: number;
-  totalPages: number;
+function mapUser(u: any): User {
+  return {
+    id: u._id || u.id,
+    name: u.name,
+    email: u.email,
+    username: u.username,
+    role: u.role,
+    isRevoked: Boolean(u.isRevoked),
+    revokedAt: u.revokedAt,
+    createdByAdminId:
+      typeof u.createdByAdminId === "string"
+        ? u.createdByAdminId
+        : u.createdByAdminId?._id || u.createdByAdminId?.id,
+  };
 }
 
 /**
@@ -189,24 +201,66 @@ export async function submitCaptureSession(
   }
 }
 
+export async function updateCaptureSessionAPI(
+  sessionId: string,
+  sessionData: Omit<CaptureSession, "id" | "status" | "createdAt">,
+  onProgress?: (step: string, current: number, total: number) => void,
+): Promise<{ session: CaptureSession }> {
+  const totalImages = sessionData.images.length;
+  if (onProgress) {
+    for (let i = 1; i <= totalImages; i++) {
+      onProgress("Đang cập nhật ảnh", i, totalImages);
+    }
+  }
+
+  try {
+    const res = await fetch(
+      `${BACKEND_URL}/sessions/${encodeURIComponent(sessionId)}`,
+      {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(sessionData),
+      },
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      return { session: data.session };
+    }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể cập nhật phiên chụp.");
+  } catch (err) {
+    throw err instanceof Error
+      ? err
+      : new Error("Không thể kết nối đến máy chủ.");
+  }
+}
+
 /**
  * Fetch Post Feed directly from backend API using server-side filters and sorting.
  */
 export async function fetchPostFeed(
   role: UserRole = "farmer",
   filters: {
+    page?: number;
     crop?: string;
     env?: string;
     plot?: string;
     q?: string;
     severity?: string;
     sort?: string;
+    datePreset?: string;
+    startDate?: string;
+    endDate?: string;
     limit?: number;
     offset?: number;
   } = {},
-): Promise<{ posts: Post[]; total: number; hasMore: boolean }> {
+): Promise<PaginatedListResult<Post>> {
   try {
     const url = new URL(`${BACKEND_URL}/posts`);
+    if (filters.page !== undefined) {
+      url.searchParams.set("page", String(filters.page));
+    }
     if (filters.crop && filters.crop !== "all" && filters.crop !== "ALL") {
       url.searchParams.set("crop", filters.crop);
     }
@@ -229,6 +283,15 @@ export async function fetchPostFeed(
     if (filters.sort) {
       url.searchParams.set("sort", filters.sort);
     }
+    if (filters.datePreset && filters.datePreset !== "all") {
+      url.searchParams.set("datePreset", filters.datePreset);
+    }
+    if (filters.startDate?.trim()) {
+      url.searchParams.set("startDate", filters.startDate.trim());
+    }
+    if (filters.endDate?.trim()) {
+      url.searchParams.set("endDate", filters.endDate.trim());
+    }
     if (filters.limit !== undefined) {
       url.searchParams.set("limit", String(filters.limit));
     }
@@ -242,13 +305,22 @@ export async function fetchPostFeed(
 
     if (res.ok) {
       const data = await res.json();
-      // Support both old array response and new paginated response
       if (Array.isArray(data)) {
-        return { posts: data, total: data.length, hasMore: false };
+        return {
+          items: data,
+          total: data.length,
+          page: filters.page || 1,
+          limit: filters.limit || data.length || 1,
+          totalPages: 1,
+          hasMore: false,
+        };
       }
       return {
-        posts: data.posts ?? [],
+        items: data.items ?? data.posts ?? [],
         total: data.total ?? 0,
+        page: data.page ?? filters.page ?? 1,
+        limit: data.limit ?? filters.limit ?? 10,
+        totalPages: data.totalPages ?? 1,
         hasMore: data.hasMore ?? false,
       };
     }
@@ -256,7 +328,14 @@ export async function fetchPostFeed(
     // Silent offline catch
   }
 
-  return { posts: [], total: 0, hasMore: false };
+  return {
+    items: [],
+    total: 0,
+    page: filters.page || 1,
+    limit: filters.limit || 10,
+    totalPages: 1,
+    hasMore: false,
+  };
 }
 
 export async function fetchPostById(postId: string): Promise<Post | null> {
@@ -330,27 +409,6 @@ export async function createManualPostAPI(postData: {
   return data as Post;
 }
 
-/**
- * Fetch Plots directly from backend API.
- */
-export async function fetchPlotsAPI(): Promise<PlotInfo[]> {
-  try {
-    const res = await fetch(`${BACKEND_URL}/master-data/plots`, {
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) {
-      const plots = await res.json();
-      return plots.map(mapPlot);
-    }
-  } catch {
-    // Silent offline catch
-  }
-  return [];
-}
-
-/**
- * Create Plot directly on backend API.
- */
 export async function createPlotAPI(
   plot: Omit<PlotInfo, "id">,
 ): Promise<PlotInfo> {
@@ -410,22 +468,114 @@ export async function setPlotActiveStatusAPI(
   return mapPlot(data);
 }
 
+async function fetchPaginatedCollection<T>({
+  path,
+  page,
+  limit,
+  query,
+  mapper,
+  fallbackError,
+}: {
+  path: string;
+  page: number;
+  limit: number;
+  query?: string;
+  mapper: (value: any) => T;
+  fallbackError: string;
+}): Promise<PaginatedListResult<T>> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (query?.trim()) {
+    params.set("q", query.trim());
+  }
+
+  const res = await fetch(`${BACKEND_URL}${path}?${params.toString()}`, {
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || fallbackError);
+  }
+
+  return {
+    items: Array.isArray(data.items) ? data.items.map(mapper) : [],
+    total: Number(data.total) || 0,
+    page: Number(data.page) || page,
+    limit: Number(data.limit) || limit,
+    totalPages: Number(data.totalPages) || 1,
+    hasMore:
+      typeof data.hasMore === "boolean"
+        ? data.hasMore
+        : (Number(data.page) || page) < (Number(data.totalPages) || 1),
+  };
+}
+
+async function fetchAllPages<T>(
+  fetchPage: (query: ListQuery) => Promise<PaginatedListResult<T>>,
+  limit = 100,
+): Promise<T[]> {
+  let page = 1;
+  const items: T[] = [];
+
+  while (true) {
+    const result = await fetchPage({ page, limit });
+    items.push(...result.items);
+    if (!result.hasMore || page >= result.totalPages) {
+      return items;
+    }
+    page += 1;
+  }
+}
+
+export async function fetchPlotsPageAPI({
+  page,
+  limit,
+  query,
+}: ListQuery): Promise<PaginatedListResult<PlotInfo>> {
+  return await fetchPaginatedCollection({
+    path: "/master-data/plots",
+    page,
+    limit,
+    query,
+    mapper: mapPlot,
+    fallbackError: "Không thể tải danh sách mã luống.",
+  });
+}
+
+export async function fetchPlotsAPI(): Promise<PlotInfo[]> {
+  try {
+    return await fetchAllPages(fetchPlotsPageAPI);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchCropsPageAPI({
+  page,
+  limit,
+  query,
+}: ListQuery): Promise<PaginatedListResult<CropTypeInfo>> {
+  return await fetchPaginatedCollection({
+    path: "/master-data/crops",
+    page,
+    limit,
+    query,
+    mapper: mapCrop,
+    fallbackError: "Không thể tải danh sách loại cây.",
+  });
+}
+
 /**
  * Fetch Crops directly from backend API.
  */
 export async function fetchCropsAPI(): Promise<CropTypeInfo[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/master-data/crops`, {
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) {
-      const crops = await res.json();
-      return crops.map(mapCrop);
-    }
+    return await fetchAllPages(fetchCropsPageAPI);
   } catch {
-    // Silent offline catch
+    return [];
   }
-  return [];
 }
 
 /**
@@ -490,79 +640,42 @@ export async function setCropActiveStatusAPI(
   return mapCrop(data);
 }
 
-/**
- * Fetch plant diseases from master-data API.
- */
-export async function fetchPlantDiseasesAPI(): Promise<PlantDiseaseInfo[]> {
-  try {
-    const res = await fetch(`${BACKEND_URL}/master-data/plant-diseases`, {
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) {
-      const diseases = await res.json();
-      return diseases.map(mapPlantDisease);
-    }
-  } catch {
-    // Silent offline catch
-  }
-  return [];
-}
-
 export async function fetchPlantDiseasesPageAPI({
   page,
   limit,
   query,
-}: {
-  page: number;
-  limit: number;
-  query?: string;
-}): Promise<PaginatedPlantDiseases> {
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit),
+}: ListQuery): Promise<PaginatedListResult<PlantDiseaseInfo>> {
+  return await fetchPaginatedCollection({
+    path: "/master-data/plant-diseases",
+    page,
+    limit,
+    query,
+    mapper: mapPlantDisease,
+    fallbackError: "Không thể tải danh sách bệnh cây.",
   });
-  if (query?.trim()) {
-    params.set("q", query.trim());
+}
+
+export async function fetchPlantDiseasesAPI(): Promise<PlantDiseaseInfo[]> {
+  try {
+    return await fetchAllPages(fetchPlantDiseasesPageAPI);
+  } catch {
+    return [];
   }
+}
 
-  const res = await fetch(
-    `${BACKEND_URL}/master-data/plant-diseases?${params.toString()}`,
-    {
-      headers: getAuthHeaders(),
-    },
-  );
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || "Không thể tải danh sách bệnh cây.");
-  }
-
-  if (Array.isArray(data)) {
-    const filteredItems = query?.trim()
-      ? data.filter((item: any) =>
-          [item.group, item.type, item.name]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(query.trim().toLowerCase()),
-        )
-      : data;
-    const start = (page - 1) * limit;
-    const items = filteredItems.slice(start, start + limit);
-
-    return {
-      items: items.map(mapPlantDisease),
-      total: filteredItems.length,
-      page,
-      totalPages: Math.max(1, Math.ceil(filteredItems.length / limit)),
-    };
-  }
-
-  return {
-    items: Array.isArray(data.items) ? data.items.map(mapPlantDisease) : [],
-    total: Number(data.total) || 0,
-    page: Number(data.page) || page,
-    totalPages: Number(data.totalPages) || 1,
-  };
+export async function fetchUsersPageAPI({
+  page,
+  limit,
+  query,
+}: ListQuery): Promise<PaginatedListResult<User>> {
+  return await fetchPaginatedCollection({
+    path: "/admin/users",
+    page,
+    limit,
+    query,
+    mapper: mapUser,
+    fallbackError: "Không thể tải danh sách tài khoản.",
+  });
 }
 
 /**
@@ -629,29 +742,10 @@ export async function setPlantDiseaseActiveStatusAPI(
  */
 export async function fetchUsersAPI(): Promise<User[]> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/users`, {
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) {
-      const users = await res.json();
-      return users.map((u: any) => ({
-        id: u._id || u.id,
-        name: u.name,
-        email: u.email,
-        username: u.username,
-        role: u.role,
-        isRevoked: Boolean(u.isRevoked),
-        revokedAt: u.revokedAt,
-        createdByAdminId:
-          typeof u.createdByAdminId === "string"
-            ? u.createdByAdminId
-            : u.createdByAdminId?._id || u.createdByAdminId?.id,
-      }));
-    }
+    return await fetchAllPages(fetchUsersPageAPI);
   } catch {
-    // Silent offline catch
+    return [];
   }
-  return [];
 }
 
 /**
@@ -672,19 +766,7 @@ export async function createUserAPI(userData: {
 
     if (res.ok) {
       const u = await res.json();
-      return {
-        id: u._id || u.id,
-        name: u.name,
-        email: u.email,
-        username: u.username,
-        role: u.role,
-        isRevoked: Boolean(u.isRevoked),
-        revokedAt: u.revokedAt,
-        createdByAdminId:
-          typeof u.createdByAdminId === "string"
-            ? u.createdByAdminId
-            : u.createdByAdminId?._id || u.createdByAdminId?.id,
-      };
+      return mapUser(u);
     }
     const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Không thể tạo tài khoản.");
@@ -717,19 +799,7 @@ export async function updateUserAPI(
     throw new Error(data.error || "Không thể cập nhật tài khoản.");
   }
 
-  return {
-    id: data._id || data.id,
-    name: data.name,
-    email: data.email,
-    username: data.username,
-    role: data.role,
-    isRevoked: Boolean(data.isRevoked),
-    revokedAt: data.revokedAt,
-    createdByAdminId:
-      typeof data.createdByAdminId === "string"
-        ? data.createdByAdminId
-        : data.createdByAdminId?._id || data.createdByAdminId?.id,
-  };
+  return mapUser(data);
 }
 
 /**
@@ -746,19 +816,7 @@ export async function revokeUserAPI(userId: string): Promise<User> {
     throw new Error(data.error || "Không thể thu hồi tài khoản.");
   }
 
-  return {
-    id: data._id || data.id,
-    name: data.name,
-    email: data.email,
-    username: data.username,
-    role: data.role,
-    isRevoked: Boolean(data.isRevoked),
-    revokedAt: data.revokedAt,
-    createdByAdminId:
-      typeof data.createdByAdminId === "string"
-        ? data.createdByAdminId
-        : data.createdByAdminId?._id || data.createdByAdminId?.id,
-  };
+  return mapUser(data);
 }
 
 /**
@@ -775,19 +833,7 @@ export async function restoreUserAPI(userId: string): Promise<User> {
     throw new Error(data.error || "Không thể mở khóa tài khoản.");
   }
 
-  return {
-    id: data._id || data.id,
-    name: data.name,
-    email: data.email,
-    username: data.username,
-    role: data.role,
-    isRevoked: Boolean(data.isRevoked),
-    revokedAt: data.revokedAt,
-    createdByAdminId:
-      typeof data.createdByAdminId === "string"
-        ? data.createdByAdminId
-        : data.createdByAdminId?._id || data.createdByAdminId?.id,
-  };
+  return mapUser(data);
 }
 
 export async function getGoogleDriveFolderUrlAPI(): Promise<string> {

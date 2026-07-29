@@ -37,6 +37,7 @@ export interface ICaptureSessionDocument extends Document {
   envMode: EnvMode;
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT12?: WeatherCondition;
   stationMeasurementsT24?: WeatherCondition;
   stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: WeatherCondition;
@@ -99,6 +100,15 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
       soilEc: { type: String },
       soilDo: { type: String },
       soilHumidity: { type: String },
+    },
+    stationMeasurementsT12: {
+      temperature: { type: Number },
+      lightUvIndex: { type: Number },
+      windSpeed: { type: Number },
+      co2Level: { type: Number },
+      humidity: { type: Number },
+      weatherCode: { type: Number },
+      updatedAt: { type: String },
     },
     stationMeasurementsT24: {
       temperature: { type: Number },

@@ -256,7 +256,7 @@ export function plotSheetMeta(plot: PlotInfo) {
   const area = plot.areaSquareMeters
     ? `${plot.areaSquareMeters} m²`
     : undefined;
-  return [primaryZone, area].filter(Boolean).join(" • ");
+  return [envName(plot.envMode), primaryZone, area].filter(Boolean).join(" • ");
 }
 
 export function normalizePostIdentity(post: Post & { _id?: string }) {

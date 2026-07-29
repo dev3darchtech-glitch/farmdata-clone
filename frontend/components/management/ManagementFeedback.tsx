@@ -5,6 +5,7 @@ import {
   type ToastState,
 } from "@/types/ui";
 import {
+  Check,
   CircleAlert,
   CircleCheck,
   KeyRound,
@@ -12,7 +13,6 @@ import {
   LockOpen,
   Pencil,
   TriangleAlert,
-  Upload,
   X,
 } from "lucide-react-native";
 import React from "react";
@@ -20,18 +20,14 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { BottomSheet } from "../shared/BottomSheet";
 
-import {
-  SYSTEM_FIELDS_BY_VARIANT,
-  type ParsedCsv,
-} from "@/utils/csvHelper";
-import { Check, ChevronRight } from "lucide-react-native";
-import { ScrollView } from "react-native";
+import { SYSTEM_FIELDS_BY_VARIANT, type ParsedCsv } from "@/utils/csvHelper";
 import { DrawerSheet } from "../shared/DrawerSheet";
 import { InputSelection } from "../shared/InputSelection";
 
@@ -82,11 +78,7 @@ export function CsvImportModal({
 
   return (
     <>
-      <DrawerSheet
-        visible={Boolean(mode)}
-        title={sheetTitle}
-        onClose={onClose}
-      >
+      <DrawerSheet visible={Boolean(mode)} title={sheetTitle} onClose={onClose}>
         {mode === "select" ? (
           <View style={feedbackStyles.sheetBodyStack}>
             <Text style={feedbackStyles.selectDescription}>
@@ -121,7 +113,8 @@ export function CsvImportModal({
             ) : null}
 
             <Text style={feedbackStyles.mappingHintText}>
-              Vui lòng ghép khớp các trường dữ liệu hệ thống với cột trong file CSV:
+              Vui lòng ghép khớp các trường dữ liệu hệ thống với cột trong file
+              CSV:
             </Text>
 
             <ScrollView
@@ -138,9 +131,7 @@ export function CsvImportModal({
                     required={field.required}
                     placeholder="-- Chọn cột tương ứng --"
                     value={
-                      selectedHeader
-                        ? `Cột: ${selectedHeader}`
-                        : undefined
+                      selectedHeader ? `Cột: ${selectedHeader}` : undefined
                     }
                     onPress={() => setActivePickerKey(field.key)}
                   />

@@ -1,6 +1,7 @@
 import {
   CaptureSession,
   CaptureSessionValidationResult,
+  PaginatedListResult,
   Post,
   SYMPTOM_SEVERITY_VALUES,
   UserRole,
@@ -11,6 +12,7 @@ import {
   fetchPostById,
   fetchPostFeed,
   submitCaptureSession,
+  updateCaptureSessionAPI,
 } from "./apiClient";
 
 export async function deletePost(postId: string): Promise<void> {
@@ -50,9 +52,9 @@ export function validateCaptureSession(
       typeof local.temperature !== "number" ||
       Number.isNaN(local.temperature) ||
       local.temperature < 0 ||
-      local.temperature > 40
+      local.temperature > 50
     ) {
-      errors.localTemperature = "Nhiệt độ tại nơi phải từ 0°C đến 40°C";
+      errors.localTemperature = "Nhiệt độ tại nơi phải từ 0°C đến 50°C";
     }
     if (
       typeof local.humidity !== "number" ||
@@ -113,6 +115,20 @@ export async function completeCaptureSession(
   return await submitCaptureSession(sessionData, onProgress);
 }
 
+export async function editCaptureSession(
+  sessionId: string,
+  sessionData: Omit<CaptureSession, "id" | "status" | "createdAt">,
+  onProgress?: (stepMessage: string, current: number, total: number) => void,
+): Promise<{ session: CaptureSession }> {
+  const validation = validateCaptureSession(sessionData);
+  if (!validation.isValid) {
+    const firstError = Object.values(validation.errors)[0];
+    throw new Error(firstError || "Thông tin phiên chụp chưa đầy đủ");
+  }
+
+  return await updateCaptureSessionAPI(sessionId, sessionData, onProgress);
+}
+
 /**
  * Fetch list of posts directly from backend API with query parameters.
  */
@@ -120,16 +136,20 @@ export async function getPosts(
   role: UserRole = "farmer",
   farmerId?: string,
   filters: {
+    page?: number;
     crop?: string;
     env?: string;
     plot?: string;
     q?: string;
     severity?: string;
     sort?: string;
+    datePreset?: string;
+    startDate?: string;
+    endDate?: string;
     limit?: number;
     offset?: number;
   } = {},
-): Promise<{ posts: Post[]; total: number; hasMore: boolean }> {
+): Promise<PaginatedListResult<Post>> {
   return await fetchPostFeed(role, filters);
 }
 

@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { createSession, getSessions } from "../controllers/session.controller";
+import {
+  createSession,
+  getSessions,
+  updateSession,
+} from "../controllers/session.controller";
 import { authenticateToken, requireRole } from "../middleware/rbac";
 
 const router = Router();
@@ -14,6 +18,13 @@ router.post(
   authenticateToken,
   requireRole("FARMER", "ADMIN"),
   createSession,
+);
+
+router.patch(
+  "/:id",
+  authenticateToken,
+  requireRole("ADMIN"),
+  updateSession,
 );
 
 /**

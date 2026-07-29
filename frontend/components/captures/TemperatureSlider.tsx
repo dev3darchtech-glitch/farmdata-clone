@@ -15,7 +15,7 @@ export function TemperatureSlider({
 }) {
   const [trackWidth, setTrackWidth] = useState(0);
   const [dragValue, setDragValue] = useState(() =>
-    Math.min(40, Math.max(0, value || 0)),
+    Math.min(50, Math.max(0, value || 0)),
   );
   const trackRef = useRef<View>(null);
   const trackWidthRef = useRef(0);
@@ -24,7 +24,7 @@ export function TemperatureSlider({
   const isSlidingRef = useRef(false);
   const onChangeRef = useRef(onChange);
   const onSlidingChangeRef = useRef(onSlidingChange);
-  const clampedValue = Math.min(40, Math.max(0, dragValue || 0));
+  const clampedValue = Math.min(50, Math.max(0, dragValue || 0));
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -36,14 +36,14 @@ export function TemperatureSlider({
 
   useEffect(() => {
     if (isSlidingRef.current) return;
-    const nextValue = Math.min(40, Math.max(0, value || 0));
+    const nextValue = Math.min(50, Math.max(0, value || 0));
     lastValueRef.current = nextValue;
     setDragValue(nextValue);
   }, [value]);
 
   const paddingX = 11;
   const activeWidth = trackWidth ? trackWidth - paddingX * 2 : 0;
-  const progress = activeWidth ? (clampedValue / 40) * activeWidth : 0;
+  const progress = activeWidth ? (clampedValue / 50) * activeWidth : 0;
 
   const updateFromPageX = (pageX: number) => {
     const width = trackWidthRef.current;
@@ -55,7 +55,7 @@ export function TemperatureSlider({
     if (!activeRange) return;
 
     const activeX = clampedX - paddingX;
-    const next = Math.round((activeX / activeRange) * 40);
+    const next = Math.round((activeX / activeRange) * 50);
     if (next === lastValueRef.current) return;
 
     lastValueRef.current = next;
@@ -133,7 +133,7 @@ export function TemperatureSlider({
       </View>
       <View style={temperatureSliderStyles.sliderScale}>
         <Text style={temperatureSliderStyles.sliderScaleText}>0</Text>
-        <Text style={temperatureSliderStyles.sliderScaleText}>40</Text>
+        <Text style={temperatureSliderStyles.sliderScaleText}>50</Text>
       </View>
     </View>
   );

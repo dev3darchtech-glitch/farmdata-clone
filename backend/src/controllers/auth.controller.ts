@@ -9,6 +9,7 @@ import {
   IUserDocument,
   UserModel,
 } from "../models/User";
+import { createAdminUser } from "../services/adminUserService";
 import {
   getAdminDriveFolderUrl,
   getAdminGoogleAuthUrl,
@@ -59,11 +60,20 @@ function signAuthTokens(user: IUserDocument) {
 const googleSignInAudiences = [env.googleClientId].filter(Boolean);
 
 function getGoogleAppCallbackUrl(req: Request) {
-  if (env.googleRedirectUri) {
-    return env.googleRedirectUri;
-  }
-  const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
-  return `${protocol}://${req.get("host")}/api/auth/google/callback`;
+  // if (env.googleRedirectUri) {
+  //   return env.googleRedirectUri;
+  // }
+  const protocol =
+    req.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    req.protocol ||
+    "https";
+
+  const host =
+    req.get("x-forwarded-host")?.split(",")[0]?.trim() || req.get("host");
+
+  console.log(`${protocol}://${host}/api/auth/google/callback`);
+
+  return `${protocol}://${host}/api/auth/google/callback`;
 }
 
 function getExpiryDateFromTokenResponse(tokens: {
@@ -94,8 +104,7 @@ function hasRequiredGoogleDriveAccess(
 ) {
   const scopes = user?.googleTokens?.scopes || [];
   return Boolean(
-    user?.googleTokens?.refreshToken &&
-      scopes.includes(GOOGLE_DRIVE_SCOPE),
+    user?.googleTokens?.refreshToken && scopes.includes(GOOGLE_DRIVE_SCOPE),
   );
 }
 
@@ -105,10 +114,7 @@ function hasLinkedGoogleDrive(
   return hasRequiredGoogleDriveAccess(user);
 }
 
-function buildRedirectUrl(
-  redirectUri: string,
-  params: Record<string, string>,
-) {
+function buildRedirectUrl(redirectUri: string, params: Record<string, string>) {
   const separator = redirectUri.includes("?") ? "&" : "?";
   const query = new URLSearchParams(params).toString();
   return `${redirectUri}${separator}${query}`;
@@ -210,12 +216,11 @@ async function findOrCreateGoogleUser(payload: {
     return existingUser;
   }
 
-  return await UserModel.create({
+  return await createAdminUser({
     name: payload.name?.trim() || email,
     email,
     username: await buildUniqueUsername(email),
     passwordHash: bcrypt.hashSync(`${payload.sub || email}:${Date.now()}`, 8),
-    role: "ADMIN",
     isRevoked: false,
   });
 }
@@ -327,7 +332,6 @@ export const getGoogleAppAuthUrl = async (req: Request, res: Response) => {
   }
 
   const callbackUrl = getGoogleAppCallbackUrl(req);
-  console.log({ callbackUrl });
   const authorizeUrl =
     `https://accounts.google.com/o/oauth2/v2/auth` +
     `?client_id=${encodeURIComponent(env.googleClientId)}` +

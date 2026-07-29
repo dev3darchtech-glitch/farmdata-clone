@@ -100,7 +100,7 @@ export function getCaptureWeatherLabel(code?: number): string {
   }
   return (
     CAPTURE_WEATHER_OPTIONS.find((option) => option.code === code)?.label ||
-    "Nắng"
+    "--"
   );
 }
 

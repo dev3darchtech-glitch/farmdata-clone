@@ -26,6 +26,9 @@ export function PlotManagementTable({
           <Text style={[tableStyles.headerText, tableStyles.plotZoneCell]}>
             KHU VỰC
           </Text>
+          <Text style={[tableStyles.headerText, tableStyles.plotEnvCell]}>
+            MÔI TRƯỜNG
+          </Text>
           <Text style={[tableStyles.headerText, tableStyles.plotAreaCell]}>
             DIỆN TÍCH
           </Text>
@@ -36,10 +39,7 @@ export function PlotManagementTable({
           return (
             <View
               key={item.id || item.code}
-              style={[
-                tableStyles.plotRow,
-                inactive && tableStyles.rowInactive,
-              ]}
+              style={[tableStyles.plotRow, inactive && tableStyles.rowInactive]}
             >
               <Text
                 style={[
@@ -60,6 +60,16 @@ export function PlotManagementTable({
                 numberOfLines={1}
               >
                 {item.name || "-"}
+              </Text>
+              <Text
+                style={[
+                  tableStyles.plotEnvCell,
+                  tableStyles.rowSecondary,
+                  inactive && tableStyles.textInactive,
+                ]}
+                numberOfLines={1}
+              >
+                {item.envMode === "greenhouse" ? "Nhà kính" : "Ngoài trời"}
               </Text>
               <Text
                 style={[
@@ -113,10 +123,7 @@ export function CropManagementTable({
           return (
             <View
               key={item.id || item.name}
-              style={[
-                tableStyles.cropRow,
-                inactive && tableStyles.rowInactive,
-              ]}
+              style={[tableStyles.cropRow, inactive && tableStyles.rowInactive]}
             >
               <View style={tableStyles.cropIdentity}>
                 <View
@@ -399,11 +406,15 @@ const tableStyles = StyleSheet.create({
     paddingRight: 4,
   },
   plotZoneCell: {
-    flex: 1.2,
+    flex: 1.1,
+    paddingRight: 4,
+  },
+  plotEnvCell: {
+    flex: 1,
     paddingRight: 4,
   },
   plotAreaCell: {
-    flex: 0.9,
+    flex: 0.8,
     paddingRight: 4,
   },
   cropRow: {

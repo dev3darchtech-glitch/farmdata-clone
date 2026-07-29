@@ -3,6 +3,8 @@ import { InputSelection } from "@/components/shared/InputSelection";
 import { InputText } from "@/components/shared/InputText";
 import { KeyboardFormScrollView } from "@/components/shared/KeyboardFormScrollView";
 import { COLORS, LAYOUT } from "@/constants/theme";
+import { EnvMode } from "@/types";
+import { envName } from "@/utils/captureDisplay";
 import { PLOT_ZONE_OPTIONS } from "@/utils/management";
 import { Check } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -11,6 +13,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 export type PlotFormValue = {
   code: string;
   zone: string;
+  envMode: EnvMode;
   area: string;
   status: string;
 };
@@ -31,10 +34,12 @@ export function PlotFormSheet({
   editing?: boolean;
 }) {
   const [zoneOpen, setZoneOpen] = useState(false);
+  const [envModeOpen, setEnvModeOpen] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setZoneOpen(false);
+      setEnvModeOpen(false);
     }
   }, [visible]);
 
@@ -44,9 +49,7 @@ export function PlotFormSheet({
       title={`${editing ? "Chỉnh sửa" : "Thêm"} mã số luống`}
       onClose={onClose}
     >
-      <KeyboardFormScrollView
-        contentContainerStyle={plotSheetStyles.body}
-      >
+      <KeyboardFormScrollView contentContainerStyle={plotSheetStyles.body}>
         <InputText
           label="Mã số luống"
           required
@@ -55,6 +58,45 @@ export function PlotFormSheet({
           style={plotSheetStyles.input}
           placeholder="Nhập mã số luống"
         />
+        <View style={plotSheetStyles.field}>
+          <InputSelection
+            fieldStyle={plotSheetStyles.select}
+            label="Loại môi trường"
+            onPress={() => setEnvModeOpen((current) => !current)}
+            placeholder="Chọn loại môi trường"
+            value={envName(value.envMode)}
+          />
+          {envModeOpen ? (
+            <View style={plotSheetStyles.zoneOptionList}>
+              {(["outdoor", "greenhouse"] as EnvMode[]).map((envMode) => {
+                const selected = value.envMode === envMode;
+                return (
+                  <Pressable
+                    key={envMode}
+                    style={[
+                      plotSheetStyles.zoneOptionRow,
+                      selected && plotSheetStyles.zoneOptionActive,
+                    ]}
+                    onPress={() => {
+                      onChange({ ...value, envMode });
+                      setEnvModeOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        plotSheetStyles.zoneOptionText,
+                        selected && plotSheetStyles.zoneOptionTextActive,
+                      ]}
+                    >
+                      {envName(envMode)}
+                    </Text>
+                    {selected ? <Check size={18} color={COLORS.green} /> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
         <View style={plotSheetStyles.field}>
           <InputSelection
             fieldStyle={plotSheetStyles.select}

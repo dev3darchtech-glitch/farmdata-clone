@@ -18,6 +18,9 @@ export function createEmptyWeatherCondition(): WeatherCondition {
     lightUvIndex: NaN,
     windSpeed: NaN,
     co2Level: NaN,
+    humidity: undefined,
+    weatherCode: undefined,
+    updatedAt: undefined,
   };
 }
 
@@ -30,6 +33,7 @@ export function createEmptyOutdoorWeatherData(
     latitude: lat,
     longitude: lon,
     current: createEmptyWeatherCondition(),
+    t12: createEmptyWeatherCondition(),
     t24: createEmptyWeatherCondition(),
     t48: createEmptyWeatherCondition(),
     isOverridden: false,
@@ -181,6 +185,33 @@ function toVietnamIsoString(value?: string): string | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
+function toVietnamSeriesTime(value?: string): string | undefined {
+  const parsedIso = toVietnamIsoString(value);
+  if (!parsedIso) return undefined;
+
+  const localDate = new Date(new Date(parsedIso).getTime() + 7 * 3600 * 1000);
+  const year = localDate.getUTCFullYear();
+  const month = String(localDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(localDate.getUTCDate()).padStart(2, "0");
+  const hour = String(localDate.getUTCHours()).padStart(2, "0");
+  const minute = String(localDate.getUTCMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function shiftVietnamSeriesTime(
+  value: string | undefined,
+  hoursDelta: number,
+): string | undefined {
+  const parsedIso = toVietnamIsoString(value);
+  if (!parsedIso) return undefined;
+
+  const shifted = new Date(
+    new Date(parsedIso).getTime() + hoursDelta * 3600 * 1000,
+  );
+  return toVietnamSeriesTime(shifted.toISOString());
+}
+
 function resolveCurrentSeriesIndex(
   seriesTimes: string[],
   currentWeatherTime?: string,
@@ -200,6 +231,81 @@ function resolveCurrentSeriesIndex(
   return 0;
 }
 
+function buildWeatherSnapshot(params: {
+  index: number;
+  seriesHumidity: number[];
+  seriesLightLevels: number[];
+  seriesTemps: number[];
+  seriesTimes: string[];
+  seriesWeatherCodes: number[];
+  seriesWinds: number[];
+}): WeatherCondition {
+  const {
+    index,
+    seriesHumidity,
+    seriesLightLevels,
+    seriesTemps,
+    seriesTimes,
+    seriesWeatherCodes,
+    seriesWinds,
+  } = params;
+  if (
+    index < 0 ||
+    index >= seriesTimes.length ||
+    typeof seriesTimes[index] !== "string"
+  ) {
+    return createEmptyWeatherCondition();
+  }
+
+  const resolvedIndex = index;
+  const resolvedTime = seriesTimes[resolvedIndex];
+
+  return {
+    temperature:
+      typeof seriesTemps[resolvedIndex] === "number"
+        ? seriesTemps[resolvedIndex]
+        : NaN,
+    lightUvIndex:
+      typeof seriesLightLevels[resolvedIndex] === "number"
+        ? seriesLightLevels[resolvedIndex]
+        : NaN,
+    windSpeed:
+      typeof seriesWinds[resolvedIndex] === "number"
+        ? seriesWinds[resolvedIndex]
+        : NaN,
+    co2Level: NaN,
+    humidity:
+      typeof seriesHumidity[resolvedIndex] === "number"
+        ? seriesHumidity[resolvedIndex]
+        : undefined,
+    weatherCode:
+      typeof seriesWeatherCodes[resolvedIndex] === "number"
+        ? seriesWeatherCodes[resolvedIndex]
+        : undefined,
+    updatedAt: resolvedTime ? toVietnamIsoString(resolvedTime) : undefined,
+  };
+}
+
+function resolveSeriesValueAtOrBefore(
+  seriesTimes: string[],
+  values: number[],
+  targetTime?: string,
+): number | undefined {
+  if (!targetTime || !seriesTimes.length) return undefined;
+
+  for (let index = seriesTimes.length - 1; index >= 0; index -= 1) {
+    if (
+      seriesTimes[index] <= targetTime &&
+      typeof values[index] === "number" &&
+      !Number.isNaN(values[index])
+    ) {
+      return values[index];
+    }
+  }
+
+  return undefined;
+}
+
 export async function fetchOutdoorWeather(
   lat: number,
   lon: number,
@@ -212,28 +318,43 @@ export async function fetchOutdoorWeather(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&minutely_15=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
+    const weatherApiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&minutely_15=temperature_2m,relative_humidity_2m,windspeed_10m,weather_code,shortwave_radiation&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
+    const airQualityApiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=carbon_dioxide&hourly=carbon_dioxide&past_hours=48&forecast_hours=1&timezone=Asia%2FHo_Chi_Minh`;
 
-    const response = await fetch(apiUrl, { signal: controller.signal });
+    const [response, airQualityResponse] = await Promise.all([
+      fetch(weatherApiUrl, { signal: controller.signal }),
+      (async () => {
+        try {
+          return await fetch(airQualityApiUrl, { signal: controller.signal });
+        } catch {
+          return null;
+        }
+      })(),
+    ]);
     clearTimeout(timeoutId);
 
     if (!response.ok) {
       return createEmptyOutdoorWeatherData(lat, lon);
     }
 
-    const json = await response.json();
+    const [json, airQualityJson] = await Promise.all([
+      response.json(),
+      airQualityResponse?.ok ? airQualityResponse.json().catch(() => null) : null,
+    ]);
 
-    const curTemp = json?.current?.temperature_2m ?? 28.5;
-    const curWind = json?.current?.windspeed_10m ?? 12.0;
-    const curWeatherCode = json?.current?.weather_code ?? 0;
-    const curHumidityValue = json?.current?.relative_humidity_2m ?? 74;
-    const curLightValue = json?.current?.shortwave_radiation ?? 350;
+    const curTemp = json?.current?.temperature_2m;
+    const curWind = json?.current?.windspeed_10m;
+    const curWeatherCode = json?.current?.weather_code;
+    const curHumidityValue = json?.current?.relative_humidity_2m;
+    const curLightValue = json?.current?.shortwave_radiation;
     const currentWeatherTime = json?.current?.time;
 
     const seriesTemps: number[] = json?.minutely_15?.temperature_2m ?? [];
-    const seriesHumidity: number[] = json?.minutely_15?.relative_humidity_2m ?? [];
+    const seriesHumidity: number[] =
+      json?.minutely_15?.relative_humidity_2m ?? [];
     const seriesWinds: number[] = json?.minutely_15?.windspeed_10m ?? [];
-    const seriesLightLevels: number[] = json?.minutely_15?.shortwave_radiation ?? [];
+    const seriesLightLevels: number[] =
+      json?.minutely_15?.shortwave_radiation ?? [];
     const seriesWeatherCodes: number[] = json?.minutely_15?.weather_code ?? [];
     const seriesTimes: string[] = json?.minutely_15?.time ?? [];
 
@@ -241,58 +362,111 @@ export async function fetchOutdoorWeather(
       seriesTimes,
       currentWeatherTime,
     );
-    const intervalsPerDay = 24 * 4;
+    const intervalsPerDay = 24 * 4; // 96 intervals per 24h (15-min intervals)
+    const intervalsT12 = 12 * 4; // 48 intervals per 12h
+    const t12Index = Math.max(0, currentIndex - intervalsT12);
     const t24Index = Math.max(0, currentIndex - intervalsPerDay);
     const t48Index = Math.max(0, currentIndex - intervalsPerDay * 2);
 
-    const currentTimestamp =
-      toVietnamIsoString(currentWeatherTime) ?? new Date().toISOString();
-
-    const t24Timestamp = seriesTimes[t24Index]
-      ? (toVietnamIsoString(seriesTimes[t24Index]) ??
-        new Date(Date.now() - 24 * 3600 * 1000).toISOString())
-      : new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-
-    const t48Timestamp = seriesTimes[t48Index]
-      ? (toVietnamIsoString(seriesTimes[t48Index]) ??
-        new Date(Date.now() - 48 * 3600 * 1000).toISOString())
-      : new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+    const currentTimestamp = toVietnamIsoString(currentWeatherTime);
+    const currentSeriesTime = toVietnamSeriesTime(currentWeatherTime);
+    const t12TargetTime = shiftVietnamSeriesTime(currentWeatherTime, -12);
+    const t24TargetTime = shiftVietnamSeriesTime(currentWeatherTime, -24);
+    const t48TargetTime = shiftVietnamSeriesTime(currentWeatherTime, -48);
+    const airQualityCurrentCo2 = airQualityJson?.current?.carbon_dioxide;
+    const airQualitySeriesTimes: string[] = airQualityJson?.hourly?.time ?? [];
+    const airQualitySeriesCo2: number[] =
+      airQualityJson?.hourly?.carbon_dioxide ?? [];
+    const currentSnapshot: WeatherCondition = {
+      temperature: typeof curTemp === "number" ? curTemp : NaN,
+      lightUvIndex: typeof curLightValue === "number" ? curLightValue : NaN,
+      windSpeed: typeof curWind === "number" ? curWind : NaN,
+      co2Level:
+        typeof airQualityCurrentCo2 === "number" && !Number.isNaN(airQualityCurrentCo2)
+          ? airQualityCurrentCo2
+          : typeof currentSeriesTime === "string"
+            ? (resolveSeriesValueAtOrBefore(
+                airQualitySeriesTimes,
+                airQualitySeriesCo2,
+                currentSeriesTime,
+              ) ?? NaN)
+            : NaN,
+      humidity:
+        typeof curHumidityValue === "number" ? curHumidityValue : undefined,
+      weatherCode:
+        typeof curWeatherCode === "number" ? curWeatherCode : undefined,
+      updatedAt: currentTimestamp,
+    };
+    const t12Snapshot = buildWeatherSnapshot({
+      index: t12Index,
+      seriesHumidity,
+      seriesLightLevels,
+      seriesTemps,
+      seriesTimes,
+      seriesWeatherCodes,
+      seriesWinds,
+    });
+    t12Snapshot.co2Level =
+      resolveSeriesValueAtOrBefore(
+        airQualitySeriesTimes,
+        airQualitySeriesCo2,
+        t12TargetTime,
+      ) ?? NaN;
+    const t24Snapshot = buildWeatherSnapshot({
+      index: t24Index,
+      seriesHumidity,
+      seriesLightLevels,
+      seriesTemps,
+      seriesTimes,
+      seriesWeatherCodes,
+      seriesWinds,
+    });
+    t24Snapshot.co2Level =
+      resolveSeriesValueAtOrBefore(
+        airQualitySeriesTimes,
+        airQualitySeriesCo2,
+        t24TargetTime,
+      ) ?? NaN;
+    const t48Snapshot = buildWeatherSnapshot({
+      index: t48Index,
+      seriesHumidity,
+      seriesLightLevels,
+      seriesTemps,
+      seriesTimes,
+      seriesWeatherCodes,
+      seriesWinds,
+    });
+    t48Snapshot.co2Level =
+      resolveSeriesValueAtOrBefore(
+        airQualitySeriesTimes,
+        airQualitySeriesCo2,
+        t48TargetTime,
+      ) ?? NaN;
 
     const outdoorData: EnvironmentalData = {
       mode: "outdoor",
       latitude: Number(json?.latitude ?? lat),
       longitude: Number(json?.longitude ?? lon),
-      current: {
-        temperature: Number(curTemp),
-        lightUvIndex: Number(curLightValue),
-        windSpeed: Number(curWind),
-        co2Level: 415,
-        humidity: Number(curHumidityValue),
-        weatherCode: Number(curWeatherCode),
-        updatedAt: currentTimestamp,
-      },
-      t24: {
-        temperature: seriesTemps[t24Index] ?? 27.0,
-        lightUvIndex: seriesLightLevels[t24Index] ?? 320,
-        windSpeed: seriesWinds[t24Index] ?? 10.5,
-        co2Level: 412,
-        humidity: seriesHumidity[t24Index] ?? 76,
-        weatherCode: Number(seriesWeatherCodes[t24Index] ?? curWeatherCode),
-        updatedAt: t24Timestamp,
-      },
-      t48: {
-        temperature: seriesTemps[t48Index] ?? 29.1,
-        lightUvIndex: seriesLightLevels[t48Index] ?? 410,
-        windSpeed: seriesWinds[t48Index] ?? 14.2,
-        co2Level: 418,
-        humidity: seriesHumidity[t48Index] ?? 71,
-        weatherCode: Number(seriesWeatherCodes[t48Index] ?? curWeatherCode),
-        updatedAt: t48Timestamp,
-      },
+      current: currentSnapshot,
+      t12: t12Snapshot,
+      t24: t24Snapshot,
+      t48: t48Snapshot,
       isOverridden: false,
       isFallback: false,
       timestamp: currentTimestamp,
     };
+
+    console.log(
+      "[WeatherService] indices →",
+      `currentIndex=${currentIndex} (${seriesTimes[currentIndex]})`,
+      `| t12=${t12Index} (${seriesTimes[t12Index]}) WCode=${seriesWeatherCodes[t12Index]}`,
+      `| t24=${t24Index} (${seriesTimes[t24Index]}) WCode=${seriesWeatherCodes[t24Index]}`,
+      `| t48=${t48Index} (${seriesTimes[t48Index]}) WCode=${seriesWeatherCodes[t48Index]}`,
+      `| CO2 current=${outdoorData.current.co2Level}`,
+      `| CO2 t12=${outdoorData.t12?.co2Level}`,
+      `| CO2 t24=${outdoorData.t24.co2Level}`,
+      `| CO2 t48=${outdoorData.t48.co2Level}`,
+    );
 
     return outdoorData;
   } catch (error) {

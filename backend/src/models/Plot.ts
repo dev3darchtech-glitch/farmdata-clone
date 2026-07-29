@@ -1,8 +1,10 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
+import { EnvMode } from "../types";
 
 export interface IPlotDocument extends Document {
   code: string;
   name: string;
+  envMode: EnvMode;
   areaSquareMeters?: number;
   isActive: boolean;
   createdByAdminId?: mongoose.Types.ObjectId | null;
@@ -19,6 +21,12 @@ const PlotSchema = new Schema<IPlotDocument>(
       trim: true,
     },
     name: { type: String, required: true, trim: true },
+    envMode: {
+      type: String,
+      enum: ["outdoor", "greenhouse"],
+      required: true,
+      default: "outdoor",
+    },
     areaSquareMeters: { type: Number },
     isActive: { type: Boolean, default: true },
     createdByAdminId: {

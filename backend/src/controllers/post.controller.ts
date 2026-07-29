@@ -34,6 +34,7 @@ const mapSessionToPost = (session: any) => {
       return session.images || [];
     })(),
     stationMeasurements: session.stationMeasurements,
+    stationMeasurementsT12: session.stationMeasurementsT12,
     stationMeasurementsT24: session.stationMeasurementsT24,
     stationMeasurementsT48: session.stationMeasurementsT48,
     localMeasurements: session.localMeasurements,
@@ -52,10 +53,27 @@ const mapSessionToPost = (session: any) => {
  */
 export const getPosts = async (req: Request, res: Response) => {
   try {
-    const { crop, env, plot, q, severity, sort, limit: limitStr, offset: offsetStr } = req.query;
+    const {
+      page: pageStr,
+      crop,
+      env,
+      plot,
+      q,
+      severity,
+      sort,
+      datePreset,
+      startDate,
+      endDate,
+      limit: limitStr,
+      offset: offsetStr,
+    } = req.query;
 
     const limit = Math.min(Number(limitStr) || 10, 50);
-    const offset = Math.max(Number(offsetStr) || 0, 0);
+    const page = Math.max(Number(pageStr) || 1, 1);
+    const offset =
+      pageStr !== undefined
+        ? (page - 1) * limit
+        : Math.max(Number(offsetStr) || 0, 0);
 
     // Get all admin IDs
     const admins = await UserModel.find({ role: "ADMIN" }).select("_id");
@@ -96,6 +114,36 @@ export const getPosts = async (req: Request, res: Response) => {
       ];
     }
 
+    const now = new Date();
+    const createdAtFilter: Record<string, Date> = {};
+    if (datePreset === "today") {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const end = new Date(start.getTime() + 86400000 - 1);
+      createdAtFilter.$gte = start;
+      createdAtFilter.$lte = end;
+    } else if (datePreset === "7days") {
+      createdAtFilter.$gte = new Date(now.getTime() - 7 * 86400000);
+    } else if (datePreset === "30days") {
+      createdAtFilter.$gte = new Date(now.getTime() - 30 * 86400000);
+    } else if (datePreset === "custom") {
+      if (typeof startDate === "string" && startDate.trim()) {
+        const parsedStart = new Date(`${startDate.trim()}T00:00:00`);
+        if (!Number.isNaN(parsedStart.getTime())) {
+          createdAtFilter.$gte = parsedStart;
+        }
+      }
+      if (typeof endDate === "string" && endDate.trim()) {
+        const parsedEnd = new Date(`${endDate.trim()}T23:59:59.999`);
+        if (!Number.isNaN(parsedEnd.getTime())) {
+          createdAtFilter.$lte = parsedEnd;
+        }
+      }
+    }
+
+    if (Object.keys(createdAtFilter).length > 0) {
+      filter.createdAt = createdAtFilter;
+    }
+
     const sortOption =
       typeof sort === "string" && sort.trim() ? sort.trim() : "newest";
     const severityOrder = [...SYMPTOM_SEVERITY_VALUES];
@@ -130,8 +178,18 @@ export const getPosts = async (req: Request, res: Response) => {
     const hasMore = sessions.length > limit;
     const pageSessions = hasMore ? sessions.slice(0, limit) : sessions;
     const posts = pageSessions.map(mapSessionToPost);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
 
-    return res.json({ posts, total, hasMore, offset, limit });
+    return res.json({
+      items: posts,
+      posts,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasMore,
+      offset,
+    });
   } catch (error: any) {
     return res
       .status(500)

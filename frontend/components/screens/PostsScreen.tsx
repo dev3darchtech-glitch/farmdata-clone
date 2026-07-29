@@ -8,6 +8,8 @@ import {
   normalizeRole,
   postListKey,
 } from "@/utils/captureDisplay";
+import { setPendingEditPost } from "@/stores/editPostStore";
+import { router } from "expo-router";
 import {
   ArrowDownAZ,
   ArrowDownWideNarrow,
@@ -64,52 +66,6 @@ function getSortIcon(mode: string) {
   }
 }
 
-function matchesDateRange(
-  createdAt: string | number,
-  dateRange?: DateRangeFilter,
-): boolean {
-  if (!dateRange || dateRange.preset === "all") return true;
-
-  const postTime = new Date(createdAt).getTime();
-  if (isNaN(postTime)) return true;
-
-  const now = new Date();
-
-  if (dateRange.preset === "today") {
-    const startOfToday = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    ).getTime();
-    const endOfToday = startOfToday + 86400000 - 1;
-    return postTime >= startOfToday && postTime <= endOfToday;
-  }
-
-  if (dateRange.preset === "7days") {
-    const sevenDaysAgo = now.getTime() - 7 * 86400000;
-    return postTime >= sevenDaysAgo;
-  }
-
-  if (dateRange.preset === "30days") {
-    const thirtyDaysAgo = now.getTime() - 30 * 86400000;
-    return postTime >= thirtyDaysAgo;
-  }
-
-  if (dateRange.preset === "custom") {
-    if (dateRange.startDate) {
-      const startMs = new Date(`${dateRange.startDate}T00:00:00`).getTime();
-      if (!isNaN(startMs) && postTime < startMs) return false;
-    }
-    if (dateRange.endDate) {
-      const endMs = new Date(`${dateRange.endDate}T23:59:59`).getTime();
-      if (!isNaN(endMs) && postTime > endMs) return false;
-    }
-    return true;
-  }
-
-  return true;
-}
-
 export function PostsScreen() {
   const { user } = useAuth();
   const role = normalizeRole(user?.role as string);
@@ -126,7 +82,7 @@ export function PostsScreen() {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [currentOffset, setCurrentOffset] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [sortOpen, setSortOpen] = useState(false);
   const [sortMode, setSortMode] = useState("newest");
@@ -144,22 +100,28 @@ export function PostsScreen() {
   const isInitialMount = useRef(true);
 
   const buildFilters = useCallback(
-    (offset: number) => ({
+    (page: number) => ({
+      page,
       crop: selectedCrop,
       env: effectiveEnv,
       plot: selectedPlot,
       q: query,
       severity: selectedSeverity,
       sort: sortMode,
+      datePreset: selectedDateRange.preset,
+      startDate: selectedDateRange.startDate,
+      endDate: selectedDateRange.endDate,
       limit: PAGE_SIZE,
-      offset,
     }),
     [
       effectiveEnv,
       query,
       selectedCrop,
+      selectedDateRange.endDate,
+      selectedDateRange.preset,
       selectedPlot,
       selectedSeverity,
+      selectedDateRange.startDate,
       sortMode,
     ],
   );
@@ -175,20 +137,13 @@ export function PostsScreen() {
       }
       setLoadError(null);
       try {
-        const { posts: newPosts, hasMore: more } = await getPosts(
-          role,
-          user?.id,
-          buildFilters(0),
-        );
-        const dateFiltered = newPosts.filter((post) =>
-          matchesDateRange(post.createdAt, selectedDateRange),
-        );
-        const normalized = dateFiltered.map((post) =>
+        const result = await getPosts(role, user?.id, buildFilters(1));
+        const normalized = result.items.map((post) =>
           normalizePostIdentity(post as Post & { _id?: string }),
         );
         setPosts(normalized);
-        setHasMore(more);
-        setCurrentOffset(normalized.length);
+        setHasMore(result.hasMore);
+        setCurrentPage(result.page);
       } catch (err: any) {
         setLoadError(err?.message || "Lỗi tải dữ liệu");
         setPosts([]);
@@ -200,41 +155,27 @@ export function PostsScreen() {
         isInitialMount.current = false;
       }
     },
-    [buildFilters, role, selectedDateRange, user?.id],
+    [buildFilters, role, user?.id],
   );
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      const { posts: newPosts, hasMore: more } = await getPosts(
-        role,
-        user?.id,
-        buildFilters(currentOffset),
-      );
-      const dateFiltered = newPosts.filter((post) =>
-        matchesDateRange(post.createdAt, selectedDateRange),
-      );
-      const normalized = dateFiltered.map((post) =>
+      const nextPage = currentPage + 1;
+      const newPosts = await getPosts(role, user?.id, buildFilters(nextPage));
+      const normalized = newPosts.items.map((post) =>
         normalizePostIdentity(post as Post & { _id?: string }),
       );
       setPosts((prev) => [...prev, ...normalized]);
-      setHasMore(more);
-      setCurrentOffset((prev) => prev + normalized.length);
+      setHasMore(newPosts.hasMore);
+      setCurrentPage(newPosts.page);
     } catch {
       // silent
     } finally {
       setLoadingMore(false);
     }
-  }, [
-    buildFilters,
-    currentOffset,
-    hasMore,
-    loadingMore,
-    role,
-    selectedDateRange,
-    user?.id,
-  ]);
+  }, [buildFilters, currentPage, hasMore, loadingMore, role, user?.id]);
 
   useEffect(() => {
     fetchPostsData(false);
@@ -265,6 +206,15 @@ export function PostsScreen() {
     },
     [role, user],
   );
+
+  const handleEditPost = useCallback((post: Post) => {
+    try {
+      setPendingEditPost(post);
+      router.navigate("/(tabs)/capture" as any);
+    } catch {
+      Alert.alert("Lỗi", "Không thể mở trang chỉnh sửa.");
+    }
+  }, []);
 
   const handleDeletePost = useCallback(
     async (postId: string) => {
@@ -422,11 +372,13 @@ export function PostsScreen() {
             post={post}
             admin={role === "admin"}
             canDelete={isPostAuthorAdmin(post)}
+            canEdit={isPostAuthorAdmin(post)}
             onImage={(imageIndex = 0) => {
               setViewerPost(post);
               setViewerIndex(imageIndex);
             }}
             onDelete={() => handleDeletePost(post.id)}
+            onEdit={() => handleEditPost(post)}
           />
         )}
         refreshControl={

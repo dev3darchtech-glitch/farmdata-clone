@@ -1402,3 +1402,76 @@ export async function getAdminDriveFolderUrl(
 
   return "https://drive.google.com/drive/my-drive";
 }
+
+export async function deleteFilesFromAdminDrive(
+  adminUserId: string,
+  driveFiles?: IDriveFile[],
+): Promise<void> {
+  if (!driveFiles?.length) return;
+
+  const fileIds = Array.from(
+    new Set(
+      driveFiles
+        .flatMap((file) => [file.fileId, file.watermarkFileId])
+        .filter((fileId): fileId is string => Boolean(fileId)),
+    ),
+  );
+  if (!fileIds.length) return;
+
+  const admin = await UserModel.findOne({
+    _id: adminUserId,
+    role: "ADMIN",
+    isRevoked: { $ne: true },
+  });
+
+  if (!admin) {
+    throw new Error("Không tìm thấy admin để xóa ảnh Google Drive.");
+  }
+
+  const refreshToken = admin.googleTokens?.refreshToken;
+  const accessToken = admin.googleTokens?.accessToken;
+  if (
+    !refreshToken &&
+    !accessToken &&
+    env.nodeEnv !== "test" &&
+    CLIENT_ID !== "mock_client_id"
+  ) {
+    throw new Error("Admin Google Drive credentials are unavailable");
+  }
+
+  if (CLIENT_ID === "mock_client_id" || env.nodeEnv === "test") {
+    return;
+  }
+
+  const oauth2Client = getOAuth2Client();
+  oauth2Client.setCredentials({
+    ...(accessToken ? { access_token: accessToken } : {}),
+    ...(refreshToken ? { refresh_token: refreshToken } : {}),
+  });
+
+  const drive = google.drive({
+    version: "v3",
+    auth: oauth2Client,
+    timeout: 10000,
+  });
+
+  for (const fileId of fileIds) {
+    try {
+      await drive.files.delete({ fileId });
+    } catch (error: unknown) {
+      const status =
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as any).response?.status === "number"
+          ? (error as any).response.status
+          : undefined;
+      if (status === 404) {
+        continue;
+      }
+      throw error instanceof Error
+        ? error
+        : new Error("Không thể xóa ảnh cũ trên Google Drive.");
+    }
+  }
+}

@@ -12,6 +12,7 @@ import {
 import { getCurrentLocation } from "@/services/locationService";
 import {
   completeCaptureSession,
+  editCaptureSession,
   validateCaptureSession,
 } from "@/services/postService";
 import {
@@ -19,11 +20,16 @@ import {
   fetchOutdoorWeather,
 } from "@/services/weatherService";
 import {
+  consumePendingEditPost,
+  hasPendingEditPost,
+} from "@/stores/editPostStore";
+import {
   CropTypeInfo,
   EnvMode,
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
+  Post,
   PlantDiseaseGroup,
   PlantDiseaseInfo,
   PlotInfo,
@@ -32,6 +38,7 @@ import {
 } from "@/types";
 import { normalizeRole, SheetKind } from "@/utils/captureDisplay";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -43,6 +50,7 @@ import {
   Alert,
   Keyboard,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -70,6 +78,7 @@ type CaptureScreenDraft = {
   envMode: EnvMode;
   captureLocation?: LocationData;
   stationWeather: WeatherCondition;
+  stationT12?: WeatherCondition;
   stationT24?: WeatherCondition;
   stationT48?: WeatherCondition;
   stationUpdatedAt?: string;
@@ -125,6 +134,26 @@ const captureScreenStyles = StyleSheet.create({
     borderTopColor: "#f3f4f6",
     gap: 8,
   },
+  ctaRow: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  ctaCancelButton: {
+    height: 46,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  ctaCancelText: {
+    color: COLORS.muted,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   ctaErrorText: {
     color: COLORS.danger,
     fontSize: TYPOGRAPHY.body,
@@ -136,6 +165,8 @@ const captureScreenStyles = StyleSheet.create({
 export function CaptureScreen() {
   const { user, isAuthenticated } = useAuth();
   const isAdmin = normalizeRole(user?.role as string) === "admin";
+  const [isEditMode, setIsEditMode] = useState(() => hasPendingEditPost());
+  const [editingSessionId, setEditingSessionId] = useState<string | undefined>();
   const scrollViewRef = useRef<ScrollView | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [plots, setPlots] = useState<PlotInfo[]>([]);
@@ -148,6 +179,9 @@ export function CaptureScreen() {
   const initialStationData = createEmptyOutdoorWeatherData();
   const [stationWeather, setStationWeather] = useState<WeatherCondition>(
     initialStationData.current,
+  );
+  const [stationT12, setStationT12] = useState<WeatherCondition | undefined>(
+    undefined, // set only after successful weather fetch
   );
   const [stationT24, setStationT24] = useState<WeatherCondition | undefined>(
     initialStationData.t24,
@@ -186,6 +220,10 @@ export function CaptureScreen() {
   const [error, setError] = useState("");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const filteredPlots = useMemo(
+    () => plots.filter((plot) => plot.envMode === envMode),
+    [envMode, plots],
+  );
 
   const lastFetchTimeRef = useRef<number>(0);
   const captureLocationRef = useRef<LocationData | undefined>(undefined);
@@ -195,6 +233,87 @@ export function CaptureScreen() {
   const clearDraftAfterSubmitRef = useRef(false);
   const hydratedDraftLocationRef = useRef<LocationData | undefined>(undefined);
   const draftStorageKey = `${CAPTURE_DRAFT_STORAGE_PREFIX}:${user?.id || "guest"}`;
+
+  // Keep a ref so the focus effect can always see the latest isEditMode value
+  const isEditModeRef = useRef(isEditMode);
+  isEditModeRef.current = isEditMode;
+
+  // Reset ALL form state to blank defaults (used when leaving edit mode)
+  const resetForm = useCallback(() => {
+    const emptyStation = createEmptyOutdoorWeatherData();
+    setImages([]);
+    setPlotId(undefined);
+    setCropType("");
+    setGrowthStage(undefined);
+    setEnvMode("outdoor");
+    setCaptureLocation(undefined);
+    setLocalMeasurements(undefined);
+    setStationWeather(emptyStation.current);
+    setStationT12(undefined);
+    setStationT24(emptyStation.t24);
+    setStationT48(emptyStation.t48);
+    setStationUpdatedAt(emptyStation.timestamp);
+    setStationLatitude(emptyStation.latitude);
+    setStationLongitude(emptyStation.longitude);
+    setDiseaseGroup(undefined);
+    setDiseaseType(undefined);
+    setDiseaseName(undefined);
+    setSeverity(undefined);
+    setSymptomDescription("");
+    setIsEditingSymptom(true);
+    setError("");
+    setAttemptedSubmit(false);
+    setEditingSessionId(undefined);
+    hasHydratedDraftRef.current = false;
+  }, []);
+
+  // When screen gains focus: check store for pending edit post → pre-fill form
+  // When screen loses focus: if in edit mode → reset form
+  useFocusEffect(
+    useCallback(() => {
+      const post: Post | null = consumePendingEditPost();
+      if (post) {
+        setIsEditMode(true);
+        setEditingSessionId(post.sessionId || post.id);
+        if (post.images?.length) setImages(post.images);
+        if (post.plotId) setPlotId(post.plotId);
+        if (post.cropType) setCropType(post.cropType);
+        if (post.growthStage) setGrowthStage(post.growthStage);
+        if (post.envMode) setEnvMode(post.envMode);
+        if (post.captureLocation) setCaptureLocation(post.captureLocation);
+        if (post.localMeasurements)
+          setLocalMeasurements(post.localMeasurements);
+        if (post.stationMeasurements)
+          setStationWeather(post.stationMeasurements);
+        if (post.stationMeasurementsT12)
+          setStationT12(post.stationMeasurementsT12);
+        if (post.stationMeasurementsT24)
+          setStationT24(post.stationMeasurementsT24);
+        if (post.stationMeasurementsT48)
+          setStationT48(post.stationMeasurementsT48);
+        if (post.diseaseGroup) setDiseaseGroup(post.diseaseGroup);
+        if (post.diseaseType) setDiseaseType(post.diseaseType);
+        if (post.diseaseName) setDiseaseName(post.diseaseName);
+        if (post.severity) {
+          setSeverity(post.severity);
+          setIsEditingSymptom(false);
+        }
+        if (post.symptomDescription) {
+          setSymptomDescription(post.symptomDescription);
+          setIsEditingSymptom(false);
+        }
+        hasHydratedDraftRef.current = true;
+      }
+
+      return () => {
+        // Leaving edit mode: reset form
+        if (isEditModeRef.current) {
+          resetForm();
+          setIsEditMode(false);
+        }
+      };
+    }, [resetForm]),
+  );
 
   const applyWeatherForLocation = useCallback((location: LocationData) => {
     const now = Date.now();
@@ -209,11 +328,19 @@ export function CaptureScreen() {
         try {
           if (!isMountedRef.current) return;
           setStationWeather(weather.current);
+          setStationT12(weather.t12); // always set — t12 is properly populated
           setStationT24(weather.t24);
           setStationT48(weather.t48);
           setStationUpdatedAt(weather.timestamp);
           setStationLatitude(weather.latitude ?? location.latitude);
           setStationLongitude(weather.longitude ?? location.longitude);
+          console.log(
+            "[CaptureScreen] weather state set →",
+            `T0 WCode=${weather.current?.weatherCode}`,
+            `| T12 WCode=${weather.t12?.weatherCode}`,
+            `| T24 WCode=${weather.t24?.weatherCode}`,
+            `| T48 WCode=${weather.t48?.weatherCode}`,
+          );
         } catch {}
       })
       .catch(() => {
@@ -224,6 +351,7 @@ export function CaptureScreen() {
             location.longitude,
           );
           setStationWeather(emptyStationData.current);
+          setStationT12(undefined); // don't set empty object — let StationDetail fallback to T0
           setStationT24(emptyStationData.t24);
           setStationT48(emptyStationData.t48);
           setStationUpdatedAt(emptyStationData.timestamp);
@@ -322,7 +450,7 @@ export function CaptureScreen() {
         process.env.JEST_WORKER_ID !== undefined);
     let intervalId: any;
 
-    if (!isTestEnv) {
+    if (!isTestEnv && !isEditModeRef.current) {
       getCurrentLocation()
         .then((loc) => {
           try {
@@ -395,7 +523,6 @@ export function CaptureScreen() {
     };
   }, [applyWeatherForLocation, draftStorageKey, isAuthenticated, user?.id]);
 
-
   const captureDraft: CaptureScreenDraft = useMemo(
     () => ({
       images,
@@ -405,6 +532,7 @@ export function CaptureScreen() {
       envMode,
       captureLocation,
       stationWeather,
+      stationT12,
       stationT24,
       stationT48,
       stationUpdatedAt,
@@ -435,6 +563,7 @@ export function CaptureScreen() {
       stationLongitude,
       stationUpdatedAt,
       stationWeather,
+      stationT12,
       stationT24,
       stationT48,
       symptomDescription,
@@ -474,6 +603,7 @@ export function CaptureScreen() {
     envMode,
     captureLocation,
     stationMeasurements: stationWeather,
+    stationMeasurementsT12: stationT12,
     stationMeasurementsT24: stationT24,
     stationMeasurementsT48: stationT48,
     localMeasurements,
@@ -501,6 +631,13 @@ export function CaptureScreen() {
       }, 120);
     });
   }, []);
+
+  useEffect(() => {
+    if (!plotId) return;
+    if (!filteredPlots.some((plot) => plot.code === plotId)) {
+      setPlotId(undefined);
+    }
+  }, [filteredPlots, plotId]);
 
   const addPhoto = async () => {
     try {
@@ -559,32 +696,36 @@ export function CaptureScreen() {
     setProgressCurrent(0);
     setProgressTotal(images.length);
     try {
-      await completeCaptureSession(
-        {
-          ...sessionDraft,
-          growthStage,
-          severity,
-        },
-        (_message, current, total) => {
-          setProgress(`Đang tải ${current}/${total} ảnh`);
-          setProgressCurrent(current);
-          setProgressTotal(total);
-        },
-      );
+      const payload = {
+        ...sessionDraft,
+        growthStage,
+        severity,
+      };
+      if (isEditMode && editingSessionId) {
+        await editCaptureSession(
+          editingSessionId,
+          payload,
+          (_message, current, total) => {
+            setProgress(`Đang cập nhật ${current}/${total} ảnh`);
+            setProgressCurrent(current);
+            setProgressTotal(total);
+          },
+        );
+      } else {
+        await completeCaptureSession(
+          payload,
+          (_message, current, total) => {
+            setProgress(`Đang tải ${current}/${total} ảnh`);
+            setProgressCurrent(current);
+            setProgressTotal(total);
+          },
+        );
+      }
       setSheet("success");
       clearDraftAfterSubmitRef.current = true;
       await AsyncStorage.removeItem(draftStorageKey).catch(() => {});
-      setImages([]);
-      setPlotId(undefined);
-      setCropType("");
-      setGrowthStage(undefined);
-      setSymptomDescription("");
-      setDiseaseGroup(undefined);
-      setDiseaseType(undefined);
-      setDiseaseName(undefined);
-      setSeverity(undefined);
-      setIsEditingSymptom(true);
-      setLocalMeasurements(undefined);
+      resetForm();
+      setIsEditMode(false);
       setAttemptedSubmit(false);
       setTimeout(() => {
         clearDraftAfterSubmitRef.current = false;
@@ -616,7 +757,7 @@ export function CaptureScreen() {
           <SelectionSheets
             sheet={sheet}
             setSheet={setSheet}
-            plots={plots}
+            plots={filteredPlots}
             crops={crops}
             plantDiseases={plantDiseases}
             plotId={plotId}
@@ -626,6 +767,7 @@ export function CaptureScreen() {
             diseaseType={diseaseType}
             diseaseName={diseaseName}
             stationWeather={stationWeather}
+            stationT12={stationT12}
             stationT24={stationT24}
             stationT48={stationT48}
             stationUpdatedAt={stationUpdatedAt}
@@ -669,7 +811,9 @@ export function CaptureScreen() {
         showsVerticalScrollIndicator={false}
         bottomOffset={96}
       >
-        <Text style={captureScreenStyles.screenTitle}>Phiên chụp mới</Text>
+        <Text style={captureScreenStyles.screenTitle}>
+          {isEditMode ? "Chỉnh sửa bài đăng" : "Phiên chụp mới"}
+        </Text>
 
         <CapturePhotoSection
           actionLabel={isAdmin ? "Thêm ảnh" : "Chụp ảnh"}
@@ -679,6 +823,15 @@ export function CaptureScreen() {
             setImages((current) => current.filter((_, i) => i !== index))
           }
           order={1}
+        />
+
+        <EnvironmentSection
+          captureLocation={captureLocation}
+          envMode={envMode}
+          onEnvModeChange={setEnvMode}
+          onOpenStation={() => setSheet("station")}
+          order={2}
+          stationWeather={stationWeather}
         />
 
         <CropInfoSection
@@ -693,17 +846,8 @@ export function CaptureScreen() {
           onOpenCrop={() => setSheet("crop")}
           onOpenPlot={() => setSheet("plot")}
           onOpenStage={() => setSheet("stage")}
-          order={2}
-          plotId={plotId}
-        />
-
-        <EnvironmentSection
-          captureLocation={captureLocation}
-          envMode={envMode}
-          onEnvModeChange={setEnvMode}
-          onOpenStation={() => setSheet("station")}
           order={3}
-          stationWeather={stationWeather}
+          plotId={plotId}
         />
 
         <LocalMeasurementSection
@@ -743,14 +887,28 @@ export function CaptureScreen() {
         />
         {!isKeyboardVisible ? (
           <View style={captureScreenStyles.fixedCta}>
-            <PrimaryButton
-              label="Hoàn tất phiên chụp"
-              onPress={submit}
-              disabled={saving}
-              inactive={!validation.isValid}
-              loading={saving}
-              testID="submit-capture-button"
-            />
+            <View style={isEditMode ? captureScreenStyles.ctaRow : undefined}>
+              {isEditMode ? (
+                <Pressable
+                  style={captureScreenStyles.ctaCancelButton}
+                  onPress={() => {
+                    resetForm();
+                    setIsEditMode(false);
+                  }}
+                >
+                  <Text style={captureScreenStyles.ctaCancelText}>Hủy</Text>
+                </Pressable>
+              ) : null}
+              <PrimaryButton
+                style={isEditMode ? { flex: 1 } : undefined}
+                label={isEditMode ? "Lưu chỉnh sửa" : "Hoàn tất phiên chụp"}
+                onPress={submit}
+                disabled={saving}
+                inactive={!validation.isValid}
+                loading={saving}
+                testID="submit-capture-button"
+              />
+            </View>
             {shouldShowInlineErrors ? (
               <Text style={captureScreenStyles.ctaErrorText}>
                 Vui lòng nhập đủ thông tin bắt buộc

@@ -1,13 +1,17 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
-import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import request from "supertest";
 
 import { connectMongoDB } from "../src/db/connect";
 import { app } from "../src/index";
 import { UserModel } from "../src/models/User";
+import {
+  createAdminFixture,
+  createFarmerFixture,
+} from "./helpers/userFixtures";
 
 jest.setTimeout(30000);
+const runDriveIntegration = process.env.RUN_DRIVE_E2E === "true";
 
 describe("MongoDB & Admin Google Drive Integration Suite", () => {
   let mongoServer: MongoMemoryServer;
@@ -18,45 +22,52 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
   let otherFarmerId: string;
   let farmerToken: string;
   let farmerId: string;
+  let adminEmail: string;
 
   beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
     await connectMongoDB(uri);
 
+    const adminFixture = await createAdminFixture({
+      name: "Admin Drive",
+      email: "admin.drive@farm.vn",
+      username: "admindrive",
+    });
+    adminId = adminFixture.admin._id.toString();
+    adminEmail = adminFixture.email;
+
     // Login Admin
     const adminRes = await request(app)
       .post("/api/auth/login")
-      .send({ email: "admin@farm.vn", password: "123456" });
+      .send({ email: adminEmail, password: adminFixture.password });
     expect(adminRes.status).toBe(200);
     adminToken = adminRes.body.token;
-    adminId = adminRes.body.user.id;
 
-    const otherAdmin = await UserModel.create({
+    const otherAdminFixture = await createAdminFixture({
       name: "Admin khác",
       email: "admin2@farm.vn",
       username: "admin2",
-      passwordHash: bcrypt.hashSync("123456", 8),
-      role: "ADMIN",
-      isRevoked: false,
+      password: "123456",
     });
-    otherAdminId = otherAdmin._id.toString();
+    otherAdminId = otherAdminFixture.admin._id.toString();
 
     const otherAdminRes = await request(app)
       .post("/api/auth/login")
-      .send({ email: "admin2@farm.vn", password: "123456" });
+      .send({
+        email: otherAdminFixture.email,
+        password: otherAdminFixture.password,
+      });
     expect(otherAdminRes.status).toBe(200);
     otherAdminToken = otherAdminRes.body.token;
 
-    const otherFarmer = await UserModel.create({
+    const otherFarmer = await createFarmerFixture({
+      adminId: otherAdminId,
       name: "Farmer của admin khác",
       username: "otherfarmer",
-      passwordHash: bcrypt.hashSync("password123", 8),
-      role: "FARMER",
-      createdByAdminId: otherAdminId,
-      isRevoked: false,
+      password: "password123",
     });
-    otherFarmerId = otherFarmer._id.toString();
+    otherFarmerId = otherFarmer.farmer._id.toString();
 
     // Admin creates a normal Farmer user
     const createFarmerRes = await request(app)
@@ -120,11 +131,16 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
   it("links Google OAuth tokens to Admin account in MongoDB", async () => {
     // Manually set linked tokens for testing
     await UserModel.findOneAndUpdate(
-      { email: "admin@farm.vn" },
+      { email: adminEmail },
       {
         $set: {
+          "googleTokens.accessToken": "mock_admin_access_token_xyz",
           "googleTokens.refreshToken": "mock_admin_refresh_token_xyz",
           "googleTokens.email": "admin.gdrive@farm.vn",
+          "googleTokens.scopes": [
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/drive.file",
+          ],
           "googleTokens.isLinked": true,
         },
       },
@@ -141,7 +157,7 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
 
   it("does not report Google Drive as linked when refresh token is missing", async () => {
     await UserModel.findOneAndUpdate(
-      { email: "admin@farm.vn" },
+      { email: adminEmail },
       {
         $set: {
           "googleTokens.accessToken": "login_only_access_token",
@@ -234,7 +250,9 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
     expect(revokeOtherFarmerRes.status).toBe(403);
   });
 
-  it("Farmer uploads capture session using creator Admin Google Drive credentials", async () => {
+  const driveUploadTest = runDriveIntegration ? it : it.skip;
+
+  driveUploadTest("Farmer uploads capture session using creator Admin Google Drive credentials", async () => {
     await UserModel.findByIdAndUpdate(farmerId, {
       $set: {
         "googleTokens.refreshToken": "must_not_be_used_farmer_refresh_token",
@@ -306,6 +324,6 @@ describe("MongoDB & Admin Google Drive Integration Suite", () => {
       .set("Authorization", `Bearer ${farmerToken}`);
 
     expect(meRes.status).toBe(403);
-    expect(meRes.body.error).toContain("Account revoked");
+    expect(meRes.body.error).toContain("Tài khoản đã bị thu hồi");
   });
 });

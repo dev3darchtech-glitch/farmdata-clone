@@ -4,7 +4,7 @@ import { CropModel } from "../models/Crop";
 import { PlantDiseaseModel } from "../models/PlantDisease";
 import { PlotModel } from "../models/Plot";
 import { UserModel } from "../models/User";
-import { PLANT_DISEASE_GROUPS, PlantDiseaseGroup } from "../types";
+import { EnvMode, PLANT_DISEASE_GROUPS, PlantDiseaseGroup } from "../types";
 
 function isCreatedByCurrentAdmin(
   target: { createdByAdminId?: unknown },
@@ -33,30 +33,37 @@ function normalizeRequiredText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function readPaginationQuery(req: Request) {
+  const page = Number(req.query.page);
+  const limit = Number(req.query.limit);
+  const query = normalizeRequiredText(req.query.q);
+  const shouldPaginate =
+    Number.isInteger(page) && Number.isInteger(limit) && page > 0 && limit > 0;
+
+  return {
+    page,
+    query,
+    shouldPaginate,
+    safeLimit: shouldPaginate ? Math.min(limit, 50) : 0,
+  };
+}
+
+function isEnvMode(value: unknown): value is EnvMode {
+  return value === "outdoor" || value === "greenhouse";
+}
+
 async function buildMasterDataFilter(req: Request) {
   const user = req.user!;
   if (user.role === "ADMIN") {
-    return {
-      $or: [
-        { createdByAdminId: null },
-        { createdByAdminId: { $exists: false } },
-        { createdByAdminId: user.id },
-      ],
-    };
+    return { createdByAdminId: user.id };
   } else if (user.role === "FARMER") {
     const farmer = await UserModel.findById(user.id);
     const adminId = farmer?.createdByAdminId;
-    return {
-      $or: [
-        { createdByAdminId: null },
-        { createdByAdminId: { $exists: false } },
-        ...(adminId ? [{ createdByAdminId: adminId }] : []),
-      ],
-    };
+    return adminId
+      ? { createdByAdminId: adminId }
+      : { _id: { $exists: false } };
   }
-  return {
-    $or: [{ createdByAdminId: null }, { createdByAdminId: { $exists: false } }],
-  };
+  return { _id: { $exists: false } };
 }
 
 function checkMasterDataMutationPermission(
@@ -64,10 +71,10 @@ function checkMasterDataMutationPermission(
   req: Request,
   resourceName: string,
 ) {
-  if (!target.createdByAdminId) {
-    return `Dữ liệu mặc định của hệ thống không thể chỉnh sửa hoặc thay đổi.`;
-  }
-  if (String(target.createdByAdminId) !== req.user!.id) {
+  if (
+    !target.createdByAdminId ||
+    String(target.createdByAdminId) !== req.user!.id
+  ) {
     return `Bạn chỉ có quyền thao tác trên ${resourceName} do chính bạn tạo ra.`;
   }
   return null;
@@ -77,8 +84,36 @@ function checkMasterDataMutationPermission(
  * GET /api/admin/plots
  */
 export const getPlots = async (req: Request, res: Response) => {
-  const filter = await buildMasterDataFilter(req);
-  const plots = await PlotModel.find(filter).sort({ code: 1 });
+  const { page, query, shouldPaginate, safeLimit } = readPaginationQuery(req);
+  const baseFilter = await buildMasterDataFilter(req);
+  const searchFilter = query
+    ? {
+        $or: [
+          { code: { $regex: query, $options: "i" } },
+          { name: { $regex: query, $options: "i" } },
+          { envMode: { $regex: query, $options: "i" } },
+        ],
+      }
+    : {};
+  const filter = { $and: [baseFilter, searchFilter] };
+  const sort = { code: 1 } as const;
+
+  if (shouldPaginate) {
+    const skip = (page - 1) * safeLimit;
+    const [items, total] = await Promise.all([
+      PlotModel.find(filter).sort(sort).skip(skip).limit(safeLimit),
+      PlotModel.countDocuments(filter),
+    ]);
+    return res.json({
+      items,
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit)),
+    });
+  }
+
+  const plots = await PlotModel.find(filter).sort(sort);
   return res.json(plots);
 };
 
@@ -86,9 +121,11 @@ export const getPlots = async (req: Request, res: Response) => {
  * POST /api/admin/plots
  */
 export const createPlot = async (req: Request, res: Response) => {
-  const { code, name, areaSquareMeters } = req.body;
-  if (!code || !name) {
-    return res.status(400).json({ error: "Mã luống và tên luống là bắt buộc" });
+  const { code, name, envMode, areaSquareMeters } = req.body;
+  if (!code || !name || !isEnvMode(envMode)) {
+    return res
+      .status(400)
+      .json({ error: "Mã luống, tên luống và loại môi trường là bắt buộc" });
   }
 
   const cleanCode = code.trim().toUpperCase();
@@ -96,7 +133,7 @@ export const createPlot = async (req: Request, res: Response) => {
 
   const existing = await PlotModel.findOne({
     code: cleanCode,
-    $or: [{ createdByAdminId: null }, { createdByAdminId: adminId }],
+    createdByAdminId: adminId,
   });
   if (existing) {
     return res
@@ -107,6 +144,7 @@ export const createPlot = async (req: Request, res: Response) => {
   const newPlot = await PlotModel.create({
     code: cleanCode,
     name: name.trim(),
+    envMode,
     areaSquareMeters,
     createdByAdminId: adminId,
   });
@@ -128,15 +166,17 @@ export const updatePlot = async (req: Request, res: Response) => {
     return res.status(403).json({ error: permError });
   }
 
-  const { code, name, areaSquareMeters, isActive } = req.body;
+  const { code, name, envMode, areaSquareMeters, isActive } = req.body;
   if (
     code === undefined &&
     name === undefined &&
+    envMode === undefined &&
     areaSquareMeters === undefined &&
     isActive === undefined
   ) {
     return res.status(400).json({
-      error: "Cần cung cấp ít nhất một trong: mã, tên, diện tích hoặc trạng thái",
+      error:
+        "Cần cung cấp ít nhất một trong: mã, tên, môi trường, diện tích hoặc trạng thái",
     });
   }
 
@@ -145,6 +185,7 @@ export const updatePlot = async (req: Request, res: Response) => {
     const existing = await PlotModel.findOne({
       code: normalizedCode,
       _id: { $ne: target._id },
+      createdByAdminId: target.createdByAdminId,
     });
     if (existing) {
       return res.status(400).json({
@@ -156,6 +197,13 @@ export const updatePlot = async (req: Request, res: Response) => {
 
   if (name && String(name).trim()) {
     target.name = String(name).trim();
+  }
+
+  if (envMode !== undefined) {
+    if (!isEnvMode(envMode)) {
+      return res.status(400).json({ error: "Loại môi trường không hợp lệ" });
+    }
+    target.envMode = envMode;
   }
 
   if (areaSquareMeters === null || areaSquareMeters === "") {
@@ -205,8 +253,36 @@ export const deactivatePlot = async (req: Request, res: Response) => {
  * GET /api/admin/crops
  */
 export const getCrops = async (req: Request, res: Response) => {
-  const filter = await buildMasterDataFilter(req);
-  const crops = await CropModel.find(filter).sort({ name: 1 });
+  const { page, query, shouldPaginate, safeLimit } = readPaginationQuery(req);
+  const baseFilter = await buildMasterDataFilter(req);
+  const searchFilter = query
+    ? {
+        $or: [
+          { name: { $regex: query, $options: "i" } },
+          { category: { $regex: query, $options: "i" } },
+          { icon: { $regex: query, $options: "i" } },
+        ],
+      }
+    : {};
+  const filter = { $and: [baseFilter, searchFilter] };
+  const sort = { name: 1 } as const;
+
+  if (shouldPaginate) {
+    const skip = (page - 1) * safeLimit;
+    const [items, total] = await Promise.all([
+      CropModel.find(filter).sort(sort).skip(skip).limit(safeLimit),
+      CropModel.countDocuments(filter),
+    ]);
+    return res.json({
+      items,
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit)),
+    });
+  }
+
+  const crops = await CropModel.find(filter).sort(sort);
   return res.json(crops);
 };
 
@@ -223,7 +299,7 @@ export const createCrop = async (req: Request, res: Response) => {
   const cleanName = name.trim();
   const existing = await CropModel.findOne({
     name: cleanName,
-    $or: [{ createdByAdminId: null }, { createdByAdminId: adminId }],
+    createdByAdminId: adminId,
   });
   if (existing) {
     return res
@@ -262,9 +338,10 @@ export const updateCrop = async (req: Request, res: Response) => {
     icon === undefined &&
     isActive === undefined
   ) {
-    return res
-      .status(400)
-      .json({ error: "Cần cung cấp ít nhất một trong: tên, danh mục, icon hoặc trạng thái" });
+    return res.status(400).json({
+      error:
+        "Cần cung cấp ít nhất một trong: tên, danh mục, icon hoặc trạng thái",
+    });
   }
 
   if (name && String(name).trim()) {
@@ -272,6 +349,7 @@ export const updateCrop = async (req: Request, res: Response) => {
     const existing = await CropModel.findOne({
       name: normalizedName,
       _id: { $ne: target._id },
+      createdByAdminId: target.createdByAdminId,
     });
     if (existing) {
       return res.status(400).json({
@@ -326,14 +404,7 @@ export const deactivateCrop = async (req: Request, res: Response) => {
  * GET /api/admin/plant-diseases
  */
 export const getPlantDiseases = async (req: Request, res: Response) => {
-  const page = Number(req.query.page);
-  const limit = Number(req.query.limit);
-  const query = normalizeRequiredText(req.query.q);
-  const shouldPaginate =
-    Number.isInteger(page) &&
-    Number.isInteger(limit) &&
-    page > 0 &&
-    limit > 0;
+  const { page, query, shouldPaginate, safeLimit } = readPaginationQuery(req);
 
   const baseFilter = await buildMasterDataFilter(req);
   const searchFilter = query
@@ -354,7 +425,6 @@ export const getPlantDiseases = async (req: Request, res: Response) => {
   } as const;
 
   if (shouldPaginate) {
-    const safeLimit = Math.min(limit, 50);
     const skip = (page - 1) * safeLimit;
     const [diseases, total] = await Promise.all([
       PlantDiseaseModel.find(filter).sort(sort).skip(skip).limit(safeLimit),
@@ -395,7 +465,7 @@ export const createPlantDisease = async (req: Request, res: Response) => {
     group,
     type,
     name,
-    $or: [{ createdByAdminId: null }, { createdByAdminId: adminId }],
+    createdByAdminId: adminId,
   });
   if (existing) {
     return res.status(400).json({
@@ -437,7 +507,8 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
     isActive === undefined
   ) {
     return res.status(400).json({
-      error: "Cần cung cấp ít nhất một trong: nhóm bệnh, phân loại, tên, mô tả hoặc trạng thái",
+      error:
+        "Cần cung cấp ít nhất một trong: nhóm bệnh, phân loại, tên, mô tả hoặc trạng thái",
     });
   }
 
@@ -459,6 +530,7 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
     type: nextType,
     name: nextName,
     _id: { $ne: target._id },
+    createdByAdminId: target.createdByAdminId,
   });
   if (existing) {
     return res.status(400).json({
@@ -510,13 +582,42 @@ export const deactivatePlantDisease = async (req: Request, res: Response) => {
  * GET /api/admin/users
  */
 export const getUsers = async (req: Request, res: Response) => {
-  const users = await UserModel.find({
+  const { page, query, shouldPaginate, safeLimit } = readPaginationQuery(req);
+  const filter: Record<string, unknown> = {
     role: "FARMER",
     createdByAdminId: req.user!.id,
-  })
+  };
+
+  if (query) {
+    filter.$or = [
+      { name: { $regex: query, $options: "i" } },
+      { username: { $regex: query, $options: "i" } },
+      { email: { $regex: query, $options: "i" } },
+    ];
+  }
+
+  const userQuery = UserModel.find(filter)
     .select("-passwordHash")
+    .sort({ username: 1 })
     .populate("createdByAdminId", "name email")
     .populate("revokedByAdminId", "name email");
+
+  if (shouldPaginate) {
+    const skip = (page - 1) * safeLimit;
+    const [items, total] = await Promise.all([
+      userQuery.clone().skip(skip).limit(safeLimit),
+      UserModel.countDocuments(filter),
+    ]);
+    return res.json({
+      items,
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit)),
+    });
+  }
+
+  const users = await userQuery;
   return res.json(users);
 };
 
@@ -583,16 +684,16 @@ export const updateUser = async (req: Request, res: Response) => {
     });
   }
   if (!isCreatedByCurrentAdmin(target, req)) {
-    return res
-      .status(403)
-      .json({ error: "Không thể cập nhật tài khoản nông dân do admin khác tạo" });
+    return res.status(403).json({
+      error: "Không thể cập nhật tài khoản nông dân do admin khác tạo",
+    });
   }
 
   const { name, username, password } = req.body;
   if (!name && !username && !password) {
-    return res
-      .status(400)
-      .json({ error: "Cần cung cấp ít nhất một trong: tên, tên đăng nhập hoặc mật khẩu" });
+    return res.status(400).json({
+      error: "Cần cung cấp ít nhất một trong: tên, tên đăng nhập hoặc mật khẩu",
+    });
   }
 
   if (name && String(name).trim()) {
@@ -645,12 +746,14 @@ export const revokeUser = async (req: Request, res: Response) => {
       .json({ error: "Admin chỉ có thể thu hồi tài khoản nông dân" });
   }
   if (target._id.toString() === req.user!.id) {
-    return res.status(400).json({ error: "Không thể thu hồi tài khoản của chính mình" });
+    return res
+      .status(400)
+      .json({ error: "Không thể thu hồi tài khoản của chính mình" });
   }
   if (!isCreatedByCurrentAdmin(target, req)) {
-    return res
-      .status(403)
-      .json({ error: "Không thể thu hồi tài khoản nông dân do admin khác tạo" });
+    return res.status(403).json({
+      error: "Không thể thu hồi tài khoản nông dân do admin khác tạo",
+    });
   }
 
   target.isRevoked = true;
@@ -678,9 +781,9 @@ export const restoreUser = async (req: Request, res: Response) => {
       .json({ error: "Admin chỉ có thể khôi phục tài khoản nông dân" });
   }
   if (!isCreatedByCurrentAdmin(target, req)) {
-    return res
-      .status(403)
-      .json({ error: "Không thể khôi phục tài khoản nông dân do admin khác tạo" });
+    return res.status(403).json({
+      error: "Không thể khôi phục tài khoản nông dân do admin khác tạo",
+    });
   }
 
   target.isRevoked = false;

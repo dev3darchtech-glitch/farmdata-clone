@@ -47,6 +47,7 @@ type SelectionSheetsProps = {
   diseaseType?: string;
   diseaseName?: string;
   stationWeather: WeatherCondition;
+  stationT12?: WeatherCondition;
   stationT24?: WeatherCondition;
   stationT48?: WeatherCondition;
   stationUpdatedAt?: string;
@@ -284,6 +285,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
       >
         <StationDetail
           data={props.stationWeather}
+          t12={props.stationT12}
           t24={props.stationT24}
           t48={props.stationT48}
           captureLocation={props.captureLocation}
@@ -546,9 +548,15 @@ export function SelectionSheets(props: SelectionSheetsProps) {
                 onPress={() => {
                   const parseNum = (val: string): number | undefined => {
                     if (!val || !val.trim()) return undefined;
-                    const clean = val.replace(/,/g, ".");
+                    // Normalize: replace comma → dot, then parse
+                    const clean = val.replace(/,/g, ".").trim();
                     const parsed = parseFloat(clean);
                     return Number.isNaN(parsed) ? undefined : parsed;
+                  };
+                  // Normalize soil strings: replace comma → dot
+                  const normStr = (val: string): string | undefined => {
+                    const v = val.replace(/,/g, ".").trim();
+                    return v || undefined;
                   };
                   const savedData: LocalWeatherMeasurement = {
                     temperature: measurement.temperature,
@@ -557,10 +565,10 @@ export function SelectionSheets(props: SelectionSheetsProps) {
                     lightUvIndex: parseNum(localStrings.light),
                     windSpeed: parseNum(localStrings.wind),
                     co2Level: parseNum(localStrings.co2),
-                    soilPh: soilMeasurements.ph || undefined,
-                    soilEc: soilMeasurements.ec || undefined,
-                    soilDo: soilMeasurements.dissolvedOxygen || undefined,
-                    soilHumidity: soilMeasurements.soilHumidity || undefined,
+                    soilPh: normStr(soilMeasurements.ph),
+                    soilEc: normStr(soilMeasurements.ec),
+                    soilDo: normStr(soilMeasurements.dissolvedOxygen),
+                    soilHumidity: normStr(soilMeasurements.soilHumidity),
                   };
                   props.onMeasurements(savedData);
                   close();

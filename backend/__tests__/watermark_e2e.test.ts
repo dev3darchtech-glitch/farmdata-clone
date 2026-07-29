@@ -11,6 +11,10 @@ import sharp from "sharp";
 import { connectMongoDB } from "../src/db/connect";
 import { app } from "../src/index";
 import { UserModel } from "../src/models/User";
+import {
+  createAdminFixture,
+  createFarmerFixture,
+} from "./helpers/userFixtures";
 
 jest.setTimeout(120000);
 
@@ -19,6 +23,9 @@ const describeDriveE2E = runDriveE2E ? describe : describe.skip;
 
 describeDriveE2E("Frontend to Drive watermark E2E", () => {
   let mongoServer: MongoMemoryServer;
+  let farmerEmail: string;
+  let farmerPassword: string;
+  let adminEmail: string;
 
   beforeAll(async () => {
     if (!process.env.GOOGLE_REFRESH_TOKEN) {
@@ -28,8 +35,25 @@ describeDriveE2E("Frontend to Drive watermark E2E", () => {
     mongoServer = await MongoMemoryServer.create();
     await connectMongoDB(mongoServer.getUri());
 
+    const adminFixture = await createAdminFixture({
+      name: "Admin Watermark",
+      email: "admin.watermark@farm.vn",
+      username: "adminwatermark",
+    });
+    adminEmail = adminFixture.email;
+
+    const farmerFixture = await createFarmerFixture({
+      adminId: adminFixture.admin._id.toString(),
+      name: "Farmer Watermark",
+      email: "farmer.watermark@farm.vn",
+      username: "farmerwatermark",
+      password: "123456",
+    });
+    farmerEmail = farmerFixture.email;
+    farmerPassword = farmerFixture.password;
+
     await UserModel.findOneAndUpdate(
-      { username: "admin" },
+      { email: adminEmail },
       {
         $set: {
           googleTokens: {
@@ -63,7 +87,7 @@ describeDriveE2E("Frontend to Drive watermark E2E", () => {
 
     const loginResponse = await request(app)
       .post("/api/auth/login")
-      .send({ email: "an.nguyen@farm.vn", password: "123456" });
+      .send({ email: farmerEmail, password: farmerPassword });
 
     expect(loginResponse.status).toBe(200);
     expect(loginResponse.body.token).toBeDefined();

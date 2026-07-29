@@ -26,6 +26,21 @@ export interface User {
   createdByAdminId?: string;
 }
 
+export interface ListQuery {
+  page: number;
+  limit: number;
+  query?: string;
+}
+
+export interface PaginatedListResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 /**
  * Global authentication state contract.
  */
@@ -57,7 +72,11 @@ export interface LocationData {
  * Standard 5 Growth Stage IDs.
  */
 export type GrowthStageId =
-  "newly_planted" | "vegetative" | "flowering" | "fruiting" | "harvest";
+  | "newly_planted"
+  | "vegetative"
+  | "flowering"
+  | "fruiting"
+  | "harvest";
 
 /**
  * Growth Stage Info metadata interface.
@@ -112,6 +131,7 @@ export type LocalWeatherMeasurement = Partial<WeatherCondition>;
 export interface EnvironmentalData {
   mode: EnvMode;
   current: WeatherCondition; // T0
+  t12?: WeatherCondition; // T-12 (12 hours prior)
   t24: WeatherCondition; // T-24 (24 hours prior)
   t48: WeatherCondition; // T-48 (48 hours prior)
   latitude?: number;
@@ -210,7 +230,10 @@ export interface StorageSaveResult {
  * State machine for Capture Session life cycle.
  */
 export type CaptureSessionStatus =
-  "DRAFT" | "UPLOADING" | "COMPLETED" | "FAILED";
+  | "DRAFT"
+  | "UPLOADING"
+  | "COMPLETED"
+  | "FAILED";
 
 /**
  * State machine for Post publishing life cycle.
@@ -242,6 +265,7 @@ export interface PlotInfo {
   id: string;
   code: string; // e.g. "LUONG-001" or "L-001"
   name: string;
+  envMode: EnvMode;
   areaSquareMeters?: number;
   description?: string;
   isActive?: boolean;
@@ -279,6 +303,7 @@ export interface CaptureSession {
   envMode: EnvMode; // 'outdoor' | 'greenhouse' (Required)
   captureLocation?: LocationData; // GPS position captured at photo time
   stationMeasurements: WeatherCondition; // Auto-fetched station data
+  stationMeasurementsT12?: WeatherCondition;
   stationMeasurementsT24?: WeatherCondition;
   stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: LocalWeatherMeasurement; // On-site measurement (Optional)
@@ -317,6 +342,7 @@ export interface Post {
   images: string[]; // Photos belonging to the session
   driveFiles?: DriveFile[];
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT12?: WeatherCondition;
   stationMeasurementsT24?: WeatherCondition;
   stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: LocalWeatherMeasurement;

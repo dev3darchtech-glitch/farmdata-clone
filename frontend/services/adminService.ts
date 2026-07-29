@@ -1,15 +1,25 @@
+import {
+  CropTypeInfo,
+  ListQuery,
+  PaginatedListResult,
+  PlantDiseaseInfo,
+  PlotInfo,
+  User,
+} from "@/types";
 import { z } from "zod";
-import { CropTypeInfo, PlantDiseaseInfo, PlotInfo, User } from "@/types";
 import {
   createCropAPI,
   createPlantDiseaseAPI,
   createPlotAPI,
-  fetchPlantDiseasesPageAPI,
   createUserAPI,
   fetchCropsAPI,
+  fetchCropsPageAPI,
   fetchPlantDiseasesAPI,
+  fetchPlantDiseasesPageAPI,
   fetchPlotsAPI,
+  fetchPlotsPageAPI,
   fetchUsersAPI,
+  fetchUsersPageAPI,
   restoreUserAPI,
   revokeUserAPI,
   setCropActiveStatusAPI,
@@ -58,12 +68,22 @@ export async function getPlantDiseases(): Promise<PlantDiseaseInfo[]> {
   return await fetchPlantDiseasesAPI();
 }
 
-export async function getPlantDiseasesPage(params: {
-  page: number;
-  limit: number;
-  query?: string;
-}) {
+export async function getPlantDiseasesPage(
+  params: ListQuery,
+): Promise<PaginatedListResult<PlantDiseaseInfo>> {
   return await fetchPlantDiseasesPageAPI(params);
+}
+
+export async function getPlotsPage(
+  params: ListQuery,
+): Promise<PaginatedListResult<PlotInfo>> {
+  return await fetchPlotsPageAPI(params);
+}
+
+export async function getCropTypesPage(
+  params: ListQuery,
+): Promise<PaginatedListResult<CropTypeInfo>> {
+  return await fetchCropsPageAPI(params);
 }
 
 export async function addPlantDisease(
@@ -110,6 +130,12 @@ export async function setPlotActiveStatus(
 
 export async function getUsers(): Promise<User[]> {
   return await fetchUsersAPI();
+}
+
+export async function getUsersPage(
+  params: ListQuery,
+): Promise<PaginatedListResult<User>> {
+  return await fetchUsersPageAPI(params);
 }
 
 export async function addUser(user: {

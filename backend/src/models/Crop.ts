@@ -25,5 +25,7 @@ const CropSchema = new Schema<ICropDocument>(
   { timestamps: true },
 );
 
+CropSchema.index({ name: 1, createdByAdminId: 1 }, { unique: true });
+
 export const CropModel: Model<ICropDocument> =
   mongoose.models.Crop || mongoose.model<ICropDocument>("Crop", CropSchema);

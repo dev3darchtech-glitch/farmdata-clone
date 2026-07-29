@@ -41,6 +41,7 @@ export interface WeatherCondition {
   co2Level: number;
   humidity?: number;
   weatherCode?: number;
+  updatedAt?: string;
   soilPh?: string;
   soilEc?: string;
   soilDo?: string;
@@ -72,6 +73,9 @@ export interface CaptureSessionRecord {
   envMode: EnvMode;
   captureLocation?: CaptureLocation;
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT12?: WeatherCondition;
+  stationMeasurementsT24?: WeatherCondition;
+  stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: WeatherCondition;
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
@@ -100,6 +104,9 @@ export interface PostRecord {
   severity: SymptomSeverity;
   images: string[];
   stationMeasurements: WeatherCondition;
+  stationMeasurementsT12?: WeatherCondition;
+  stationMeasurementsT24?: WeatherCondition;
+  stationMeasurementsT48?: WeatherCondition;
   localMeasurements?: WeatherCondition;
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
@@ -112,6 +119,7 @@ export interface PlotRecord {
   id: string;
   code: string;
   name: string;
+  envMode: EnvMode;
   areaSquareMeters?: number;
 }
 

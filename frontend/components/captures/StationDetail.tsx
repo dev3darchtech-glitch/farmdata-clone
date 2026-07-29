@@ -12,13 +12,14 @@ import {
   getWeatherLabel,
 } from "@/utils/weatherMetrics";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DetailRow } from "./DetailRow";
 import { MetricGrid } from "./MetricGrid";
 import { WeatherTypeIcon } from "./WeatherTypeIcon";
 
 export function StationDetail({
   data,
+  t12,
   t24,
   t48,
   captureLocation,
@@ -27,6 +28,7 @@ export function StationDetail({
   updatedAt,
 }: {
   data: WeatherCondition;
+  t12?: WeatherCondition;
   t24?: WeatherCondition;
   t48?: WeatherCondition;
   captureLocation?: LocationData;
@@ -34,17 +36,22 @@ export function StationDetail({
   longitude?: number;
   updatedAt?: string;
 }) {
-  const [activeTab, setActiveTab] = useState<"t0" | "t24" | "t48">( "t0");
+  const [activeTab, setActiveTab] = useState<"t0" | "t12" | "t24" | "t48">(
+    "t0",
+  );
 
   const activeData =
     activeTab === "t0"
       ? data
-      : activeTab === "t24"
-        ? t24 || data
-        : t48 || data;
+      : activeTab === "t12"
+        ? t12 || data
+        : activeTab === "t24"
+          ? t24 || data
+          : t48 || data;
 
   const tabs = [
     { id: "t0" as const, label: "Hiện tại (T0)" },
+    { id: "t12" as const, label: "T-12" },
     { id: "t24" as const, label: "T-24" },
     { id: "t48" as const, label: "T-48" },
   ];
@@ -145,7 +152,15 @@ export function StationDetail({
       </View>
       <View style={stationDetailStyles.stationDetailBlock}>
         <Text style={stationDetailStyles.stationDetailTitle}>
-          Dữ liệu thời tiết ({activeTab === "t0" ? "T0" : activeTab === "t24" ? "T-24" : "T-48"})
+          Dữ liệu thời tiết (
+          {activeTab === "t0"
+            ? "T0"
+            : activeTab === "t12"
+              ? "T-12"
+              : activeTab === "t24"
+                ? "T-24"
+                : "T-48"}
+          )
         </Text>
         <MetricGrid data={activeData} />
       </View>

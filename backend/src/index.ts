@@ -37,9 +37,9 @@ app.use((req, res) => {
 
 if (env.nodeEnv !== "test") {
   connectMongoDB().then(() => {
-    app.listen(env.port, "0.0.0.0", () => {
+    app.listen(env.port, "127.0.0.1", () => {
       console.log(
-        `🚀 FarmData Backend API running at http://${"0.0.0.0"}:${env.port}`,
+        `🚀 FarmData Backend API running at http://${"127.0.0.1"}:${env.port}`,
       );
     });
   });

@@ -5,10 +5,10 @@ import {
   addPlantDisease,
   addPlot,
   addUser,
-  getCropTypes,
-  getPlantDiseases,
-  getPlots,
-  getUsers,
+  getCropTypesPage,
+  getPlantDiseasesPage,
+  getPlotsPage,
+  getUsersPage,
   restoreUser,
   revokeUser,
   setCropTypeActiveStatus,
@@ -75,7 +75,7 @@ import {
   PlantDiseaseManagementTable,
   PlotManagementTable,
 } from "../management/ManagementTables";
-import { PlotFormSheet } from "../management/PlotFormSheet";
+import { PlotFormSheet, type PlotFormValue } from "../management/PlotFormSheet";
 import { AppScreenLayout } from "../shared/AppScreenLayout";
 import { BottomSheet } from "../shared/BottomSheet";
 import { InputSelection } from "../shared/InputSelection";
@@ -103,6 +103,8 @@ export function ManagementScreen() {
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
   const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [actionItem, setActionItem] = useState<any | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [cropIconPickerOpen, setCropIconPickerOpen] = useState(false);
@@ -130,9 +132,10 @@ export function ManagementScreen() {
     username: "",
     password: "",
   });
-  const [plotForm, setPlotForm] = useState({
+  const [plotForm, setPlotForm] = useState<PlotFormValue>({
     code: "",
     zone: "",
+    envMode: "outdoor" as const,
     area: "",
     status: "Đang sử dụng",
   });
@@ -152,18 +155,66 @@ export function ManagementScreen() {
         ? PLANT_DISEASE_PAGE_SIZE
         : DEFAULT_PAGE_SIZE;
 
+  const loadVariantData = useCallback(
+    async (
+      targetPage = page,
+      targetVariant = variant,
+      targetQuery = query,
+      targetDiseaseGroup = selectedDiseaseGroup,
+    ) => {
+      if (targetVariant === "plots") {
+        const data = await getPlotsPage({
+          page: targetPage,
+          limit: pageSize,
+          query: targetQuery,
+        });
+        setPlots(data.items);
+        setTotalItems(data.total);
+        setTotalPages(data.totalPages);
+        return;
+      }
+
+      if (targetVariant === "crops") {
+        const data = await getCropTypesPage({
+          page: targetPage,
+          limit: pageSize,
+          query: targetQuery,
+        });
+        setCrops(data.items);
+        setTotalItems(data.total);
+        setTotalPages(data.totalPages);
+        return;
+      }
+
+      if (targetVariant === "diseases") {
+        const data = await getPlantDiseasesPage({
+          page: targetPage,
+          limit: pageSize,
+          query: [targetDiseaseGroup, targetQuery.trim()]
+            .filter(Boolean)
+            .join(" "),
+        });
+        setPlantDiseases(data.items);
+        setTotalItems(data.total);
+        setTotalPages(data.totalPages);
+        return;
+      }
+
+      const data = await getUsersPage({
+        page: targetPage,
+        limit: pageSize,
+        query: targetQuery,
+      });
+      setUsers(data.items);
+      setTotalItems(data.total);
+      setTotalPages(data.totalPages);
+    },
+    [page, pageSize, query, selectedDiseaseGroup, variant],
+  );
+
   const refresh = useCallback(async () => {
     try {
-      const [plotData, cropData, diseaseData, userData] = await Promise.all([
-        getPlots(),
-        getCropTypes(),
-        getPlantDiseases(),
-        getUsers(),
-      ]);
-      setPlots(plotData);
-      setCrops(cropData);
-      setPlantDiseases(diseaseData);
-      setUsers(userData);
+      await loadVariantData();
     } catch (error) {
       setSnackbar({
         type: "error",
@@ -171,7 +222,7 @@ export function ManagementScreen() {
           error instanceof Error ? error.message : "Không thể tải dữ liệu.",
       });
     }
-  }, []);
+  }, [loadVariantData]);
 
   useEffect(() => {
     refresh();
@@ -191,21 +242,7 @@ export function ManagementScreen() {
 
   useEffect(() => {
     setPage(1);
-  }, [query, variant]);
-
-  const filteredDiseases = useMemo(() => {
-    return plantDiseases.filter((item) => {
-      const matchGroup = item.group === selectedDiseaseGroup;
-      const matchQuery = query.trim()
-        ? [item.type, item.name]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase()
-            .includes(query.trim().toLowerCase())
-        : true;
-      return matchGroup && matchQuery;
-    });
-  }, [plantDiseases, selectedDiseaseGroup, query]);
+  }, [query, selectedDiseaseGroup, variant]);
 
   const title =
     variant === "plots"
@@ -215,14 +252,6 @@ export function ManagementScreen() {
         : variant === "diseases"
           ? "Bệnh cây"
           : "Tài khoản";
-  const rows =
-    variant === "plots"
-      ? plots
-      : variant === "crops"
-        ? crops
-        : variant === "diseases"
-          ? plantDiseases
-          : users;
   const isAdminAccount = (item: any) =>
     String(item?.role || "").toUpperCase() === "ADMIN";
   const searchPlaceholder =
@@ -233,30 +262,14 @@ export function ManagementScreen() {
         : variant === "diseases"
           ? "Tìm loại hoặc tên bệnh..."
           : "Tìm kiếm username...";
-  const filteredRows = rows.filter((item: any) =>
-    variant === "diseases"
-      ? true
-      : [
-          item.code,
-          item.farmerCode,
-          item.name,
-          item.username,
-          item.email,
-          item.category,
-          item.group,
-          item.type,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(query.toLowerCase()),
-  );
   const visibleRows =
-    variant === "accounts"
-      ? (filteredRows as User[]).filter((item) => !isAdminAccount(item))
-      : variant === "diseases"
-        ? filteredDiseases
-        : filteredRows;
+    variant === "plots"
+      ? plots
+      : variant === "crops"
+        ? crops
+        : variant === "diseases"
+          ? plantDiseases
+          : users.filter((item) => !isAdminAccount(item));
   const cropIconOptions = useMemo(() => {
     const existingIcons = crops
       .map((crop) => crop.icon?.trim())
@@ -273,13 +286,7 @@ export function ManagementScreen() {
 
     return Array.from(new Set([...existingTypes, ...DEFAULT_DISEASE_TYPES]));
   }, [plantDiseases]);
-  const totalItems = visibleRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(page, totalPages);
-  const pagedRows = visibleRows.slice(
-    (safePage - 1) * pageSize,
-    safePage * pageSize,
-  );
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
@@ -307,6 +314,7 @@ export function ManagementScreen() {
     setPlotForm({
       code: "",
       zone: "",
+      envMode: "outdoor",
       area: "",
       status: "Đang sử dụng",
     });
@@ -324,6 +332,7 @@ export function ManagementScreen() {
     setPlotForm({
       code: "",
       zone: "",
+      envMode: "outdoor",
       area: "",
       status: "Đang sử dụng",
     });
@@ -339,38 +348,33 @@ export function ManagementScreen() {
         const payload = {
           code: plotForm.code.trim(),
           name: plotForm.zone.trim() || plotForm.code.trim(),
+          envMode: plotForm.envMode,
           ...(Number.isFinite(areaSquareMeters) && areaSquareMeters > 0
             ? { areaSquareMeters }
             : {}),
           isActive: plotForm.status !== "Ngừng sử dụng",
         };
         if (editingPlot) {
-          const item = await updatePlot(editingPlot.id, payload);
-          setPlots((current) =>
-            current.map((plot) => (plot.id === item.id ? item : plot)),
-          );
+          await updatePlot(editingPlot.id, payload);
         } else {
-          const item = await addPlot(payload);
-          setPlots((current) => [item, ...current]);
+          await addPlot(payload);
+          setPage(1);
         }
       } else if (variant === "crops") {
         if (!cropForm.name.trim()) return;
         if (editingCrop) {
-          const item = await updateCropType(editingCrop.id, {
+          await updateCropType(editingCrop.id, {
             name: cropForm.name.trim(),
             category: editingCrop.category || "Master Data",
             icon: cropForm.icon.trim() || undefined,
           });
-          setCrops((current) =>
-            current.map((crop) => (crop.id === item.id ? item : crop)),
-          );
         } else {
-          const item = await addCropType({
+          await addCropType({
             name: cropForm.name.trim(),
             category: "Master Data",
             icon: cropForm.icon.trim() || undefined,
           });
-          setCrops((current) => [item, ...current]);
+          setPage(1);
         }
       } else if (variant === "diseases") {
         if (!diseaseForm.type.trim() || !diseaseForm.name.trim()) return;
@@ -385,8 +389,6 @@ export function ManagementScreen() {
           await addPlantDisease(payload);
           setPage(1);
         }
-        const updatedDiseases = await getPlantDiseases();
-        setPlantDiseases(updatedDiseases);
       } else {
         if (
           !accountForm.name.trim() ||
@@ -396,28 +398,26 @@ export function ManagementScreen() {
           return;
         }
         if (editingUser) {
-          const item = await updateUser(editingUser.id, {
+          await updateUser(editingUser.id, {
             name: accountForm.name.trim(),
             username: accountForm.username.trim(),
             ...(accountForm.password.trim()
               ? { password: accountForm.password }
               : {}),
           });
-          setUsers((current) =>
-            current.map((userItem) =>
-              userItem.id === item.id ? item : userItem,
-            ),
-          );
         } else {
-          const item = await addUser({
+          await addUser({
             name: accountForm.name.trim(),
             username: accountForm.username.trim(),
             password: accountForm.password,
             role: "FARMER",
           });
-          setUsers((current) => [item, ...current]);
+          setPage(1);
         }
       }
+      await loadVariantData(
+        editingPlot || editingCrop || editingDisease || editingUser ? page : 1,
+      );
       notify("Đã cập nhật danh sách.");
       closeAddDrawer();
     } catch (error) {
@@ -440,6 +440,7 @@ export function ManagementScreen() {
       setPlotForm({
         code: plot.code || "",
         zone: plot.name || "",
+        envMode: plot.envMode || "outdoor",
         area: plot.areaSquareMeters ? String(plot.areaSquareMeters) : "",
         status: isManagementItemActive(plot) ? "Đang sử dụng" : "Ngừng sử dụng",
       });
@@ -493,10 +494,8 @@ export function ManagementScreen() {
   const revokeSelectedUser = async () => {
     if (!actionItem?.id) return;
     try {
-      const revoked = await revokeUser(actionItem.id);
-      setUsers((current) =>
-        current.map((item) => (item.id === revoked.id ? revoked : item)),
-      );
+      await revokeUser(actionItem.id);
+      await refresh();
       notify("Đã khóa tài khoản farmer.", "warning");
       setActionItem(null);
     } catch (error) {
@@ -510,10 +509,8 @@ export function ManagementScreen() {
   const restoreSelectedUser = async () => {
     if (!actionItem?.id) return;
     try {
-      const restored = await restoreUser(actionItem.id);
-      setUsers((current) =>
-        current.map((item) => (item.id === restored.id ? restored : item)),
-      );
+      await restoreUser(actionItem.id);
+      await refresh();
       notify("Đã mở khóa tài khoản farmer.");
       setActionItem(null);
     } catch (error) {
@@ -555,29 +552,15 @@ export function ManagementScreen() {
 
     try {
       if (variant === "plots") {
-        const item = await setPlotActiveStatus(confirmItem.id, nextIsActive);
-        setPlots((current) =>
-          current.map((plot) => (plot.id === item.id ? item : plot)),
-        );
+        await setPlotActiveStatus(confirmItem.id, nextIsActive);
       }
       if (variant === "crops") {
-        const item = await setCropTypeActiveStatus(
-          confirmItem.id,
-          nextIsActive,
-        );
-        setCrops((current) =>
-          current.map((crop) => (crop.id === item.id ? item : crop)),
-        );
+        await setCropTypeActiveStatus(confirmItem.id, nextIsActive);
       }
       if (variant === "diseases") {
-        const item = await setPlantDiseaseActiveStatus(
-          confirmItem.id,
-          nextIsActive,
-        );
-        setPlantDiseases((current) =>
-          current.map((disease) => (disease.id === item.id ? item : disease)),
-        );
+        await setPlantDiseaseActiveStatus(confirmItem.id, nextIsActive);
       }
+      await refresh();
       notify(
         nextIsActive ? "Đã hoạt động lại." : "Đã cập nhật trạng thái.",
         nextIsActive ? "success" : "warning",
@@ -650,6 +633,11 @@ export function ManagementScreen() {
           const rawArea = row[fieldMapping.areaSquareMeters]?.trim();
           const areaSquareMeters = rawArea ? Number(rawArea) : undefined;
           const description = row[fieldMapping.description]?.trim();
+          const envMode =
+            name?.toLowerCase().includes("nhà kính") ||
+            description?.toLowerCase().includes("nhà kính")
+              ? "greenhouse"
+              : "outdoor";
 
           if (!code) {
             skipped++;
@@ -657,6 +645,7 @@ export function ManagementScreen() {
             await addPlot({
               code,
               name,
+              envMode,
               areaSquareMeters:
                 typeof areaSquareMeters === "number" && !isNaN(areaSquareMeters)
                   ? areaSquareMeters
@@ -715,20 +704,9 @@ export function ManagementScreen() {
       setCsvProgress(Math.round(((i + 1) / total) * 100));
     }
 
+    setPage(1);
     try {
-      if (variant === "plots") {
-        const updatedPlots = await getPlots();
-        setPlots(updatedPlots);
-      } else if (variant === "crops") {
-        const updatedCrops = await getCropTypes();
-        setCrops(updatedCrops);
-      } else if (variant === "diseases") {
-        const updatedDiseases = await getPlantDiseases();
-        setPlantDiseases(updatedDiseases);
-      } else if (variant === "accounts") {
-        const updatedUsers = await getUsers();
-        setUsers(updatedUsers);
-      }
+      await loadVariantData(1);
     } catch {
       // ignore
     }
@@ -1212,26 +1190,26 @@ export function ManagementScreen() {
         ) : null}
         {variant === "plots" ? (
           <PlotManagementTable
-            rows={pagedRows as PlotInfo[]}
-            total={visibleRows.length}
+            rows={visibleRows as PlotInfo[]}
+            total={totalItems}
             onAction={setActionItem}
           />
         ) : variant === "crops" ? (
           <CropManagementTable
-            rows={pagedRows as CropTypeInfo[]}
-            total={visibleRows.length}
+            rows={visibleRows as CropTypeInfo[]}
+            total={totalItems}
             onAction={setActionItem}
           />
         ) : variant === "diseases" ? (
           <PlantDiseaseManagementTable
-            rows={pagedRows as PlantDiseaseInfo[]}
+            rows={visibleRows as PlantDiseaseInfo[]}
             total={totalItems}
             onAction={setActionItem}
           />
         ) : (
           <AccountManagementTable
-            rows={pagedRows as User[]}
-            total={visibleRows.length}
+            rows={visibleRows as User[]}
+            total={totalItems}
             onAction={setActionItem}
           />
         )}

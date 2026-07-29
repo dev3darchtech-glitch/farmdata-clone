@@ -255,10 +255,30 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
           time: seriesTimes,
         },
       };
+      const airQualityTimes = Array.from({ length: 49 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, 17, 0, 0));
+        const current = new Date(base.getTime() + index * 60 * 60 * 1000);
+        const year = current.getUTCFullYear();
+        const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(current.getUTCDate()).padStart(2, "0");
+        const hour = String(current.getUTCHours()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:00`;
+      });
 
       global.fetch = jest.fn().mockResolvedValueOnce({
         ok: true,
         json: jest.fn().mockResolvedValueOnce(mockApiResponse),
+      } as any).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current: {
+            carbon_dioxide: 421,
+          },
+          hourly: {
+            time: airQualityTimes,
+            carbon_dioxide: Array(49).fill(421),
+          },
+        }),
       } as any);
 
       const result = await fetchOutdoorWeather(lat, lon);
@@ -268,7 +288,7 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       expect(result.current.temperature).toBe(30.5);
       expect(result.current.windSpeed).toBe(15.2);
       expect(result.current.lightUvIndex).toBe(350);
-      expect(result.current.co2Level).toBe(415);
+      expect(result.current.co2Level).toBe(421);
       expect(result.t24.temperature).toBe(28.0);
       expect(result.t48.temperature).toBe(28.0);
     });
@@ -310,6 +330,17 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
             shortwave_radiation: shortwaveRadiation,
             weather_code: Array(193).fill(3),
             time: seriesTimes,
+          },
+        }),
+      } as any).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current: {
+            carbon_dioxide: 419,
+          },
+          hourly: {
+            time: [],
+            carbon_dioxide: [],
           },
         }),
       } as any);
@@ -358,6 +389,17 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
             time: seriesTimes,
           },
         }),
+      } as any).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current: {
+            carbon_dioxide: 425,
+          },
+          hourly: {
+            time: [],
+            carbon_dioxide: [],
+          },
+        }),
       } as any);
 
       const result = await fetchOutdoorWeather(lat, lon);
@@ -398,6 +440,17 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
             shortwave_radiation: Array(193).fill(350),
             weather_code: Array(193).fill(1),
             time: seriesTimes,
+          },
+        }),
+      } as any).mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current: {
+            carbon_dioxide: 430,
+          },
+          hourly: {
+            time: [],
+            carbon_dioxide: [],
           },
         }),
       } as any);
@@ -450,6 +503,52 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       expect(result.isFallback).toBe(true);
       expect(Number.isNaN(result.current.co2Level)).toBe(true);
+    });
+
+    it("keeps CO2 empty when the air-quality API does not return data", async () => {
+      const seriesTimes = Array.from({ length: 193 }, (_, index) => {
+        const base = new Date(Date.UTC(2026, 6, 26, 17, 30, 0));
+        const current = new Date(base.getTime() + index * 15 * 60 * 1000);
+        const year = current.getUTCFullYear();
+        const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(current.getUTCDate()).padStart(2, "0");
+        const hour = String(current.getUTCHours()).padStart(2, "0");
+        const minute = String(current.getUTCMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hour}:${minute}`;
+      });
+
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValueOnce({
+          current: {
+            temperature_2m: 30.5,
+            relative_humidity_2m: 70,
+            windspeed_10m: 15.2,
+            weather_code: 2,
+            shortwave_radiation: 350,
+            time: seriesTimes[192],
+          },
+          minutely_15: {
+            temperature_2m: Array(193).fill(28.0),
+            relative_humidity_2m: Array(193).fill(70),
+            windspeed_10m: Array(193).fill(11.0),
+            shortwave_radiation: Array(193).fill(350),
+            weather_code: Array(193).fill(2),
+            time: seriesTimes,
+          },
+        }),
+      } as any).mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        statusText: "Bad Gateway",
+      } as any);
+
+      const result = await fetchOutdoorWeather(lat, lon);
+
+      expect(Number.isNaN(result.current.co2Level)).toBe(true);
+      expect(Number.isNaN(result.t12?.co2Level)).toBe(true);
+      expect(Number.isNaN(result.t24.co2Level)).toBe(true);
+      expect(Number.isNaN(result.t48.co2Level)).toBe(true);
     });
 
     it("falls back immediately for invalid coordinates without making fetch call", async () => {

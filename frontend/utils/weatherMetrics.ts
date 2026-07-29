@@ -7,6 +7,7 @@ import { WeatherCondition } from "@/types";
 import { formatMetric, type WeatherMetricKey } from "@/utils/captureDisplay";
 import {
   CloudSun,
+  Cloud,
   Droplets,
   Gauge,
   Sun,
@@ -111,8 +112,9 @@ export function getWeatherBadgeTextColor(code?: number): string {
 }
 
 export function getWeatherOption(code?: number) {
-  return (
-    CAPTURE_WEATHER_OPTIONS.find((option) => option.code === code) ||
-    CAPTURE_WEATHER_OPTIONS[0]
-  );
+  return CAPTURE_WEATHER_OPTIONS.find((option) => option.code === code) || {
+    code: -1,
+    label: "--",
+    Icon: Cloud,
+  };
 }
