@@ -36,11 +36,12 @@ app.use((req, res) => {
 });
 
 if (env.nodeEnv !== "test") {
-  connectMongoDB().then(() => {
-    app.listen(env.port, "127.0.0.1", () => {
-      console.log(
-        `🚀 FarmData Backend API running at http://${"127.0.0.1"}:${env.port}`,
-      );
-    });
+  app.listen(env.port, "0.0.0.0", () => {
+    console.log(`🚀 FarmData Backend API listening on port ${env.port}`);
   });
+
+  connectMongoDB().then(
+    () => console.log("✅ MongoDB connected"),
+    (error) => console.error("❌ MongoDB connection failed", error),
+  );
 }
