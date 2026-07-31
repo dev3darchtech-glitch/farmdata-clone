@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import mongoose from "mongoose";
 import { env } from "./configs/env";
 import { connectMongoDB } from "./db/connect";
 import adminRoutes from "./routes/admin.routes";
@@ -16,8 +17,14 @@ app.use(express.json({ limit: "10mb" }));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
+  const isMongoReady = mongoose.connection.readyState === 1;
+
+  return res.status(isMongoReady ? 200 : 503).json({
+    mongo: {
+      readyState: mongoose.connection.readyState,
+      status: isMongoReady ? "connected" : "disconnected",
+    },
+    status: isMongoReady ? "ok" : "degraded",
     service: "FarmData Backend (MongoDB & Google Drive)",
     timestamp: new Date().toISOString(),
   });
@@ -36,12 +43,17 @@ app.use((req, res) => {
 });
 
 if (env.nodeEnv !== "test") {
-  app.listen(env.port, "0.0.0.0", () => {
-    console.log(`🚀 FarmData Backend API listening on port ${env.port}`);
-  });
+  const startServer = async () => {
+    await connectMongoDB();
+    console.log("✅ MongoDB connected");
 
-  connectMongoDB().then(
-    () => console.log("✅ MongoDB connected"),
-    (error) => console.error("❌ MongoDB connection failed", error),
-  );
+    app.listen(env.port, "0.0.0.0", () => {
+      console.log(`🚀 FarmData Backend API listening on port ${env.port}`);
+    });
+  };
+
+  startServer().catch((error) => {
+    console.error("❌ Backend startup failed", error);
+    process.exit(1);
+  });
 }

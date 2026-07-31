@@ -49,3 +49,4 @@ app-example
 backend/gcloud.service-account.json
 backend/gcloud.local.json
 backend/gcloud.*.local.json
+**/.codebase-memory/**

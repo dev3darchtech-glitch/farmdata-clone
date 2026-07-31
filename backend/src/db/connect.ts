@@ -14,11 +14,20 @@ function isLocalMongoUri(uri: string) {
 export async function connectMongoDB(uri?: string) {
   const mongoUri = uri || env.mongodbUri;
 
+  if (!uri && env.isProduction && !env.hasExplicitMongoUri) {
+    throw new Error("MONGODB_URI is required in production.");
+  }
+
   if (mongoose.connection.readyState === 0) {
     try {
       await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 3000 });
     } catch (err: any) {
-      if (!uri && (!env.hasExplicitMongoUri || isLocalMongoUri(mongoUri))) {
+      const canUseInMemoryFallback =
+        !uri &&
+        !env.isProduction &&
+        (!env.hasExplicitMongoUri || isLocalMongoUri(mongoUri));
+
+      if (canUseInMemoryFallback) {
         const { MongoMemoryServer } = await import("mongodb-memory-server");
         const mongoServer = await MongoMemoryServer.create();
         const memUri = mongoServer.getUri();
