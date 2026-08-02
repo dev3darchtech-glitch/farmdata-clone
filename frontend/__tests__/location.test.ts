@@ -77,28 +77,22 @@ describe("Location Service Tests", () => {
       expect(location.timestamp).toBeDefined();
     });
 
-    it("returns fallback DEFAULT_MOCK_LOCATION when permission is denied", async () => {
+    it("throws LOCATION_PERMISSION_DENIED when permission is denied", async () => {
       (
         Location.requestForegroundPermissionsAsync as jest.Mock
       ).mockResolvedValueOnce({
         status: "denied",
       });
 
-      const location = await getCurrentLocation();
-      expect(location.isMocked).toBe(true);
-      expect(location.latitude).toBe(DEFAULT_MOCK_LOCATION.latitude);
-      expect(location.longitude).toBe(DEFAULT_MOCK_LOCATION.longitude);
+      await expect(getCurrentLocation()).rejects.toThrow("LOCATION_PERMISSION_DENIED");
     });
 
-    it("returns fallback location when position lookup throws an exception", async () => {
+    it("throws error when position lookup throws an exception", async () => {
       (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValueOnce(
         new Error("GPS service unavailable"),
       );
 
-      const location = await getCurrentLocation();
-      expect(location.isMocked).toBe(true);
-      expect(location.latitude).toBe(DEFAULT_MOCK_LOCATION.latitude);
-      expect(location.longitude).toBe(DEFAULT_MOCK_LOCATION.longitude);
+      await expect(getCurrentLocation()).rejects.toThrow("GPS service unavailable");
     });
   });
 });

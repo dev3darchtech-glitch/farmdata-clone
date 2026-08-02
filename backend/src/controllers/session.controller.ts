@@ -145,6 +145,7 @@ async function persistCompletedSession(
     captureLocation,
     weatherCode: normalizedStationMeasurements.weatherCode,
     temperature: normalizedStationMeasurements.temperature,
+    isRaining: normalizedStationMeasurements.isRaining,
   });
   const watermarkLinks = driveFiles
     .map((file) => file.watermarkWebContentLink || file.watermarkWebViewLink)

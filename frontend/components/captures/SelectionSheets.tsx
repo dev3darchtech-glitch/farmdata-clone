@@ -101,6 +101,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
   const [weatherType, setWeatherType] = useState(() =>
     getWeatherLabel(
       (props.localMeasurements || { weatherCode: 0 }).weatherCode,
+      (props.localMeasurements || {}).isRaining,
     ),
   );
   const [showWeatherDropdown, setShowWeatherDropdown] = useState(false);
@@ -148,7 +149,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
         weatherCode: 0,
       };
       setMeasurement(initialWeather);
-      setWeatherType(getWeatherLabel(initialWeather.weatherCode));
+      setWeatherType(getWeatherLabel(initialWeather.weatherCode, initialWeather.isRaining));
       setShowWeatherDropdown(false);
       setLocalStrings({
         humidity:
@@ -400,10 +401,12 @@ export function SelectionSheets(props: SelectionSheetsProps) {
                               selectionSheetStyles.weatherDropdownItemSelected,
                           ]}
                           onPress={() => {
+                            const isRainCode = option.code === 51;
                             setWeatherType(option.label);
                             setMeasurement((current) => ({
                               ...current,
                               weatherCode: option.code,
+                              isRaining: isRainCode,
                             }));
                             setShowWeatherDropdown(false);
                           }}

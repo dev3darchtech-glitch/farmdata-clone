@@ -93,19 +93,33 @@ export function StationDetail({
       <View
         style={[
           stationDetailStyles.weatherTypeCard,
-          { backgroundColor: getWeatherBadgeBgColor(activeData.weatherCode) },
+          {
+            backgroundColor: getWeatherBadgeBgColor(
+              activeData.weatherCode,
+              activeData.isRaining,
+            ),
+          },
         ]}
       >
         <View style={stationDetailStyles.weatherTypeIconWrap}>
-          <WeatherTypeIcon code={activeData.weatherCode} size={20} />
+          <WeatherTypeIcon
+            code={activeData.weatherCode}
+            size={20}
+            isRaining={activeData.isRaining}
+          />
         </View>
         <Text
           style={[
             stationDetailStyles.weatherTypeValue,
-            { color: getWeatherBadgeTextColor(activeData.weatherCode) },
+            {
+              color: getWeatherBadgeTextColor(
+                activeData.weatherCode,
+                activeData.isRaining,
+              ),
+            },
           ]}
         >
-          {getWeatherLabel(activeData.weatherCode)}
+          {getWeatherLabel(activeData.weatherCode, activeData.isRaining)}
         </Text>
       </View>
 

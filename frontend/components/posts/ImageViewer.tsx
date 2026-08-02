@@ -96,9 +96,9 @@ export function ImageViewer({
   if (!post) return null;
   const uri = post.images[index];
   const imageCount = post.images.length;
-  const weatherLabel = (weatherCode?: number | null) =>
+  const weatherLabel = (weatherCode?: number | null, isRaining?: boolean) =>
     typeof weatherCode === "number"
-      ? getCaptureWeatherLabel(weatherCode)
+      ? getCaptureWeatherLabel(weatherCode, isRaining)
       : "--";
   const weatherSnapshots = [
     { label: "T0", measurement: post.stationMeasurements },
@@ -324,7 +324,10 @@ export function ImageViewer({
                 />
                 <InfoRow
                   label="Thời tiết"
-                  value={weatherLabel(measurement?.weatherCode)}
+                  value={weatherLabel(
+                    measurement?.weatherCode,
+                    measurement?.isRaining,
+                  )}
                 />
                 <InfoRow
                   label="Nhiệt độ"

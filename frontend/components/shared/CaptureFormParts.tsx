@@ -22,11 +22,10 @@ import {
   Cloud,
   CloudFog,
   CloudRain,
-  CloudSnow,
   CloudSun,
   Home,
   Sun,
-  X,
+  X
 } from "lucide-react-native";
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -138,15 +137,11 @@ export function CaptureFarmOptions({
 }
 
 export const CAPTURE_WEATHER_OPTIONS = [
-  { code: 0, label: "Nắng", Icon: Sun },
-  { code: 1, label: "Ít mây", Icon: CloudSun },
+  { code: 0, label: "Trời quang", Icon: Sun },
   { code: 2, label: "Có mây", Icon: CloudSun },
   { code: 3, label: "Nhiều mây", Icon: Cloud },
   { code: 45, label: "Sương mù", Icon: CloudFog },
-  { code: 51, label: "Mưa nhẹ", Icon: CloudRain },
-  { code: 63, label: "Mưa vừa / to", Icon: CloudRain },
-  { code: 80, label: "Mưa rào", Icon: CloudRain },
-  { code: 71, label: "Mưa tuyết", Icon: CloudSnow },
+  { code: 51, label: "Mưa", Icon: CloudRain },
 ];
 
 export const CAPTURE_SEVERITY_OPTIONS: {
@@ -155,69 +150,61 @@ export const CAPTURE_SEVERITY_OPTIONS: {
   label: string;
   value: SymptomSeverity;
 }[] = [
-  {
-    value: "Chớm bệnh",
-    label: "Chớm (1 - 10%)",
-    description: "Dấu hiệu rất nhẹ, ảnh hưởng tối đa 10% diện tích lá.",
-    color: "#facc15",
-  },
-  {
-    value: "Nhẹ",
-    label: "Nhẹ (>10 - 25%)",
-    description: "Triệu chứng nhẹ, ảnh hưởng trên 10% đến 25% diện tích lá.",
-    color: "#fb923c",
-  },
-  {
-    value: "Vừa",
-    label: "Vừa (>25 - 50%)",
-    description:
-      "Triệu chứng trung bình, ảnh hưởng trên 25% đến 50% diện tích lá.",
-    color: "#ea580c",
-  },
-  {
-    value: "Nặng",
-    label: "Nặng (>50 - 75%)",
-    description: "Triệu chứng nặng, ảnh hưởng trên 50% đến 75% diện tích lá.",
-    color: "#ef4444",
-  },
-  {
-    value: "Rất nặng",
-    label: "Rất nặng (>75%)",
-    description: "Triệu chứng rất nặng, ảnh hưởng hơn 75% diện tích lá.",
-    color: "#991b1b",
-  },
-];
+    {
+      value: "Chớm bệnh",
+      label: "Chớm (1 - 10%)",
+      description: "Dấu hiệu rất nhẹ, ảnh hưởng tối đa 10% diện tích lá.",
+      color: "#facc15",
+    },
+    {
+      value: "Nhẹ",
+      label: "Nhẹ (>10 - 25%)",
+      description: "Triệu chứng nhẹ, ảnh hưởng trên 10% đến 25% diện tích lá.",
+      color: "#fb923c",
+    },
+    {
+      value: "Vừa",
+      label: "Vừa (>25 - 50%)",
+      description:
+        "Triệu chứng trung bình, ảnh hưởng trên 25% đến 50% diện tích lá.",
+      color: "#ea580c",
+    },
+    {
+      value: "Nặng",
+      label: "Nặng (>50 - 75%)",
+      description: "Triệu chứng nặng, ảnh hưởng trên 50% đến 75% diện tích lá.",
+      color: "#ef4444",
+    },
+    {
+      value: "Rất nặng",
+      label: "Rất nặng (>75%)",
+      description: "Triệu chứng rất nặng, ảnh hưởng hơn 75% diện tích lá.",
+      color: "#991b1b",
+    },
+  ];
 
-export function getCaptureWeatherLabel(code?: number): string {
+export function getCaptureWeatherLabel(code?: number, isRaining?: boolean): string {
+  if (isRaining) {
+    return "Mưa";
+  }
+
   if (code === undefined || code === null) return "--";
-  if (code === 0) return "Nắng";
-  if (code === 1) return "Ít mây";
-  if (code === 2) return "Có mây";
+
+  if (code === 0) return "Trời quang";
+  if (code === 1 || code === 2) return "Có mây";
   if (code === 3) return "Nhiều mây";
+
+  if (
+    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99].includes(
+      code,
+    )
+  ) {
+    return "Mô hình dự báo có mưa quanh khu vực";
+  }
+
   if (code === 45 || code === 48) return "Sương mù";
-  if (code === 51) return "Mưa phùn nhẹ";
-  if (code === 53) return "Mưa phùn vừa";
-  if (code === 55) return "Mưa phùn dày";
-  if (code === 56) return "Mưa phùn đóng băng nhẹ";
-  if (code === 57) return "Mưa phùn đóng băng dày";
-  if (code === 61) return "Mưa nhẹ";
-  if (code === 63) return "Mưa vừa";
-  if (code === 65) return "Mưa to";
-  if (code === 66) return "Mưa đóng băng nhẹ";
-  if (code === 67) return "Mưa đóng băng to";
-  if (code === 71) return "Tuyết nhẹ";
-  if (code === 73) return "Tuyết vừa";
-  if (code === 75) return "Tuyết dày";
-  if (code === 77) return "Hạt tuyết";
-  if (code === 80) return "Mưa rào nhẹ";
-  if (code === 81) return "Mưa rào vừa";
-  if (code === 82) return "Mưa rào to";
-  if (code === 85) return "Mưa tuyết nhẹ";
-  if (code === 86) return "Mưa tuyết to";
-  if (code === 95) return "Dông nhẹ / vừa";
-  if (code === 96) return "Dông có mưa đá nhẹ";
-  if (code === 99) return "Dông có mưa đá to";
-  return "--";
+
+  return "Không xác định";
 }
 
 export function CapturePlotOptions({
@@ -502,15 +489,33 @@ export function CaptureStageOptions({
   );
 }
 
+export function normalizeWeatherOptionCode(
+  code?: number,
+  isRaining?: boolean,
+): number | undefined {
+  if (isRaining) return 51;
+
+  if (code === 0) return 0;
+  if (code === 1 || code === 2) return 2;
+  if (code === 3) return 3;
+  if (code === 45 || code === 48) return 45;
+
+  return undefined;
+}
+
 export function CaptureWeatherOptions({
   contentPaddingBottom,
   onSelect,
   weatherCode,
+  isRaining,
 }: {
   contentPaddingBottom?: number;
   onSelect: (value: number) => void;
   weatherCode?: number;
+  isRaining?: boolean;
 }) {
+  const selectedCode = normalizeWeatherOptionCode(weatherCode, isRaining);
+
   return (
     <View
       style={[
@@ -519,7 +524,7 @@ export function CaptureWeatherOptions({
       ]}
     >
       {CAPTURE_WEATHER_OPTIONS.map((option) => {
-        const selected = weatherCode === option.code;
+        const selected = selectedCode === option.code;
         const Icon = option.Icon;
         return (
           <Pressable

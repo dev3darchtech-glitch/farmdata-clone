@@ -134,6 +134,7 @@ export interface PostImageWatermarkInput {
   severity: string;
   stationMeasurements: Partial<WeatherCondition>;
   symptomDescription: string;
+  isRaining?: boolean;
 }
 
 function formatMeasurementValue(value: unknown, suffix = ""): string {
@@ -229,15 +230,45 @@ function formatWatermarkValue(value: unknown, suffix = ""): string {
   return `${value}${suffix}`;
 }
 
-function getWeatherCodeLabel(code?: number): string {
-  if (code === 1 || code === 2) return "Ít mây";
+const DRIZZLE_CODES = [51, 53, 55, 56, 57];
+const RAIN_CODES = [61, 63, 65, 66, 67, 80, 81, 82];
+const SNOW_CODES = [71, 73, 75, 77, 85, 86];
+const THUNDERSTORM_CODES = [95, 96, 99];
+
+function getWeatherCodeLabel(
+  code?: number,
+  isRaining?: boolean,
+): string {
+  if (isRaining === true) {
+    return "Đang mưa";
+  }
+
+  if (code === undefined || code === null) {
+    return "--";
+  }
+
+  if (code === 0) return "Trời quang";
+  if (code === 1 || code === 2) return "Có mây";
   if (code === 3) return "Nhiều mây";
   if (code === 45 || code === 48) return "Sương mù";
-  if ([51, 53, 55].includes(code ?? -1)) return "Mưa nhẹ";
-  if ([61, 63, 65].includes(code ?? -1)) return "Mưa vừa / to";
-  if ([80, 81, 82].includes(code ?? -1)) return "Mưa rào";
-  if ([71, 73, 75, 77, 85, 86].includes(code ?? -1)) return "Mưa tuyết";
-  return "Nắng";
+
+  if (DRIZZLE_CODES.includes(code)) {
+    return "Mô hình ghi nhận mưa phùn quanh khu vực";
+  }
+
+  if (RAIN_CODES.includes(code)) {
+    return "Mô hình ghi nhận mưa quanh khu vực";
+  }
+
+  if (SNOW_CODES.includes(code)) {
+    return "Tuyết";
+  }
+
+  if (THUNDERSTORM_CODES.includes(code)) {
+    return "Mô hình ghi nhận giông quanh khu vực";
+  }
+
+  return "Không xác định";
 }
 
 function renderSvgTextLines({
@@ -289,7 +320,10 @@ function buildPostWatermarkSvg(
 
   const station = metadata.stationMeasurements || {};
   const metricLines = [
-    `Thời tiết: ${getWeatherCodeLabel(station.weatherCode)}`,
+    `Thời tiết: ${getWeatherCodeLabel(
+      station.weatherCode,
+      metadata.isRaining ?? station.isRaining,
+    )}`,
     `Nhiệt độ: ${formatWatermarkValue(station.temperature, "°C")}`,
     `Độ ẩm: ${formatWatermarkValue(station.humidity, "%")}`,
     `Ánh sáng: ${formatWatermarkValue(station.lightUvIndex)}`,
@@ -391,6 +425,7 @@ async function addMarkOverlay(
     envMode?: string;
     weatherCode?: number;
     temperature?: number;
+    isRaining?: boolean;
     captureLocation?: {
       latitude?: number;
       longitude?: number;
@@ -453,7 +488,10 @@ async function addMarkOverlay(
 
     const tempStr =
       metadata.temperature !== undefined ? `${metadata.temperature}°C` : "--°C";
-    const weatherLabel = getWeatherCodeLabel(metadata.weatherCode);
+    const weatherLabel = getWeatherCodeLabel(
+      metadata.weatherCode,
+      metadata.isRaining,
+    );
     const weatherStr = `${weatherLabel} (${tempStr})`;
 
     const rightLines = [
@@ -618,6 +656,7 @@ export interface StorageUploadOptions {
   };
   weatherCode?: number;
   temperature?: number;
+  isRaining?: boolean;
 }
 
 /**
@@ -713,6 +752,7 @@ export async function uploadImagesToFirebaseStorage(
                 captureLocation: options.captureLocation,
                 weatherCode: options.weatherCode,
                 temperature: options.temperature,
+                isRaining: options.isRaining,
               },
               outputFormat,
             );

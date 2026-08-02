@@ -284,7 +284,7 @@ describe("Milestone 2 Empirical Stress & Boundary Tests", () => {
       expect(errorResult).toBe(false);
     });
 
-    it("getCurrentLocation falls back to DEFAULT_MOCK_LOCATION when permission is denied", async () => {
+    it("getCurrentLocation throws LOCATION_PERMISSION_DENIED when permission is denied", async () => {
       Platform.OS = "android";
       (
         Location.requestForegroundPermissionsAsync as jest.Mock
@@ -292,17 +292,10 @@ describe("Milestone 2 Empirical Stress & Boundary Tests", () => {
         status: "denied",
       });
 
-      const location = await getCurrentLocation();
-      expect(location.isMocked).toBe(true);
-      expect(location.latitude).toBe(DEFAULT_MOCK_LOCATION.latitude);
-      expect(location.longitude).toBe(DEFAULT_MOCK_LOCATION.longitude);
-      expect(location.accuracy).toBe(DEFAULT_MOCK_LOCATION.accuracy);
-      expect(location.timestamp).toMatch(
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
-      );
+      await expect(getCurrentLocation()).rejects.toThrow("LOCATION_PERMISSION_DENIED");
     });
 
-    it("getCurrentLocation falls back to DEFAULT_MOCK_LOCATION when Location API throws an exception", async () => {
+    it("getCurrentLocation throws exception when Location API throws an exception", async () => {
       Platform.OS = "ios";
       (
         Location.requestForegroundPermissionsAsync as jest.Mock
@@ -313,10 +306,7 @@ describe("Milestone 2 Empirical Stress & Boundary Tests", () => {
         new Error("Location services disabled by user"),
       );
 
-      const location = await getCurrentLocation();
-      expect(location.isMocked).toBe(true);
-      expect(location.latitude).toBe(DEFAULT_MOCK_LOCATION.latitude);
-      expect(location.longitude).toBe(DEFAULT_MOCK_LOCATION.longitude);
+      await expect(getCurrentLocation()).rejects.toThrow("Location services disabled by user");
     });
 
     it("getCurrentLocation returns real location when permission is granted and GPS is available", async () => {

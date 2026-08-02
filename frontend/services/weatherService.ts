@@ -239,6 +239,11 @@ function buildWeatherSnapshot(params: {
   seriesTimes: string[];
   seriesWeatherCodes: number[];
   seriesWinds: number[];
+  seriesPrecipitation?: number[];
+  seriesRain?: number[];
+  seriesShowers?: number[];
+  seriesCloudCover?: number[];
+  seriesIsDay?: number[];
 }): WeatherCondition {
   const {
     index,
@@ -248,6 +253,11 @@ function buildWeatherSnapshot(params: {
     seriesTimes,
     seriesWeatherCodes,
     seriesWinds,
+    seriesPrecipitation = [],
+    seriesRain = [],
+    seriesShowers = [],
+    seriesCloudCover = [],
+    seriesIsDay = [],
   } = params;
   if (
     index < 0 ||
@@ -259,6 +269,24 @@ function buildWeatherSnapshot(params: {
 
   const resolvedIndex = index;
   const resolvedTime = seriesTimes[resolvedIndex];
+
+  const curPrecipitation =
+    typeof seriesPrecipitation[resolvedIndex] === "number"
+      ? seriesPrecipitation[resolvedIndex]
+      : undefined;
+  const curRain =
+    typeof seriesRain[resolvedIndex] === "number"
+      ? seriesRain[resolvedIndex]
+      : undefined;
+  const curShowers =
+    typeof seriesShowers[resolvedIndex] === "number"
+      ? seriesShowers[resolvedIndex]
+      : undefined;
+  const isRaining = resolveIsRaining({
+    rain: curRain,
+    showers: curShowers,
+    precipitation: curPrecipitation,
+  });
 
   return {
     temperature:
@@ -281,6 +309,15 @@ function buildWeatherSnapshot(params: {
     weatherCode:
       typeof seriesWeatherCodes[resolvedIndex] === "number"
         ? seriesWeatherCodes[resolvedIndex]
+        : undefined,
+    isRaining,
+    precipitation: seriesPrecipitation[resolvedIndex],
+    rain: seriesRain[resolvedIndex],
+    showers: seriesShowers[resolvedIndex],
+    cloudCover: seriesCloudCover[resolvedIndex],
+    isDay:
+      typeof seriesIsDay[resolvedIndex] === "number"
+        ? seriesIsDay[resolvedIndex] === 1
         : undefined,
     updatedAt: resolvedTime ? toVietnamIsoString(resolvedTime) : undefined,
   };
@@ -306,6 +343,27 @@ function resolveSeriesValueAtOrBefore(
   return undefined;
 }
 
+export function resolveIsRaining(params: {
+  rain?: number;
+  showers?: number;
+  precipitation?: number;
+}): boolean | undefined {
+  const { rain, showers, precipitation } = params;
+
+  const hasRainData =
+    typeof rain === "number" || typeof showers === "number";
+
+  if (hasRainData) {
+    return (rain ?? 0) + (showers ?? 0) > 0.05;
+  }
+
+  if (typeof precipitation === "number") {
+    return precipitation > 0.05;
+  }
+
+  return undefined;
+}
+
 export async function fetchOutdoorWeather(
   lat: number,
   lon: number,
@@ -318,7 +376,33 @@ export async function fetchOutdoorWeather(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const weatherApiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,shortwave_radiation&minutely_15=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,shortwave_radiation&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
+    const currentVariables = [
+      "temperature_2m",
+      "relative_humidity_2m",
+      "wind_speed_10m",
+      "weather_code",
+      "shortwave_radiation",
+      "precipitation",
+      "rain",
+      "showers",
+      "cloud_cover",
+      "is_day",
+    ].join(",");
+
+    const minutelyVariables = [
+      "temperature_2m",
+      "relative_humidity_2m",
+      "wind_speed_10m",
+      "weather_code",
+      "shortwave_radiation",
+      "precipitation",
+      "rain",
+      "showers",
+      "cloud_cover",
+      "is_day",
+    ].join(",");
+
+    const weatherApiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=${currentVariables}&minutely_15=${minutelyVariables}&past_minutely_15=192&forecast_minutely_15=1&timezone=Asia%2FHo_Chi_Minh`;
     const airQualityApiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=carbon_dioxide&hourly=carbon_dioxide&past_hours=48&forecast_hours=1&timezone=Asia%2FHo_Chi_Minh`;
 
     const [response, airQualityResponse] = await Promise.all([
@@ -363,6 +447,11 @@ export async function fetchOutdoorWeather(
       json?.minutely_15?.shortwave_radiation ?? [];
     const seriesWeatherCodes: number[] = json?.minutely_15?.weather_code ?? [];
     const seriesTimes: string[] = json?.minutely_15?.time ?? [];
+    const seriesPrecipitation: number[] = json?.minutely_15?.precipitation ?? [];
+    const seriesRain: number[] = json?.minutely_15?.rain ?? [];
+    const seriesShowers: number[] = json?.minutely_15?.showers ?? [];
+    const seriesCloudCover: number[] = json?.minutely_15?.cloud_cover ?? [];
+    const seriesIsDay: number[] = json?.minutely_15?.is_day ?? [];
 
     const currentIndex = resolveCurrentSeriesIndex(
       seriesTimes,
@@ -383,6 +472,26 @@ export async function fetchOutdoorWeather(
     const airQualitySeriesTimes: string[] = airQualityJson?.hourly?.time ?? [];
     const airQualitySeriesCo2: number[] =
       airQualityJson?.hourly?.carbon_dioxide ?? [];
+
+    const currentRain =
+      typeof json?.current?.rain === "number"
+        ? json.current.rain
+        : undefined;
+    const currentShowers =
+      typeof json?.current?.showers === "number"
+        ? json.current.showers
+        : undefined;
+    const currentPrecipitation =
+      typeof json?.current?.precipitation === "number"
+        ? json.current.precipitation
+        : undefined;
+
+    const isRaining = resolveIsRaining({
+      rain: currentRain,
+      showers: currentShowers,
+      precipitation: currentPrecipitation,
+    });
+
     const currentSnapshot: WeatherCondition = {
       temperature: typeof curTemp === "number" ? curTemp : NaN,
       lightUvIndex: typeof curLightValue === "number" ? curLightValue : NaN,
@@ -406,6 +515,18 @@ export async function fetchOutdoorWeather(
           : typeof seriesWeatherCodes[currentIndex] === "number"
             ? seriesWeatherCodes[currentIndex]
             : undefined,
+      isRaining,
+      precipitation: currentPrecipitation,
+      rain: currentRain,
+      showers: currentShowers,
+      cloudCover:
+        typeof json?.current?.cloud_cover === "number"
+          ? json.current.cloud_cover
+          : undefined,
+      isDay:
+        typeof json?.current?.is_day === "number"
+          ? json.current.is_day === 1
+          : undefined,
       updatedAt: currentTimestamp,
     };
     const t12Snapshot = buildWeatherSnapshot({
@@ -416,6 +537,11 @@ export async function fetchOutdoorWeather(
       seriesTimes,
       seriesWeatherCodes,
       seriesWinds,
+      seriesPrecipitation,
+      seriesRain,
+      seriesShowers,
+      seriesCloudCover,
+      seriesIsDay,
     });
     t12Snapshot.co2Level =
       resolveSeriesValueAtOrBefore(
@@ -431,6 +557,11 @@ export async function fetchOutdoorWeather(
       seriesTimes,
       seriesWeatherCodes,
       seriesWinds,
+      seriesPrecipitation,
+      seriesRain,
+      seriesShowers,
+      seriesCloudCover,
+      seriesIsDay,
     });
     t24Snapshot.co2Level =
       resolveSeriesValueAtOrBefore(
@@ -446,6 +577,11 @@ export async function fetchOutdoorWeather(
       seriesTimes,
       seriesWeatherCodes,
       seriesWinds,
+      seriesPrecipitation,
+      seriesRain,
+      seriesShowers,
+      seriesCloudCover,
+      seriesIsDay,
     });
     t48Snapshot.co2Level =
       resolveSeriesValueAtOrBefore(

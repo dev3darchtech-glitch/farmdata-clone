@@ -114,55 +114,47 @@ async function reverseGeocodeLocation(
  * Requests foreground location permission from OS via expo-location.
  */
 export async function requestLocationPermissions(): Promise<boolean> {
-  if (Platform.OS === "web") {
-    return true;
-  }
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     return status === "granted";
-  } catch (error) {
+  } catch {
     return false;
   }
 }
 
 /**
  * Obtains current high-accuracy GPS position.
- * Falls back to DEFAULT_MOCK_LOCATION for web, emulator, or when permission/GPS is unavailable.
  */
 export async function getCurrentLocation(): Promise<LocationData> {
-  const currentTimestamp = generateIsoTimestamp();
+  const hasPermission = await requestLocationPermissions();
 
-  try {
-    if (Platform.OS === "web") {
-      return { ...DEFAULT_MOCK_LOCATION, timestamp: currentTimestamp };
-    }
-
-    const hasPermission = await requestLocationPermissions();
-    if (!hasPermission) {
-      return { ...DEFAULT_MOCK_LOCATION, timestamp: currentTimestamp };
-    }
-
-    const location = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-
-    if (!location || !location.coords) {
-      return { ...DEFAULT_MOCK_LOCATION, timestamp: currentTimestamp };
-    }
-
-    const latitude = location.coords.latitude;
-    const longitude = location.coords.longitude;
-    const address = await reverseGeocodeLocation(latitude, longitude);
-
-    return {
-      ...address,
-      latitude,
-      longitude,
-      accuracy: location.coords.accuracy ?? 5.0,
-      timestamp: generateIsoTimestamp(new Date(location.timestamp)),
-      isMocked: false,
-    };
-  } catch (error) {
-    return { ...DEFAULT_MOCK_LOCATION, timestamp: currentTimestamp };
+  if (!hasPermission) {
+    throw new Error("LOCATION_PERMISSION_DENIED");
   }
+
+  const location = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.High,
+    mayShowUserSettingsDialog: true,
+  });
+
+  if (!location || !location.coords) {
+    throw new Error("INVALID_GPS_COORDINATES");
+  }
+
+  const { latitude, longitude, accuracy } = location.coords;
+
+  if (!validateCoordinates(latitude, longitude)) {
+    throw new Error("INVALID_GPS_COORDINATES");
+  }
+
+  const address = await reverseGeocodeLocation(latitude, longitude);
+
+  return {
+    ...address,
+    latitude,
+    longitude,
+    accuracy: accuracy ?? 5.0,
+    timestamp: generateIsoTimestamp(new Date(location.timestamp)),
+    isMocked: location.mocked ?? false,
+  };
 }

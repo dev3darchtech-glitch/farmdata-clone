@@ -66,6 +66,7 @@ export function EnvironmentSection({
             {
               backgroundColor: getWeatherBadgeBgColor(
                 stationWeather.weatherCode,
+                stationWeather.isRaining,
               ),
             },
           ]}
@@ -73,17 +74,27 @@ export function EnvironmentSection({
           <WeatherStatusIcon
             code={stationWeather.weatherCode}
             size={24}
-            color={getWeatherBadgeTextColor(stationWeather.weatherCode)}
+            color={getWeatherBadgeTextColor(
+              stationWeather.weatherCode,
+              stationWeather.isRaining,
+            )}
+            isRaining={stationWeather.isRaining}
           />
           <Text
             style={[
               environmentStyles.stationWeatherText,
               {
-                color: getWeatherBadgeTextColor(stationWeather.weatherCode),
+                color: getWeatherBadgeTextColor(
+                  stationWeather.weatherCode,
+                  stationWeather.isRaining,
+                ),
               },
             ]}
           >
-            {getWeatherLabel(stationWeather.weatherCode)}
+            {getWeatherLabel(
+              stationWeather.weatherCode,
+              stationWeather.isRaining,
+            )}
           </Text>
         </View>
         <View style={environmentStyles.stationBody}>

@@ -14,22 +14,20 @@ import {
   Camera,
   ChevronDown,
   FileText,
-  FolderOpen,
   LayoutDashboardIcon,
   LogOut,
-  UserIcon,
+  UserIcon
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
   Image,
-  Linking,
   Modal,
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -377,18 +375,7 @@ export function ManagementDrawer({
                 >
                   Đăng bài
                 </Text>
-              </Pressable>
-
-              <Pressable
-                style={drawerStyles.drawerItem}
-                onPress={() => {
-                  handleClose();
-                  Linking.openURL("https://drive.google.com/drive/my-drive");
-                }}
-              >
-                <FolderOpen size={20} color={COLORS.body} />
-                <Text style={drawerStyles.drawerText}>Mở kho lưu trữ</Text>
-              </Pressable>
+              </Pressable>       
             </>
           ) : null}
 

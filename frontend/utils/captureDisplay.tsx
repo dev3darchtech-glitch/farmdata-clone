@@ -301,12 +301,16 @@ export function WeatherStatusIcon({
   code,
   size = 24,
   color,
+  isRaining,
 }: {
   code?: number;
   size?: number;
   color?: string;
+  isRaining?: boolean;
 }) {
   const iconColor = color || COLORS.green;
+
+  if (isRaining) return <CloudRain size={size} color={iconColor} />;
 
   if (code === 0) return <Sun size={size} color={iconColor} />;
   if (code === 1 || code === 2) {

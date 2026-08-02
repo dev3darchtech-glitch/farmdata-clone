@@ -36,10 +36,6 @@ export function validateCaptureSession(
     errors.farmId = "Vui lòng chọn farm";
   }
 
-  if (!session.plotId || session.plotId.trim() === "") {
-    errors.plotId = "Vui lòng chọn mã số luống";
-  }
-
   if (!session.cropType || session.cropType.trim() === "") {
     errors.cropType = "Vui lòng chọn hoặc nhập loại cây";
   }

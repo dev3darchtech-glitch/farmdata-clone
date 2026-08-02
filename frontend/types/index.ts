@@ -117,6 +117,12 @@ export interface WeatherCondition {
   humidity?: number; // % relative humidity (0 .. 100)
   weatherCode?: number; // Open-Meteo weather code
   updatedAt?: string; // Time of this measurement
+  isRaining?: boolean;
+  precipitation?: number;
+  rain?: number;
+  showers?: number;
+  cloudCover?: number;
+  isDay?: boolean;
   soilPh?: string;
   soilEc?: string;
   soilDo?: string;

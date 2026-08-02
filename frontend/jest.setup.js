@@ -136,8 +136,8 @@ jest.mock('expo-camera', () => {
     }),
     useCameraPermissions: jest.fn(() => [{ granted: true }, jest.fn(async () => ({ granted: true }))]),
     Camera: {
-      requestCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
-      getCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+      requestCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted', granted: true })),
+      getCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted', granted: true })),
     },
   };
 });

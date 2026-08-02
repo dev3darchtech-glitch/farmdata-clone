@@ -1,5 +1,5 @@
 import { COLORS } from "@/constants/theme";
-import { Bell, Menu } from "lucide-react-native";
+import { Menu } from "lucide-react-native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -22,14 +22,14 @@ export function ScreenHeader({
         </Pressable>
         <Text style={screenHeaderStyles.headerTitle}>{title}</Text>
       </View>
-      <View style={screenHeaderStyles.headerRight}>
+      {/* <View style={screenHeaderStyles.headerRight}>
         <Pressable
           accessibilityRole="button"
           style={screenHeaderStyles.iconButton}
         >
           <Bell size={23} color={COLORS.text} />
         </Pressable>
-      </View>
+      </View> */}
     </View>
   );
 }

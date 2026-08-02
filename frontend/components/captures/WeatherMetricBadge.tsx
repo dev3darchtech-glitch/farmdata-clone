@@ -19,14 +19,16 @@ export function WeatherMetricBadge({
   metricKey: WeatherMetricKey;
 }) {
   const isWeather = metricKey === "weatherCode";
-  const weatherOpt = isWeather ? getWeatherOption(data.weatherCode) : null;
+  const weatherOpt = isWeather
+    ? getWeatherOption(data.weatherCode, data.isRaining)
+    : null;
 
   const Icon = isWeather ? weatherOpt!.Icon : metricIconMeta(metricKey).Icon;
   const color = isWeather
-    ? getWeatherBadgeTextColor(data.weatherCode)
+    ? getWeatherBadgeTextColor(data.weatherCode, data.isRaining)
     : metricIconMeta(metricKey).color;
   const label = isWeather
-    ? getWeatherLabel(data.weatherCode)
+    ? getWeatherLabel(data.weatherCode, data.isRaining)
     : metricValueWithUnit(data, metricKey);
 
   return (

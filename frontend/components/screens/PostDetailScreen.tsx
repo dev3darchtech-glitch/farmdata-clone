@@ -48,9 +48,9 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-function weatherLabel(weatherCode?: number | null) {
+function weatherLabel(weatherCode?: number | null, isRaining?: boolean) {
   return typeof weatherCode === "number"
-    ? getCaptureWeatherLabel(weatherCode)
+    ? getCaptureWeatherLabel(weatherCode, isRaining)
     : "--";
 }
 
@@ -325,7 +325,10 @@ export function PostDetailScreen() {
           />
           <DetailRow
             label="Thời tiết (T0)"
-            value={weatherLabel(post.stationMeasurements?.weatherCode)}
+            value={weatherLabel(
+              post.stationMeasurements?.weatherCode,
+              post.stationMeasurements?.isRaining,
+            )}
           />
           <DetailRow
             label="Nhiệt độ (T0)"
@@ -363,7 +366,10 @@ export function PostDetailScreen() {
               />
               <DetailRow
                 label="Thời tiết (T12)"
-                value={weatherLabel(post.stationMeasurementsT12.weatherCode)}
+                value={weatherLabel(
+                  post.stationMeasurementsT12.weatherCode,
+                  post.stationMeasurementsT12.isRaining,
+                )}
               />
               <DetailRow
                 label="Nhiệt độ (T12)"
@@ -395,7 +401,10 @@ export function PostDetailScreen() {
               />
               <DetailRow
                 label="Thời tiết (T24)"
-                value={weatherLabel(post.stationMeasurementsT24.weatherCode)}
+                value={weatherLabel(
+                  post.stationMeasurementsT24.weatherCode,
+                  post.stationMeasurementsT24.isRaining,
+                )}
               />
               <DetailRow
                 label="Nhiệt độ (T24)"
@@ -427,7 +436,10 @@ export function PostDetailScreen() {
               />
               <DetailRow
                 label="Thời tiết (T48)"
-                value={weatherLabel(post.stationMeasurementsT48.weatherCode)}
+                value={weatherLabel(
+                  post.stationMeasurementsT48.weatherCode,
+                  post.stationMeasurementsT48.isRaining,
+                )}
               />
               <DetailRow
                 label="Nhiệt độ (T48)"

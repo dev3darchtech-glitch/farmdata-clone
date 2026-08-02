@@ -136,7 +136,10 @@ export function PostCard({
         </View>
         <Text style={postCardStyles.postMeta} numberOfLines={1}>
           {post.stationMeasurements?.weatherCode !== undefined
-            ? getCaptureWeatherLabel(post.stationMeasurements.weatherCode)
+            ? getCaptureWeatherLabel(
+                post.stationMeasurements.weatherCode,
+                post.stationMeasurements.isRaining,
+              )
             : envName(post.envMode)}
         </Text>
         <View style={postCardStyles.symptomRow}>

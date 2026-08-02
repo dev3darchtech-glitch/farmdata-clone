@@ -41,6 +41,12 @@ export interface WeatherCondition {
   humidity?: number;
   weatherCode?: number;
   updatedAt?: string;
+  isRaining?: boolean;
+  precipitation?: number;
+  rain?: number;
+  showers?: number;
+  cloudCover?: number;
+  isDay?: boolean;
   soilPh?: string;
   soilEc?: string;
   soilDo?: string;
