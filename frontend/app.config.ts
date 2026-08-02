@@ -14,7 +14,7 @@ const easProjectId =
 
 const config: ExpoConfig = {
   name: "FarmData",
-  slug: "FarmData",
+  slug: "farmdata",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/logo.png",
@@ -42,7 +42,6 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
-    "expo-notifications",
     [
       "expo-font",
       {

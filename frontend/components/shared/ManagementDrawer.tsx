@@ -284,6 +284,7 @@ export function ManagementDrawer({
               </View>
               {[
                 ["plots", "Mã số luống"],
+                ["farms", "Farm"],
                 ["crops", "Loại cây"],
                 ["diseases", "Bệnh cây"],
                 ["accounts", "Tài khoản"],

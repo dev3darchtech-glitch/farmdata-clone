@@ -1,25 +1,12 @@
 import { COLORS, LAYOUT } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
-import { getGoogleDriveFolderUrlAPI } from "@/services/apiClient";
 import { getPosts } from "@/services/postService";
 import { ManagementVariant } from "@/types/ui";
 import { normalizeRole } from "@/utils/captureDisplay";
 import { router } from "expo-router";
-import {
-  Camera,
-  CircleUserRound,
-  FolderOpen,
-  LogOut,
-} from "lucide-react-native";
+import { Camera, CircleUserRound, LogOut } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import {
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AppScreenLayout } from "../shared/AppScreenLayout";
 
@@ -58,15 +45,6 @@ export function ProfileScreen() {
   const handleLogout = async () => {
     await logout();
     router.replace("/(auth)/login");
-  };
-
-  const handleOpenStorage = async () => {
-    try {
-      const url = await getGoogleDriveFolderUrlAPI();
-      Linking.openURL(url);
-    } catch {
-      Linking.openURL("https://drive.google.com/drive/my-drive");
-    }
   };
 
   return (
@@ -120,18 +98,6 @@ export function ProfileScreen() {
           />
         </View>
 
-        {role === "admin" ? (
-          <Pressable
-            style={profileScreenStyles.profileDriveButton}
-            onPress={handleOpenStorage}
-          >
-            <FolderOpen size={16} color="#fff" />
-            <Text style={profileScreenStyles.profileDriveText}>
-              Mở kho lưu trữ
-            </Text>
-          </Pressable>
-        ) : null}
-
         <Pressable
           style={profileScreenStyles.profileLogoutButton}
           onPress={handleLogout}
@@ -145,22 +111,6 @@ export function ProfileScreen() {
 }
 
 const profileScreenStyles = StyleSheet.create({
-  profileDriveButton: {
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: COLORS.green,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
-  },
-  profileDriveText: {
-    color: "#fff",
-    fontSize: 13,
-    lineHeight: 16,
-    fontWeight: "700",
-  },
   profileScroll: {
     flex: 1,
   },

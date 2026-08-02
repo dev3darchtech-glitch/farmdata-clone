@@ -1,8 +1,10 @@
 import { GlobalOfflineNotice } from "@/components/screens/GlobalOfflineNotice";
-import { IOS_KEYBOARD_ACCESSORY_ID, KeyboardAccessory } from "@/components/shared/KeyboardAccessory";
+import {
+  IOS_KEYBOARD_ACCESSORY_ID,
+  KeyboardAccessory,
+} from "@/components/shared/KeyboardAccessory";
 import { TYPOGRAPHY } from "@/constants/theme";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -48,7 +50,6 @@ function RootLayoutNav() {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  usePushNotifications(isAuthenticated);
 
   useEffect(() => {
     if (isLoading) return;
@@ -97,9 +98,15 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <SafeAreaView
           edges={["top", "left", "right"]}
-          style={[styles.appShell, { width, minWidth: width, minHeight: height }]}
+          style={[
+            styles.appShell,
+            { width, minWidth: width, minHeight: height },
+          ]}
         >
-          <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+          <TouchableWithoutFeedback
+            accessible={false}
+            onPress={Keyboard.dismiss}
+          >
             <AuthProvider>
               <>
                 <RootLayoutNav />

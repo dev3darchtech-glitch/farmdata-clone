@@ -12,6 +12,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 export type PlotFormValue = {
   code: string;
   name: string;
+  farmId: string;
   envMode: EnvMode;
   area: string;
   status: string;
@@ -24,6 +25,7 @@ export function PlotFormSheet({
   onClose,
   onSubmit,
   editing,
+  farms = [],
 }: {
   visible: boolean;
   value: PlotFormValue;
@@ -31,12 +33,15 @@ export function PlotFormSheet({
   onClose: () => void;
   onSubmit: () => void;
   editing?: boolean;
+  farms?: any[];
 }) {
   const [envModeOpen, setEnvModeOpen] = useState(false);
+  const [farmOpen, setFarmOpen] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setEnvModeOpen(false);
+      setFarmOpen(false);
     }
   }, [visible]);
 
@@ -47,6 +52,46 @@ export function PlotFormSheet({
       onClose={onClose}
     >
       <KeyboardFormScrollView contentContainerStyle={plotSheetStyles.body}>
+        <View style={plotSheetStyles.field}>
+          <InputSelection
+            fieldStyle={plotSheetStyles.select}
+            label="Chọn Farm"
+            required
+            onPress={() => setFarmOpen((current) => !current)}
+            placeholder="Chọn Farm"
+            value={farms.find((f) => f.id === value.farmId)?.name}
+          />
+          {farmOpen ? (
+            <View style={plotSheetStyles.zoneOptionList}>
+              {farms.map((farm) => {
+                const selected = value.farmId === farm.id;
+                return (
+                  <Pressable
+                    key={farm.id}
+                    style={[
+                      plotSheetStyles.zoneOptionRow,
+                      selected && plotSheetStyles.zoneOptionActive,
+                    ]}
+                    onPress={() => {
+                      onChange({ ...value, farmId: farm.id });
+                      setFarmOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        plotSheetStyles.zoneOptionText,
+                        selected && plotSheetStyles.zoneOptionTextActive,
+                      ]}
+                    >
+                      {farm.name}
+                    </Text>
+                    {selected ? <Check size={18} color={COLORS.green} /> : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
         <InputText
           label="Mã số luống"
           required
@@ -127,10 +172,10 @@ export function PlotFormSheet({
         <Pressable
           style={[
             plotSheetStyles.saveButton,
-            (!value.code.trim() || !value.name.trim()) &&
+            (!value.code.trim() || !value.name.trim() || !value.farmId) &&
               plotSheetStyles.disabledButton,
           ]}
-          disabled={!value.code.trim() || !value.name.trim()}
+          disabled={!value.code.trim() || !value.name.trim() || !value.farmId}
           onPress={onSubmit}
         >
           <Text style={plotSheetStyles.saveText}>Lưu</Text>

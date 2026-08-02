@@ -1,26 +1,31 @@
 import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
-import { useAuth } from "@/hooks/useAuth";
 import {
   addCropType,
+  addFarm,
   addPlantDisease,
   addPlot,
   addUser,
   getCropTypesPage,
+  getFarms,
+  getFarmsPage,
   getPlantDiseasesPage,
   getPlotsPage,
   getUsersPage,
   restoreUser,
   revokeUser,
   setCropTypeActiveStatus,
+  setFarmActiveStatus,
   setPlantDiseaseActiveStatus,
   setPlotActiveStatus,
   updateCropType,
+  updateFarm,
   updatePlantDisease,
   updatePlot,
   updateUser,
 } from "@/services/adminService";
 import {
   CropTypeInfo,
+  FarmInfo,
   PlantDiseaseGroup,
   PlantDiseaseInfo,
   PlotInfo,
@@ -72,6 +77,7 @@ import { ManagementPagination } from "../management/ManagementPagination";
 import {
   AccountManagementTable,
   CropManagementTable,
+  FarmManagementTable,
   PlantDiseaseManagementTable,
   PlotManagementTable,
 } from "../management/ManagementTables";
@@ -137,7 +143,6 @@ function isDuplicateImportError(error: unknown): boolean {
 }
 
 export function ManagementScreen() {
-  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: string }>();
   const [selectedDiseaseGroup, setSelectedDiseaseGroup] =
@@ -145,6 +150,7 @@ export function ManagementScreen() {
   const [variant, setVariant] = useState<ManagementVariant>("plots");
   const [query, setQuery] = useState("");
   const [plots, setPlots] = useState<PlotInfo[]>([]);
+  const [farms, setFarms] = useState<FarmInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
   const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -155,6 +161,7 @@ export function ManagementScreen() {
   const [cropIconPickerOpen, setCropIconPickerOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<ToastState>(null);
   const [cropForm, setCropForm] = useState({ name: "", icon: "" });
+  const [farmForm, setFarmForm] = useState({ name: "" });
   const [diseaseGroupPickerOpen, setDiseaseGroupPickerOpen] = useState(false);
   const [diseaseTypePickerOpen, setDiseaseTypePickerOpen] = useState(false);
   const [diseaseForm, setDiseaseForm] = useState<{
@@ -167,6 +174,7 @@ export function ManagementScreen() {
     name: "",
   });
   const [editingPlot, setEditingPlot] = useState<PlotInfo | null>(null);
+  const [editingFarm, setEditingFarm] = useState<FarmInfo | null>(null);
   const [editingCrop, setEditingCrop] = useState<CropTypeInfo | null>(null);
   const [editingDisease, setEditingDisease] = useState<PlantDiseaseInfo | null>(
     null,
@@ -180,16 +188,23 @@ export function ManagementScreen() {
   const [plotForm, setPlotForm] = useState<PlotFormValue>({
     code: "",
     name: "",
+    farmId: "",
     envMode: "outdoor" as const,
     area: "",
     status: "Đang sử dụng",
   });
   const [csvMode, setCsvMode] = useState<CsvImportMode>(null);
   const [csvProgress, setCsvProgress] = useState(60);
-  const [importResult, setImportResult] = useState({
+  const [importResult, setImportResult] = useState<{
+    success: number;
+    skipped: number;
+    errors: number;
+    details?: { type: "skipped" | "error"; rowNumber: number; rowData: any; reason?: string }[];
+  }>({
     success: 0,
     skipped: 0,
     errors: 0,
+    details: [],
   });
   const [confirmItem, setConfirmItem] = useState<any | null>(null);
   const [page, setPage] = useState(1);
@@ -214,6 +229,18 @@ export function ManagementScreen() {
           query: targetQuery,
         });
         setPlots(data.items);
+        setTotalItems(data.total);
+        setTotalPages(data.totalPages);
+        return;
+      }
+
+      if (targetVariant === "farms") {
+        const data = await getFarmsPage({
+          page: targetPage,
+          limit: pageSize,
+          query: targetQuery,
+        });
+        setFarms(data.items);
         setTotalItems(data.total);
         setTotalPages(data.totalPages);
         return;
@@ -276,6 +303,7 @@ export function ManagementScreen() {
   useEffect(() => {
     if (
       params.tab === "plots" ||
+      params.tab === "farms" ||
       params.tab === "crops" ||
       params.tab === "diseases" ||
       params.tab === "accounts"
@@ -292,29 +320,35 @@ export function ManagementScreen() {
   const title =
     variant === "plots"
       ? "Mã số luống"
-      : variant === "crops"
-        ? "Loại cây"
-        : variant === "diseases"
-          ? "Bệnh cây"
-          : "Tài khoản";
+      : variant === "farms"
+        ? "Farm"
+        : variant === "crops"
+          ? "Loại cây"
+          : variant === "diseases"
+            ? "Bệnh cây"
+            : "Tài khoản";
   const isAdminAccount = (item: any) =>
     String(item?.role || "").toUpperCase() === "ADMIN";
   const searchPlaceholder =
     variant === "plots"
       ? "Tìm mã luống"
-      : variant === "crops"
-        ? "Tìm loại cây..."
-        : variant === "diseases"
-          ? "Tìm loại hoặc tên bệnh..."
-          : "Tìm kiếm username...";
+      : variant === "farms"
+        ? "Tìm farm..."
+        : variant === "crops"
+          ? "Tìm loại cây..."
+          : variant === "diseases"
+            ? "Tìm loại hoặc tên bệnh..."
+            : "Tìm kiếm username...";
   const visibleRows =
     variant === "plots"
       ? plots
-      : variant === "crops"
-        ? crops
-        : variant === "diseases"
-          ? plantDiseases
-          : users.filter((item) => !isAdminAccount(item));
+      : variant === "farms"
+        ? farms
+        : variant === "crops"
+          ? crops
+          : variant === "diseases"
+            ? plantDiseases
+            : users.filter((item) => !isAdminAccount(item));
   const cropIconOptions = useMemo(() => {
     const existingIcons = crops
       .map((crop) => crop.icon?.trim())
@@ -351,14 +385,17 @@ export function ManagementScreen() {
     setDiseaseGroupPickerOpen(false);
     setDiseaseTypePickerOpen(false);
     setEditingPlot(null);
+    setEditingFarm(null);
     setEditingCrop(null);
     setEditingDisease(null);
     setEditingUser(null);
     setCropForm({ name: "", icon: "" });
+    setFarmForm({ name: "" });
     setDiseaseForm({ group: "Truyền nhiễm", type: "", name: "" });
     setPlotForm({
       code: "",
       name: "",
+      farmId: "",
       envMode: "outdoor",
       area: "",
       status: "Đang sử dụng",
@@ -367,16 +404,19 @@ export function ManagementScreen() {
   };
   const openAddDrawer = () => {
     setEditingPlot(null);
+    setEditingFarm(null);
     setEditingCrop(null);
     setEditingDisease(null);
     setEditingUser(null);
     setCropForm({ name: "", icon: "" });
+    setFarmForm({ name: "" });
     setDiseaseGroupPickerOpen(false);
     setDiseaseTypePickerOpen(false);
     setDiseaseForm({ group: "Truyền nhiễm", type: "", name: "" });
     setPlotForm({
       code: "",
       name: "",
+      farmId: "",
       envMode: "outdoor",
       area: "",
       status: "Đang sử dụng",
@@ -388,11 +428,13 @@ export function ManagementScreen() {
   const addItem = async () => {
     try {
       if (variant === "plots") {
-        if (!plotForm.code.trim() || !plotForm.name.trim()) return;
+        if (!plotForm.code.trim() || !plotForm.name.trim() || !plotForm.farmId)
+          return;
         const areaSquareMeters = Number(plotForm.area.trim().replace(",", "."));
         const payload = {
           code: plotForm.code.trim(),
           name: plotForm.name.trim(),
+          farmId: plotForm.farmId,
           envMode: plotForm.envMode,
           ...(Number.isFinite(areaSquareMeters) && areaSquareMeters > 0
             ? { areaSquareMeters }
@@ -403,6 +445,17 @@ export function ManagementScreen() {
           await updatePlot(editingPlot.id, payload);
         } else {
           await addPlot(payload);
+          setPage(1);
+        }
+      } else if (variant === "farms") {
+        if (!farmForm.name.trim()) return;
+        const payload = {
+          name: farmForm.name.trim(),
+        };
+        if (editingFarm) {
+          await updateFarm(editingFarm.id, payload);
+        } else {
+          await addFarm(payload);
           setPage(1);
         }
       } else if (variant === "crops") {
@@ -485,10 +538,20 @@ export function ManagementScreen() {
       setPlotForm({
         code: plot.code || "",
         name: plot.name || "",
+        farmId: plot.farmId || "",
         envMode: plot.envMode || "outdoor",
         area: plot.areaSquareMeters ? String(plot.areaSquareMeters) : "",
         status: isManagementItemActive(plot) ? "Đang sử dụng" : "Ngừng sử dụng",
       });
+      setActionItem(null);
+      setAddOpen(true);
+      return;
+    }
+
+    if (variant === "farms") {
+      const farm = actionItem as FarmInfo;
+      setEditingFarm(farm);
+      setFarmForm({ name: farm.name || "" });
       setActionItem(null);
       setAddOpen(true);
       return;
@@ -599,6 +662,9 @@ export function ManagementScreen() {
       if (variant === "plots") {
         await setPlotActiveStatus(confirmItem.id, nextIsActive);
       }
+      if (variant === "farms") {
+        await setFarmActiveStatus(confirmItem.id, nextIsActive);
+      }
       if (variant === "crops") {
         await setCropTypeActiveStatus(confirmItem.id, nextIsActive);
       }
@@ -667,10 +733,14 @@ export function ManagementScreen() {
     let success = 0;
     let skipped = 0;
     let errors = 0;
+    const details: { type: "skipped" | "error"; rowNumber: number; rowData: any; reason?: string }[] = [];
     const total = parsedCsv.rows.length;
+
+    const allFarms = await getFarms();
 
     for (let i = 0; i < total; i++) {
       const row = parsedCsv.rows[i];
+      const rowNum = i + 2; // Row number in CSV file (1-based header is row 1)
       try {
         if (variant === "plots") {
           const code = row[fieldMapping.code]?.trim();
@@ -679,22 +749,54 @@ export function ManagementScreen() {
           const rawArea = row[fieldMapping.areaSquareMeters]?.trim();
           const areaSquareMeters = rawArea ? Number(rawArea) : undefined;
           const isActive = parseImportBoolean(row[fieldMapping.isActive]);
+          const targetFarmName = row[fieldMapping.farmName]?.trim();
 
-          if (!code || !name) {
+          if (!code || !name || !targetFarmName) {
             skipped++;
+            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu trường bắt buộc (mã, tên hoặc tên farm)" });
           } else if (
             !envMode ||
             (rawArea && !Number.isFinite(areaSquareMeters))
           ) {
             errors++;
+            details.push({ type: "error", rowNumber: rowNum, rowData: row, reason: !envMode ? "Môi trường không hợp lệ" : "Diện tích không phải là số" });
           } else {
+            let matchedFarm = allFarms.find(
+              (f) =>
+                f.name.toLowerCase().trim() ===
+                targetFarmName.toLowerCase().trim(),
+            );
+
+            if (!matchedFarm) {
+              // auto generate farm
+              matchedFarm = await addFarm({
+                name: targetFarmName,
+                isActive: true,
+              });
+              allFarms.push(matchedFarm);
+            }
+
+            const farmId = matchedFarm.id;
+
             await addPlot({
               code,
               name,
+              farmId,
               envMode,
               areaSquareMeters,
               isActive,
             });
+            success++;
+          }
+        } else if (variant === "farms") {
+          const name = row[fieldMapping.name]?.trim();
+          const isActive = parseImportBoolean(row[fieldMapping.isActive]);
+
+          if (!name) {
+            skipped++;
+            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên farm" });
+          } else {
+            await addFarm({ name, isActive });
             success++;
           }
         } else if (variant === "crops") {
@@ -705,6 +807,7 @@ export function ManagementScreen() {
 
           if (!name) {
             skipped++;
+            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên loại cây" });
           } else {
             await addCropType({ name, category, icon, isActive });
             success++;
@@ -718,8 +821,10 @@ export function ManagementScreen() {
 
           if (!name || !type) {
             skipped++;
+            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên bệnh hoặc loại bệnh" });
           } else if (!group) {
             errors++;
+            details.push({ type: "error", rowNumber: rowNum, rowData: row, reason: "Nhóm bệnh không hợp lệ" });
           } else {
             await addPlantDisease({
               name,
@@ -737,6 +842,7 @@ export function ManagementScreen() {
 
           if (!name || !username || !password) {
             skipped++;
+            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên, username hoặc mật khẩu" });
           } else {
             await addUser({ name, username, role: "FARMER", password });
             success++;
@@ -745,8 +851,10 @@ export function ManagementScreen() {
       } catch (error) {
         if (isDuplicateImportError(error)) {
           skipped++;
+          details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Dữ liệu đã tồn tại (trùng lặp)" });
         } else {
           errors++;
+          details.push({ type: "error", rowNumber: rowNum, rowData: row, reason: error instanceof Error ? error.message : "Lỗi hệ thống khi lưu" });
         }
       }
 
@@ -760,16 +868,14 @@ export function ManagementScreen() {
       // ignore
     }
 
-    setImportResult({ success, skipped, errors });
+    setImportResult({ success, skipped, errors, details });
     setCsvMode("result");
     notify(`Đã import xong ${success} bản ghi.`, "success");
   };
 
   const canEditActionItem = useMemo(() => {
-    if (!actionItem || variant === "accounts") return true;
-    if (!actionItem.createdByAdminId) return false;
-    return Boolean(user && String(actionItem.createdByAdminId) === user.id);
-  }, [actionItem, variant, user]);
+    return true;
+  }, []);
 
   return (
     <AppScreenLayout
@@ -806,6 +912,7 @@ export function ManagementScreen() {
               onClose={closeAddDrawer}
               onSubmit={addItem}
               editing={Boolean(editingPlot)}
+              farms={farms}
             />
           ) : (
             <BottomSheet
@@ -1050,6 +1157,20 @@ export function ManagementScreen() {
                           placeholder="vd: Sương mai"
                         />
                       </>
+                    ) : variant === "farms" ? (
+                      <>
+                        <InputText
+                          containerStyle={
+                            managementScreenStyles.drawerFieldStack
+                          }
+                          label="Tên Farm"
+                          value={farmForm.name}
+                          onChangeText={(name) =>
+                            setFarmForm((current) => ({ ...current, name }))
+                          }
+                          placeholder="Nhập tên farm"
+                        />
+                      </>
                     ) : (
                       <>
                         <InputText
@@ -1096,7 +1217,9 @@ export function ManagementScreen() {
                               : variant === "diseases"
                                 ? !diseaseForm.type.trim() ||
                                   !diseaseForm.name.trim()
-                                : !cropForm.name.trim()
+                                : variant === "farms"
+                                  ? !farmForm.name.trim()
+                                  : !cropForm.name.trim()
                           }
                         />
                       </View>
@@ -1179,24 +1302,28 @@ export function ManagementScreen() {
         </View>
       </View>
       <View style={managementScreenStyles.managementHiddenTabs}>
-        {(["plots", "crops", "diseases", "accounts"] as const).map((id) => (
-          <Pressable
-            key={id}
-            testID={`admin-${id}`}
-            onPress={() => changeVariant(id)}
-            style={managementScreenStyles.managementHiddenTab}
-          >
-            <Text>
-              {id === "plots"
-                ? "Mã số luống"
-                : id === "crops"
-                  ? "Loại cây"
-                  : id === "diseases"
-                    ? "Bệnh cây"
-                    : "Tài khoản"}
-            </Text>
-          </Pressable>
-        ))}
+        {(["plots", "farms", "crops", "diseases", "accounts"] as const).map(
+          (id) => (
+            <Pressable
+              key={id}
+              testID={`admin-${id}`}
+              onPress={() => changeVariant(id)}
+              style={managementScreenStyles.managementHiddenTab}
+            >
+              <Text>
+                {id === "plots"
+                  ? "Mã số luống"
+                  : id === "farms"
+                    ? "Farm"
+                    : id === "crops"
+                      ? "Loại cây"
+                      : id === "diseases"
+                        ? "Bệnh cây"
+                        : "Tài khoản"}
+              </Text>
+            </Pressable>
+          ),
+        )}
       </View>
       <ScrollView
         style={managementScreenStyles.managementList}
@@ -1240,6 +1367,12 @@ export function ManagementScreen() {
         {variant === "plots" ? (
           <PlotManagementTable
             rows={visibleRows as PlotInfo[]}
+            total={totalItems}
+            onAction={setActionItem}
+          />
+        ) : variant === "farms" ? (
+          <FarmManagementTable
+            rows={visibleRows as FarmInfo[]}
             total={totalItems}
             onAction={setActionItem}
           />

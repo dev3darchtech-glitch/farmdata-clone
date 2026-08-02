@@ -2,6 +2,7 @@ import { GROWTH_STAGES } from "@/constants/growthStages";
 import { COLORS, LAYOUT } from "@/constants/theme";
 import {
   CropTypeInfo,
+  FarmInfo,
   GrowthStageId,
   PlotInfo,
   SymptomSeverity,
@@ -23,6 +24,7 @@ import {
   CloudRain,
   CloudSnow,
   CloudSun,
+  Home,
   Sun,
   X,
 } from "lucide-react-native";
@@ -36,6 +38,103 @@ export function removeDiacritics(str: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D");
+}
+
+export function CaptureFarmOptions({
+  contentPaddingBottom,
+  onSelect,
+  farmId,
+  farms,
+}: {
+  contentPaddingBottom?: number;
+  onSelect: (value: string) => void;
+  farmId?: string;
+  farms: FarmInfo[];
+}) {
+  const [search, setSearch] = useState("");
+  const filteredFarms = useMemo(() => {
+    const cleanSearch = removeDiacritics(search.trim().toLowerCase());
+    if (!cleanSearch) return farms;
+    return farms.filter((farm) =>
+      removeDiacritics(farm.name.toLowerCase()).includes(cleanSearch),
+    );
+  }, [farms, search]);
+
+  return (
+    <View style={captureFormStyles.cropSheetContent}>
+      <View style={captureFormStyles.cropSearchWrap}>
+        <InputText
+          containerStyle={{ flex: 1 }}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Tìm farm"
+          style={captureFormStyles.cropSearchInput}
+          variant="plain"
+        />
+        {search ? (
+          <Pressable onPress={() => setSearch("")} style={{ padding: 4 }}>
+            <X size={18} color="#6b7280" />
+          </Pressable>
+        ) : null}
+      </View>
+      <ScrollView
+        style={captureFormStyles.cropListScroll}
+        contentContainerStyle={[
+          captureFormStyles.cropListContent,
+          { paddingBottom: contentPaddingBottom ?? 8 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {filteredFarms.length > 0 ? (
+          filteredFarms.map((farm) => {
+            const selected = farmId === farm.id;
+            return (
+              <Pressable
+                key={farm.id}
+                testID={`farm-option-${farm.id}`}
+                style={[
+                  captureFormStyles.cropOption,
+                  selected && captureFormStyles.cropOptionSelected,
+                ]}
+                onPress={() => onSelect(farm.id)}
+              >
+                <View
+                  style={[
+                    captureFormStyles.cropOptionIcon,
+                    { backgroundColor: selected ? COLORS.green : "#e8e8e5" },
+                  ]}
+                >
+                  <Home
+                    size={16}
+                    color={selected ? "#fff" : COLORS.green}
+                    strokeWidth={2}
+                  />
+                </View>
+                <Text
+                  style={[
+                    captureFormStyles.cropOptionText,
+                    selected && captureFormStyles.cropOptionTextSelected,
+                  ]}
+                >
+                  {farm.name}
+                </Text>
+                {selected ? (
+                  <CircleCheck size={20} color={COLORS.green} />
+                ) : null}
+              </Pressable>
+            );
+          })
+        ) : (
+          <View style={captureFormStyles.cropSearchEmpty}>
+            <Text style={captureFormStyles.cropSearchEmptyText}>
+              Không tìm thấy farm phù hợp
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
 }
 
 export const CAPTURE_WEATHER_OPTIONS = [

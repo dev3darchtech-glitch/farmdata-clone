@@ -1,16 +1,15 @@
-import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
+import { auth } from "../configs/firebase";
 import { CropModel } from "../models/Crop";
+import { FarmModel } from "../models/Farm";
 import { PlantDiseaseModel } from "../models/PlantDisease";
 import { PlotModel } from "../models/Plot";
 import { UserModel } from "../models/User";
 import { EnvMode, PLANT_DISEASE_GROUPS, PlantDiseaseGroup } from "../types";
 
-function isCreatedByCurrentAdmin(
-  target: { createdByAdminId?: unknown },
-  req: Request,
-) {
-  return String(target.createdByAdminId || "") === req.user!.id;
+function isCreatedByCurrentAdmin(target: any, req: Request) {
+  // All admins can add, update, and revoke any user
+  return true;
 }
 
 function readRequestedActiveStatus(req: Request, res: Response) {
@@ -53,30 +52,16 @@ function isEnvMode(value: unknown): value is EnvMode {
 }
 
 async function buildMasterDataFilter(req: Request) {
-  const user = req.user!;
-  if (user.role === "ADMIN") {
-    return { createdByAdminId: user.id };
-  } else if (user.role === "FARMER") {
-    const farmer = await UserModel.findById(user.id);
-    const adminId = farmer?.createdByAdminId;
-    return adminId
-      ? { createdByAdminId: adminId }
-      : { _id: { $exists: false } };
-  }
-  return { _id: { $exists: false } };
+  // All admins and farmers share the same master data (no filtering by admin)
+  return {};
 }
 
 function checkMasterDataMutationPermission(
-  target: { createdByAdminId?: unknown },
+  target: any,
   req: Request,
   resourceName: string,
 ) {
-  if (
-    !target.createdByAdminId ||
-    String(target.createdByAdminId) !== req.user!.id
-  ) {
-    return `Bạn chỉ có quyền thao tác trên ${resourceName} do chính bạn tạo ra.`;
-  }
+  // All admins have permission to edit/delete any master data
   return null;
 }
 
@@ -121,19 +106,25 @@ export const getPlots = async (req: Request, res: Response) => {
  * POST /api/admin/plots
  */
 export const createPlot = async (req: Request, res: Response) => {
-  const { code, name, envMode, areaSquareMeters, isActive } = req.body;
-  if (!code || !name || !isEnvMode(envMode)) {
-    return res
-      .status(400)
-      .json({ error: "Mã luống, tên luống và loại môi trường là bắt buộc" });
+  const { code, name, farmId, envMode, areaSquareMeters, isActive } = req.body;
+  if (!code || !name || !farmId || !isEnvMode(envMode)) {
+    return res.status(400).json({
+      error: "Mã luống, tên luống, farmId và loại môi trường là bắt buộc",
+    });
   }
 
   const cleanCode = code.trim().toUpperCase();
-  const adminId = req.user!.id;
+
+  // Validate farm exists
+  const farmExists = await FarmModel.exists({ _id: farmId });
+  if (!farmExists) {
+    return res
+      .status(400)
+      .json({ error: "farmId không hợp lệ hoặc không tồn tại." });
+  }
 
   const existing = await PlotModel.findOne({
     code: cleanCode,
-    createdByAdminId: adminId,
   });
   if (existing) {
     return res
@@ -144,10 +135,10 @@ export const createPlot = async (req: Request, res: Response) => {
   const newPlot = await PlotModel.create({
     code: cleanCode,
     name: name.trim(),
+    farmId,
     envMode,
     areaSquareMeters,
     isActive: typeof isActive === "boolean" ? isActive : true,
-    createdByAdminId: adminId,
   });
 
   return res.status(201).json(newPlot);
@@ -167,18 +158,29 @@ export const updatePlot = async (req: Request, res: Response) => {
     return res.status(403).json({ error: permError });
   }
 
-  const { code, name, envMode, areaSquareMeters, isActive } = req.body;
+  const { code, name, farmId, envMode, areaSquareMeters, isActive } = req.body;
   if (
     code === undefined &&
     name === undefined &&
+    farmId === undefined &&
     envMode === undefined &&
     areaSquareMeters === undefined &&
     isActive === undefined
   ) {
     return res.status(400).json({
       error:
-        "Cần cung cấp ít nhất một trong: mã, tên, môi trường, diện tích hoặc trạng thái",
+        "Cần cung cấp ít nhất một trong: mã, tên, farmId, môi trường, diện tích hoặc trạng thái",
     });
+  }
+
+  if (farmId !== undefined) {
+    const farmExists = await FarmModel.exists({ _id: farmId });
+    if (!farmExists) {
+      return res
+        .status(400)
+        .json({ error: "farmId không tồn tại hoặc không hợp lệ" });
+    }
+    target.farmId = farmId;
   }
 
   if (code && String(code).trim()) {
@@ -186,7 +188,6 @@ export const updatePlot = async (req: Request, res: Response) => {
     const existing = await PlotModel.findOne({
       code: normalizedCode,
       _id: { $ne: target._id },
-      createdByAdminId: target.createdByAdminId,
     });
     if (existing) {
       return res.status(400).json({
@@ -300,7 +301,6 @@ export const createCrop = async (req: Request, res: Response) => {
   const cleanName = name.trim();
   const existing = await CropModel.findOne({
     name: cleanName,
-    createdByAdminId: adminId,
   });
   if (existing) {
     return res
@@ -313,7 +313,6 @@ export const createCrop = async (req: Request, res: Response) => {
     category: category ? category.trim() : "Rau ăn quả",
     icon: icon || "🌱",
     isActive: typeof isActive === "boolean" ? isActive : true,
-    createdByAdminId: adminId,
   });
 
   return res.status(201).json(newCrop);
@@ -351,7 +350,6 @@ export const updateCrop = async (req: Request, res: Response) => {
     const existing = await CropModel.findOne({
       name: normalizedName,
       _id: { $ne: target._id },
-      createdByAdminId: target.createdByAdminId,
     });
     if (existing) {
       return res.status(400).json({
@@ -468,7 +466,6 @@ export const createPlantDisease = async (req: Request, res: Response) => {
     group,
     type,
     name,
-    createdByAdminId: adminId,
   });
   if (existing) {
     return res.status(400).json({
@@ -482,7 +479,6 @@ export const createPlantDisease = async (req: Request, res: Response) => {
     name,
     description: description || undefined,
     isActive: typeof isActive === "boolean" ? isActive : true,
-    createdByAdminId: adminId,
   });
 
   return res.status(201).json(newDisease);
@@ -534,7 +530,6 @@ export const updatePlantDisease = async (req: Request, res: Response) => {
     type: nextType,
     name: nextName,
     _id: { $ne: target._id },
-    createdByAdminId: target.createdByAdminId,
   });
   if (existing) {
     return res.status(400).json({
@@ -589,7 +584,6 @@ export const getUsers = async (req: Request, res: Response) => {
   const { page, query, shouldPaginate, safeLimit } = readPaginationQuery(req);
   const filter: Record<string, unknown> = {
     role: "FARMER",
-    createdByAdminId: req.user!.id,
   };
 
   if (query) {
@@ -600,11 +594,7 @@ export const getUsers = async (req: Request, res: Response) => {
     ];
   }
 
-  const userQuery = UserModel.find(filter)
-    .select("-passwordHash")
-    .sort({ username: 1 })
-    .populate("createdByAdminId", "name email")
-    .populate("revokedByAdminId", "name email");
+  const userQuery = UserModel.find(filter).sort({ username: 1 });
 
   if (shouldPaginate) {
     const skip = (page - 1) * safeLimit;
@@ -625,11 +615,6 @@ export const getUsers = async (req: Request, res: Response) => {
   return res.json(users);
 };
 
-/**
- * POST /api/admin/users
- * Admin creates FARMER user accounts only.
- * Stores `createdByAdminId` referencing current Admin user ID.
- */
 export const createUser = async (req: Request, res: Response) => {
   const { name, username, password, role = "FARMER" } = req.body;
   if (!name || !username || !password) {
@@ -651,24 +636,42 @@ export const createUser = async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Tên đăng nhập không hợp lệ" });
   }
 
-  const existing = await UserModel.findOne({ username: cleanUsername });
-  if (existing) {
+  try {
+    const existing = await UserModel.findOne({ username: cleanUsername });
+    if (existing) {
+      return res
+        .status(400)
+        .json({ error: `Tên đăng nhập '${cleanUsername}' đã được sử dụng` });
+    }
+
+    const email = `${cleanUsername}@farmdata.com`;
+    // Create user in Firebase Auth for all roles (ADMIN & FARMER)
+    const firebaseUser = await auth.createUser({
+      email,
+      password,
+      displayName: name.trim(),
+    });
+
+    // Set Custom Claims for Role management
+    await auth.setCustomUserClaims(firebaseUser.uid, { role });
+
+    const newUser = await UserModel.create({
+      name: name.trim(),
+      email,
+      username: cleanUsername,
+      role,
+      isRevoked: false,
+      firebaseUid: firebaseUser.uid,
+    });
+
+    const safeUser = newUser.toObject();
+    return res.status(201).json(safeUser);
+  } catch (err: any) {
+    console.error("Error creating user:", err);
     return res
-      .status(400)
-      .json({ error: `Tên đăng nhập '${cleanUsername}' đã được sử dụng` });
+      .status(500)
+      .json({ error: `Tạo người dùng thất bại: ${err.message}` });
   }
-
-  const newUser = await UserModel.create({
-    name: name.trim(),
-    username: cleanUsername,
-    passwordHash: bcrypt.hashSync(password, 8),
-    role,
-    createdByAdminId: req.user!.id,
-    isRevoked: false,
-  });
-
-  const { passwordHash: _passwordHash, ...safeUser } = newUser.toObject();
-  return res.status(201).json(safeUser);
 };
 
 /**
@@ -676,20 +679,13 @@ export const createUser = async (req: Request, res: Response) => {
  * Admin updates FARMER account profile/password only. ADMIN accounts are immutable here.
  */
 export const updateUser = async (req: Request, res: Response) => {
-  const target = await UserModel.findById(req.params.id).select(
-    "+passwordHash",
-  );
+  const target = await UserModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
   if (target.role !== "FARMER") {
     return res.status(403).json({
       error: "Admin chỉ có thể cập nhật tài khoản nông dân",
-    });
-  }
-  if (!isCreatedByCurrentAdmin(target, req)) {
-    return res.status(403).json({
-      error: "Không thể cập nhật tài khoản nông dân do admin khác tạo",
     });
   }
 
@@ -700,37 +696,61 @@ export const updateUser = async (req: Request, res: Response) => {
     });
   }
 
-  if (name && String(name).trim()) {
-    target.name = String(name).trim();
-  }
+  try {
+    const fbUid = target.firebaseUid;
 
-  if (username && String(username).trim()) {
-    const normalizedUsername = String(username)
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
-    if (!normalizedUsername) {
-      return res.status(400).json({ error: "Tên đăng nhập không hợp lệ" });
+    if (name && String(name).trim()) {
+      target.name = String(name).trim();
+      if (fbUid) {
+        await auth.updateUser(fbUid, { displayName: target.name });
+      }
     }
-    const existing = await UserModel.findOne({
-      username: normalizedUsername,
-      _id: { $ne: target._id },
-    });
-    if (existing) {
-      return res.status(400).json({
-        error: `Tên đăng nhập '${normalizedUsername}' đã được sử dụng`,
+
+    if (username && String(username).trim()) {
+      const normalizedUsername = String(username)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      if (!normalizedUsername) {
+        return res.status(400).json({ error: "Tên đăng nhập không hợp lệ" });
+      }
+      const existing = await UserModel.findOne({
+        username: normalizedUsername,
+        _id: { $ne: target._id },
       });
+      if (existing) {
+        return res.status(400).json({
+          error: "Tên đăng nhập đã tồn tại",
+        });
+      }
+      target.username = normalizedUsername;
+      if (fbUid) {
+        await auth.updateUser(fbUid, {
+          email: `${normalizedUsername}@farmdata.app`,
+        });
+      }
     }
-    target.username = normalizedUsername;
-  }
 
-  if (password && String(password).trim()) {
-    target.passwordHash = bcrypt.hashSync(String(password), 8);
-  }
+    if (password && String(password).trim()) {
+      const rawPassword = String(password).trim();
+      if (rawPassword.length < 6) {
+        return res
+          .status(400)
+          .json({ error: "Mật khẩu phải từ 6 ký tự trở lên" });
+      }
+      if (fbUid) {
+        await auth.updateUser(fbUid, { password: rawPassword });
+      }
+    }
 
-  await target.save();
-  const { passwordHash: _passwordHash, ...safeUser } = target.toObject();
-  return res.json(safeUser);
+    await target.save();
+    return res.json(target);
+  } catch (err: any) {
+    console.error("Error updating user:", err);
+    return res
+      .status(500)
+      .json({ error: `Cập nhật người dùng thất bại: ${err.message}` });
+  }
 };
 
 /**
@@ -738,9 +758,7 @@ export const updateUser = async (req: Request, res: Response) => {
  * Admin revokes a FARMER account they created. Existing JWTs are rejected by auth middleware.
  */
 export const revokeUser = async (req: Request, res: Response) => {
-  const target = await UserModel.findById(req.params.id).select(
-    "-passwordHash",
-  );
+  const target = await UserModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
@@ -754,18 +772,24 @@ export const revokeUser = async (req: Request, res: Response) => {
       .status(400)
       .json({ error: "Không thể thu hồi tài khoản của chính mình" });
   }
-  if (!isCreatedByCurrentAdmin(target, req)) {
-    return res.status(403).json({
-      error: "Không thể thu hồi tài khoản nông dân do admin khác tạo",
-    });
+
+  try {
+    const fbUid = target.firebaseUid;
+    if (fbUid) {
+      await auth.updateUser(fbUid, { disabled: true });
+    }
+
+    target.isRevoked = true;
+    target.revokedAt = new Date();
+    await target.save();
+
+    return res.json(target);
+  } catch (err: any) {
+    console.error("Error revoking user:", err);
+    return res
+      .status(500)
+      .json({ error: `Thu hồi tài khoản thất bại: ${err.message}` });
   }
-
-  target.isRevoked = true;
-  target.revokedAt = new Date();
-  target.revokedByAdminId = req.user!.id as any;
-  await target.save();
-
-  return res.json(target);
 };
 
 /**
@@ -773,9 +797,7 @@ export const revokeUser = async (req: Request, res: Response) => {
  * Admin restores a FARMER account they created.
  */
 export const restoreUser = async (req: Request, res: Response) => {
-  const target = await UserModel.findById(req.params.id).select(
-    "-passwordHash",
-  );
+  const target = await UserModel.findById(req.params.id);
   if (!target) {
     return res.status(404).json({ error: "Không tìm thấy người dùng" });
   }
@@ -784,16 +806,128 @@ export const restoreUser = async (req: Request, res: Response) => {
       .status(403)
       .json({ error: "Admin chỉ có thể khôi phục tài khoản nông dân" });
   }
-  if (!isCreatedByCurrentAdmin(target, req)) {
-    return res.status(403).json({
-      error: "Không thể khôi phục tài khoản nông dân do admin khác tạo",
+
+  try {
+    const fbUid = target.firebaseUid;
+    if (fbUid) {
+      await auth.updateUser(fbUid, { disabled: false });
+    }
+
+    target.isRevoked = false;
+    target.revokedAt = undefined;
+    await target.save();
+
+    return res.json(target);
+  } catch (err: any) {
+    console.error("Error restoring user:", err);
+    return res
+      .status(500)
+      .json({ error: `Khôi phục tài khoản thất bại: ${err.message}` });
+  }
+};
+
+/**
+ * GET /api/admin/farms
+ */
+export const getFarms = async (req: Request, res: Response) => {
+  const { page, query, shouldPaginate, safeLimit } = readPaginationQuery(req);
+  const searchFilter = query ? { name: { $regex: query, $options: "i" } } : {};
+  const filter = searchFilter;
+  const sort = { name: 1 } as const;
+
+  if (shouldPaginate) {
+    const skip = (page - 1) * safeLimit;
+    const [items, total] = await Promise.all([
+      FarmModel.find(filter).sort(sort).skip(skip).limit(safeLimit),
+      FarmModel.countDocuments(filter),
+    ]);
+    return res.json({
+      items,
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.max(1, Math.ceil(total / safeLimit)),
     });
   }
 
-  target.isRevoked = false;
-  target.revokedAt = undefined;
-  target.revokedByAdminId = undefined;
-  await target.save();
+  const farms = await FarmModel.find(filter).sort(sort);
+  return res.json(farms);
+};
 
+/**
+ * POST /api/admin/farms
+ */
+export const createFarm = async (req: Request, res: Response) => {
+  const { name, isActive } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: "Tên farm là bắt buộc" });
+  }
+
+  const cleanName = name.trim();
+  const existing = await FarmModel.findOne({ name: cleanName });
+  if (existing) {
+    return res.status(400).json({ error: `Farm '${cleanName}' đã tồn tại.` });
+  }
+
+  const newFarm = await FarmModel.create({
+    name: cleanName,
+    isActive: typeof isActive === "boolean" ? isActive : true,
+  });
+
+  return res.status(201).json(newFarm);
+};
+
+/**
+ * PATCH /api/admin/farms/:id
+ */
+export const updateFarm = async (req: Request, res: Response) => {
+  const target = await FarmModel.findById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy farm" });
+  }
+
+  const { name, isActive } = req.body;
+  if (name === undefined && isActive === undefined) {
+    return res
+      .status(400)
+      .json({ error: "Cần cung cấp ít nhất một trong: tên hoặc trạng thái" });
+  }
+
+  if (name && String(name).trim()) {
+    const cleanName = String(name).trim();
+    const existing = await FarmModel.findOne({
+      name: cleanName,
+      _id: { $ne: target._id },
+    });
+    if (existing) {
+      return res.status(400).json({ error: `Farm '${cleanName}' đã tồn tại.` });
+    }
+    target.name = cleanName;
+  }
+
+  if (typeof isActive === "boolean") {
+    target.isActive = isActive;
+  }
+
+  await target.save();
+  return res.json(target);
+};
+
+/**
+ * PATCH /api/admin/farms/:id/deactivate
+ */
+export const deactivateFarm = async (req: Request, res: Response) => {
+  const requestedIsActive = readRequestedActiveStatus(req, res);
+  if (requestedIsActive === undefined) {
+    return;
+  }
+
+  const target = await FarmModel.findById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy farm" });
+  }
+
+  target.isActive = requestedIsActive;
+  await target.save();
   return res.json(target);
 };

@@ -1,6 +1,7 @@
 import {
   CaptureSession,
   CropTypeInfo,
+  FarmInfo,
   GrowthStageId,
   ListQuery,
   PaginatedListResult,
@@ -47,10 +48,19 @@ function mapPlot(p: any): PlotInfo {
     id: p._id || p.id,
     code: p.code,
     name: p.name,
+    farmId: p.farmId?._id || p.farmId?.id || p.farmId || "",
     envMode: p.envMode === "greenhouse" ? "greenhouse" : "outdoor",
     areaSquareMeters: p.areaSquareMeters,
     isActive: p.isActive !== false,
     status: p.status,
+  };
+}
+
+function mapFarm(f: any): FarmInfo {
+  return {
+    id: f._id || f.id,
+    name: f.name,
+    isActive: f.isActive !== false,
   };
 }
 
@@ -136,37 +146,6 @@ export async function fetchCurrentUserProfile(): Promise<User> {
 
   return data.user as User;
 }
-
-export async function registerPushTokenAPI(pushToken: {
-  platform: "android" | "ios";
-  token: string;
-}): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/auth/push-token`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(pushToken),
-  }).catch(() => {
-    throw new Error("Không thể đăng ký thông báo đẩy.");
-  });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Không thể đăng ký thông báo đẩy.");
-  }
-}
-
-export async function unregisterPushTokenAPI(token: string): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/auth/push-token`, {
-    method: "DELETE",
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ token }),
-  }).catch(() => undefined);
-
-  if (res && !res.ok) {
-    throw new Error("Không thể hủy thông báo đẩy.");
-  }
-}
-
 /**
  * Submit CaptureSession directly to backend API.
  */
@@ -472,6 +451,65 @@ export async function setPlotActiveStatusAPI(
   return mapPlot(data);
 }
 
+export async function createFarmAPI(
+  farm: Omit<FarmInfo, "id">,
+): Promise<FarmInfo> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/admin/farms`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(farm),
+    });
+
+    if (res.ok) {
+      const f = await res.json();
+      return mapFarm(f);
+    }
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể tạo farm.");
+  } catch (err) {
+    throw err instanceof Error
+      ? err
+      : new Error("Không thể kết nối đến máy chủ.");
+  }
+}
+
+export async function updateFarmAPI(
+  farmId: string,
+  farm: Partial<Omit<FarmInfo, "id">>,
+): Promise<FarmInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/farms/${farmId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(farm),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật farm.");
+  }
+
+  return mapFarm(data);
+}
+
+export async function setFarmActiveStatusAPI(
+  farmId: string,
+  isActive: boolean,
+): Promise<FarmInfo> {
+  const res = await fetch(`${BACKEND_URL}/admin/farms/${farmId}/deactivate`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ isActive }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || "Không thể cập nhật trạng thái farm.");
+  }
+
+  return mapFarm(data);
+}
+
 async function fetchPaginatedCollection<T>({
   path,
   page,
@@ -551,6 +589,29 @@ export async function fetchPlotsPageAPI({
 export async function fetchPlotsAPI(): Promise<PlotInfo[]> {
   try {
     return await fetchAllPages(fetchPlotsPageAPI);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchFarmsPageAPI({
+  page,
+  limit,
+  query,
+}: ListQuery): Promise<PaginatedListResult<FarmInfo>> {
+  return await fetchPaginatedCollection({
+    path: "/master-data/farms",
+    page,
+    limit,
+    query,
+    mapper: mapFarm,
+    fallbackError: "Không thể tải danh sách farm.",
+  });
+}
+
+export async function fetchFarmsAPI(): Promise<FarmInfo[]> {
+  try {
+    return await fetchAllPages(fetchFarmsPageAPI);
   } catch {
     return [];
   }
@@ -838,19 +899,4 @@ export async function restoreUserAPI(userId: string): Promise<User> {
   }
 
   return mapUser(data);
-}
-
-export async function getGoogleDriveFolderUrlAPI(): Promise<string> {
-  try {
-    const res = await fetch(`${BACKEND_URL}/auth/google/drive-url`, {
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      return data.url;
-    }
-  } catch (err) {
-    console.warn("Failed to fetch Google Drive folder URL:", err);
-  }
-  return "https://drive.google.com/drive/my-drive";
 }

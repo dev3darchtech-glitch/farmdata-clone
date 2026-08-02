@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { SYMPTOM_SEVERITY_VALUES } from "@/types";
+import { z } from "zod";
 
 /**
  * Login Form Validation Schema
@@ -11,9 +11,9 @@ export const loginFormSchema = z.object({
     .min(1, "Vui lòng nhập tên đăng nhập hoặc email")
     .refine((value) => {
       const isEmail = z.string().email().safeParse(value).success;
-      const isUsername = /^[a-z0-9]+$/.test(value);
+      const isUsername = /^[a-zA-Z0-9_]+$/.test(value);
       return isEmail || isUsername;
-    }, "Email không hợp lệ"),
+    }, "Tên đăng nhập hoặc email không hợp lệ"),
   password: z.string().min(1, "Vui lòng nhập mật khẩu"),
 });
 

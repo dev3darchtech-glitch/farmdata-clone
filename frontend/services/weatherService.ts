@@ -467,20 +467,8 @@ export async function fetchOutdoorWeather(
       timestamp: currentTimestamp,
     };
 
-    console.log(
-      "[WeatherService] indices →",
-      `currentIndex=${currentIndex} (${seriesTimes[currentIndex]})`,
-      `| t12=${t12Index} (${seriesTimes[t12Index]}) WCode=${seriesWeatherCodes[t12Index]}`,
-      `| t24=${t24Index} (${seriesTimes[t24Index]}) WCode=${seriesWeatherCodes[t24Index]}`,
-      `| t48=${t48Index} (${seriesTimes[t48Index]}) WCode=${seriesWeatherCodes[t48Index]}`,
-      `| CO2 current=${outdoorData.current.co2Level}`,
-      `| CO2 t12=${outdoorData.t12?.co2Level}`,
-      `| CO2 t24=${outdoorData.t24.co2Level}`,
-      `| CO2 t48=${outdoorData.t48.co2Level}`,
-    );
-
     return outdoorData;
-  } catch (error) {
+  } catch {
     return createEmptyOutdoorWeatherData(lat, lon);
   }
 }

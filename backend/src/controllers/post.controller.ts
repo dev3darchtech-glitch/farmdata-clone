@@ -1,10 +1,25 @@
 import { Request, Response } from "express";
 import mongoose, { FilterQuery } from "mongoose";
 import { CaptureSessionModel } from "../models/CaptureSession";
+import { PlotModel } from "../models/Plot";
 import { UserModel } from "../models/User";
 import { SYMPTOM_SEVERITY_VALUES } from "../types";
 
-const mapSessionToPost = (session: any) => {
+const mapSessionToPost = (
+  session: any,
+  plotFarmMap?: Map<string, { farmId: string; farmName: string }>,
+) => {
+  const plotCodeUpper = (session.plotId || "").toUpperCase().trim();
+  const plotCodeNorm = plotCodeUpper.replace(/[^A-Z0-9]/g, "");
+  const resolved =
+    plotFarmMap?.get(plotCodeUpper) || plotFarmMap?.get(plotCodeNorm);
+  const farmId =
+    resolved?.farmId ||
+    session.farmId?._id ||
+    session.farmId?.id ||
+    session.farmId;
+  const farmName = resolved?.farmName || session.farmId?.name || "N/A";
+
   return {
     id: session.sessionId || session._id.toString(),
     postId: session.sessionId,
@@ -17,14 +32,16 @@ const mapSessionToPost = (session: any) => {
     },
     cropType: session.cropType,
     plotId: session.plotId,
+    farmId,
+    farmName,
     growthStage: session.growthStage,
     envMode: session.envMode,
     captureLocation: session.captureLocation,
     symptomDescription: session.symptomDescription,
     severity: session.severity,
     images: (() => {
-      if (session.driveFiles && Array.isArray(session.driveFiles)) {
-        const markLinks = session.driveFiles
+      if (session.files && Array.isArray(session.files)) {
+        const markLinks = session.files
           .map((f: any) => f.watermarkWebContentLink || f.watermarkWebViewLink)
           .filter(Boolean);
         if (markLinks.length > 0) {
@@ -87,7 +104,9 @@ export const getPosts = async (req: Request, res: Response) => {
 
     if (mine === "true") {
       if (req.user?.role !== "ADMIN") {
-        return res.status(403).json({ error: "Không có quyền xem bài đăng này." });
+        return res
+          .status(403)
+          .json({ error: "Không có quyền xem bài đăng này." });
       }
       filter.farmerId = req.user.id;
     }
@@ -171,6 +190,7 @@ export const getPosts = async (req: Request, res: Response) => {
     const total = await CaptureSessionModel.countDocuments(filter);
 
     let sessions = await CaptureSessionModel.find(filter)
+      .populate("farmId")
       .sort(sortBy)
       .skip(offset)
       .limit(limit + 1); // fetch one extra to detect hasMore
@@ -185,7 +205,27 @@ export const getPosts = async (req: Request, res: Response) => {
 
     const hasMore = sessions.length > limit;
     const pageSessions = hasMore ? sessions.slice(0, limit) : sessions;
-    const posts = pageSessions.map(mapSessionToPost);
+
+    // Load plot-farm relationships to map legacy sessions
+    const plotsList = await PlotModel.find().populate("farmId");
+    const plotFarmMap = new Map<string, { farmId: string; farmName: string }>();
+    for (const plot of plotsList) {
+      if (plot.code) {
+        const entry = {
+          farmId:
+            (plot.farmId as any)?._id?.toString() ||
+            (plot.farmId as any)?.id?.toString() ||
+            plot.farmId?.toString(),
+          farmName: (plot.farmId as any)?.name || "N/A",
+        };
+        const exactKey = plot.code.toUpperCase().trim();
+        const normKey = exactKey.replace(/[^A-Z0-9]/g, "");
+        plotFarmMap.set(exactKey, entry);
+        if (normKey !== exactKey) plotFarmMap.set(normKey, entry);
+      }
+    }
+
+    const posts = pageSessions.map((s) => mapSessionToPost(s, plotFarmMap));
     const totalPages = Math.max(1, Math.ceil(total / limit));
 
     return res.json({
@@ -214,7 +254,8 @@ export const getPostById = async (req: Request, res: Response) => {
       ? { $or: [{ _id: req.params.id }, { sessionId: req.params.id }] }
       : { sessionId: req.params.id };
 
-    const session = await CaptureSessionModel.findOne(postQuery);
+    const session =
+      await CaptureSessionModel.findOne(postQuery).populate("farmId");
     if (!session || session.status !== "COMPLETED") {
       return res.status(404).json({ error: "Không tìm thấy bài đăng" });
     }
@@ -225,7 +266,26 @@ export const getPostById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Không tìm thấy bài đăng" });
     }
 
-    return res.json(mapSessionToPost(session));
+    // Load plot-farm relationships to map legacy sessions
+    const plotsList = await PlotModel.find().populate("farmId");
+    const plotFarmMap = new Map<string, { farmId: string; farmName: string }>();
+    for (const plot of plotsList) {
+      if (plot.code) {
+        const entry = {
+          farmId:
+            (plot.farmId as any)?._id?.toString() ||
+            (plot.farmId as any)?.id?.toString() ||
+            plot.farmId?.toString(),
+          farmName: (plot.farmId as any)?.name || "N/A",
+        };
+        const exactKey = plot.code.toUpperCase().trim();
+        const normKey = exactKey.replace(/[^A-Z0-9]/g, "");
+        plotFarmMap.set(exactKey, entry);
+        if (normKey !== exactKey) plotFarmMap.set(normKey, entry);
+      }
+    }
+
+    return res.json(mapSessionToPost(session, plotFarmMap));
   } catch (error: any) {
     return res
       .status(500)

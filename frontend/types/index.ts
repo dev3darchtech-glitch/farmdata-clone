@@ -185,7 +185,7 @@ export interface SymptomData {
 /**
  * Storage destination choice for captured record.
  */
-export type StorageDestination = "local" | "gdrive";
+export type StorageDestination = "local" | "firebase";
 
 /**
  * Complete consolidated Data Record payload combining M1, M2, M3, and M4 data.
@@ -201,7 +201,7 @@ export interface DataRecord {
   symptomData: SymptomData;
   storageDestination: StorageDestination;
   createdAt: string;
-  driveFileId?: string;
+  fileUrl?: string;
   localFilePath?: string;
 }
 
@@ -220,7 +220,7 @@ export interface StorageSaveResult {
   success: boolean;
   destination: StorageDestination;
   filePath?: string;
-  driveFileId?: string;
+  fileUrl?: string;
   isFallback?: boolean;
   error?: string;
   record?: DataRecord;
@@ -265,12 +265,19 @@ export interface PlotInfo {
   id: string;
   code: string; // e.g. "LUONG-001" or "L-001"
   name: string;
+  farmId: string;
   envMode: EnvMode;
   areaSquareMeters?: number;
   description?: string;
   isActive?: boolean;
   status?: string;
   createdByAdminId?: string;
+}
+
+export interface FarmInfo {
+  id: string;
+  name: string;
+  isActive?: boolean;
 }
 
 /**
@@ -298,6 +305,7 @@ export interface CaptureSession {
   images: string[]; // At least 1 image URI
   driveFiles?: DriveFile[];
   plotId?: string; // Optional plot/bed code
+  farmId?: string; // Optional farm id
   cropType: string; // e.g. "Cà chua" (Required)
   growthStage: GrowthStageId; // Required
   envMode: EnvMode; // 'outdoor' | 'greenhouse' (Required)
@@ -334,6 +342,8 @@ export interface Post {
   };
   cropType: string;
   plotId?: string;
+  farmId?: string;
+  farmName?: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
   captureLocation?: LocationData;

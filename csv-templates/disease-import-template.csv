@@ -1,4 +1,37 @@
 name,group,type,description,is_active
-Sương mai,Truyền nhiễm,Bệnh lá,Bệnh thường gặp khi ẩm độ cao,true
-Héo xanh vi khuẩn,Truyền nhiễm,Bệnh thân rễ,Gây héo cây nhanh,true
-Thiếu dinh dưỡng,Không truyền nhiễm,Rối loạn sinh lý,Do đất thiếu chất dinh dưỡng,true
+Sương mai,Truyền nhiễm,Nấm,Bệnh nấm gây đốm vàng trên mặt lá và lớp bào tử trắng xám ở mặt dưới lá khi ẩm độ cao,true
+Phấn trắng,Truyền nhiễm,Nấm,Bệnh nấm tạo lớp phấn trắng bột trên bề mặt lá và thân non khi thời tiết khô nóng,true
+Thán thư,Truyền nhiễm,Nấm,Bệnh nấm gây vết thối nâu đen hình tròn trên quả và lá đặc biệt trong điều kiện mưa ẩm,true
+Đốm lá Cercospora,Truyền nhiễm,Nấm,Bệnh nấm tạo vết đốm tròn nâu xám viền vàng trên lá già gây rụng lá hàng loạt,true
+Mốc xám Botrytis,Truyền nhiễm,Nấm,Bệnh nấm gây thối mô màu nâu phủ lớp mốc xám trên hoa quả và thân khi ẩm độ cao,true
+Héo rũ Fusarium,Truyền nhiễm,Nấm,Bệnh nấm đất tấn công mạch dẫn gây vàng héo một bên cây sau đó toàn cây chết,true
+Héo rũ Verticillium,Truyền nhiễm,Nấm,Bệnh nấm đất gây héo từ dưới lên trên với vệt nâu trong thân khi bổ dọc,true
+Thối rễ Phytophthora,Truyền nhiễm,Nấm,Bệnh nấm nước tấn công rễ và cổ rễ gây thối nâu đen làm cây đột ngột héo chết,true
+Lở cổ rễ,Truyền nhiễm,Nấm,Bệnh nấm tấn công vùng cổ rễ sát mặt đất gây thắt thân và đổ ngã ở cây con,true
+Đốm vi khuẩn,Truyền nhiễm,Vi khuẩn,Bệnh vi khuẩn gây vết đốm nước thấm dầu sau đó hoại tử nâu đen có quầng vàng trên lá,true
+Héo xanh vi khuẩn,Truyền nhiễm,Vi khuẩn,Bệnh vi khuẩn gây héo đột ngột toàn cây vẫn còn xanh nhận biết bằng thử dịch khuẩn trong nước,true
+Thối nhũn vi khuẩn,Truyền nhiễm,Vi khuẩn,Bệnh vi khuẩn gây thối mô mềm nhũn hôi thối trên quả thân và lá,true
+Loét vi khuẩn,Truyền nhiễm,Vi khuẩn,Bệnh vi khuẩn gây vết loét sần sùi nứt nẻ trên thân và cuống lá có nhựa chảy ra,true
+Bệnh khảm lá,Truyền nhiễm,Vi rút,Bệnh vi rút lây qua rệp gây lá khảm vàng xanh xen kẽ biến dạng nhăn nhúm và giảm năng suất,true
+Xoăn vàng lá,Truyền nhiễm,Vi rút,Bệnh vi rút lây qua bọ phấn gây lá xoăn vàng rìa lá cuốn lên còi cọc nghiêm trọng,true
+Đốm héo vàng,Truyền nhiễm,Vi rút,Bệnh vi rút lây qua bọ trĩ gây đốm hoại tử nâu đồng trên lá kèm khảm vàng và biến màu thân,true
+Lùn sọc đen,Truyền nhiễm,Vi rút,Bệnh vi rút lây qua rầy nâu gây lùn cây lá sọc đen dọc gân chét hạt lép,true
+Sưng rễ tuyến trùng,Truyền nhiễm,Tuyến trùng,Tuyến trùng ký sinh tạo u bướu sưng to trên rễ làm cây còi cọc vàng lá và kém hấp thu dinh dưỡng,true
+Tổn thương rễ do tuyến trùng,Truyền nhiễm,Tuyến trùng,Tuyến trùng gây tổn thương và thối rễ tơ tạo điều kiện cho nấm vi khuẩn xâm nhập thứ cấp,true
+Còi cọc do tuyến trùng,Truyền nhiễm,Tuyến trùng,Tuyến trùng hút dinh dưỡng từ rễ gây cây tăng trưởng chậm vàng xanh nhợt và năng suất thấp,true
+Thiếu đạm (N),Không truyền nhiễm,Thiếu dinh dưỡng,Cây thiếu đạm lá già vàng từ chóp lá vào cuống cây còi cọc thân mảnh và giảm sinh trưởng mạnh,true
+Thiếu lân (P),Không truyền nhiễm,Thiếu dinh dưỡng,Cây thiếu lân lá chuyển tím đỏ ở mặt dưới và bẹ lá hệ rễ kém phát triển chín muộn,true
+Thiếu kali (K),Không truyền nhiễm,Thiếu dinh dưỡng,Cây thiếu kali mép lá già cháy nâu từ ngoài vào trong quả nhỏ vỏ mỏng chất lượng kém,true
+Thiếu canxi (Ca),Không truyền nhiễm,Thiếu dinh dưỡng,Cây thiếu canxi gây thối đỉnh quả cà chua ớt đọt non cuốn lại và rễ ngắn giòn,true
+Thiếu magie (Mg),Không truyền nhiễm,Thiếu dinh dưỡng,Cây thiếu magie lá giữa già vàng giữa các gân lá trong khi gân lá vẫn xanh,true
+Thiếu sắt (Fe),Không truyền nhiễm,Thiếu dinh dưỡng,Cây thiếu sắt lá non vàng trong khi gân lá xanh đặc biệt rõ ở pH đất cao,true
+Thừa đạm,Không truyền nhiễm,Thừa dinh dưỡng,Cây thừa đạm lá xanh đậm mướt dễ lốp đổ chậm ra hoa đậu quả và dễ nhiễm sâu bệnh,true
+Ngộ độc muối/khoáng,Không truyền nhiễm,Thừa dinh dưỡng,Đất tích lũy muối cao gây cháy đầu rễ lá héo mép trắng bạc cây kém hấp thu nước,true
+Cháy rễ do phân bón,Không truyền nhiễm,Thừa dinh dưỡng,Bón phân quá đặc hoặc trực tiếp vào rễ gây nồng độ muối cao đốt rễ làm cây héo đột ngột,true
+Cháy nắng,Không truyền nhiễm,Bệnh thời tiết,Bức xạ mặt trời cường độ cao gây vùng trắng bạc cháy trên lá và quả ở mặt tiếp xúc ánh nắng,true
+Sốc nhiệt,Không truyền nhiễm,Bệnh thời tiết,Nhiệt độ quá cao gây héo tạm thời hoa rụng quả nứt và cây suy yếu hệ miễn dịch,true
+Tổn thương rét,Không truyền nhiễm,Bệnh thời tiết,Nhiệt độ thấp gây vết thủy tinh sau đó hoại tử nâu trên lá quả và đọt non,true
+Úng nước sau mưa,Không truyền nhiễm,Bệnh thời tiết,Ngập úng kéo dài gây thiếu oxy vùng rễ rễ thối đen cây vàng héo và dễ nhiễm nấm rễ,true
+pH đất không phù hợp,Không truyền nhiễm,Đất không phù hợp,pH đất quá cao hoặc quá thấp khóa hấp thu vi lượng gây vàng lá còi cọc và năng suất thấp,true
+Đất nén chặt,Không truyền nhiễm,Đất không phù hợp,Đất cứng chặt hạn chế sự phát triển rễ và thoát nước gây thiếu oxy rễ và hấp thu kém,true
+Thoát nước kém,Không truyền nhiễm,Đất không phù hợp,Đất ứ đọng nước lâu dài tạo môi trường yếm khí gây thối rễ và tăng nguy cơ bệnh nấm đất,true

@@ -1,12 +1,14 @@
 import {
   CAPTURE_WEATHER_OPTIONS,
   CaptureCropOptions,
+  CaptureFarmOptions,
   CapturePlotOptions,
   CaptureStageOptions,
 } from "@/components/shared/CaptureFormParts";
 import { COLORS, LAYOUT } from "@/constants/theme";
 import {
   CropTypeInfo,
+  FarmInfo,
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
@@ -38,9 +40,11 @@ type SelectionSheetsProps = {
   sheet: SheetKind | null;
   setSheet: (sheet: SheetKind | null) => void;
   plots: PlotInfo[];
+  farms: FarmInfo[];
   crops: CropTypeInfo[];
   plantDiseases: PlantDiseaseInfo[];
   plotId?: string;
+  farmId?: string;
   cropType: string;
   growthStage?: GrowthStageId;
   diseaseGroup?: PlantDiseaseGroup;
@@ -55,6 +59,7 @@ type SelectionSheetsProps = {
   stationLongitude?: number;
   captureLocation?: LocationData;
   onPlot: (value?: string) => void;
+  onFarm: (value: string) => void;
   onCrop: (value: string) => void;
   onStage: (value: GrowthStageId) => void;
   onDiseaseGroup: (value: PlantDiseaseGroup) => void;
@@ -188,6 +193,20 @@ export function SelectionSheets(props: SelectionSheetsProps) {
           }}
           onClear={() => {
             props.onPlot(undefined);
+            close();
+          }}
+        />
+      </BottomSheet>
+      <BottomSheet
+        visible={props.sheet === "farm"}
+        title="Chọn farm"
+        onClose={close}
+      >
+        <CaptureFarmOptions
+          farmId={props.farmId}
+          farms={props.farms}
+          onSelect={(value) => {
+            props.onFarm(value);
             close();
           }}
         />

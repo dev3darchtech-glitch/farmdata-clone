@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getCrops,
+  getFarms,
   getPlantDiseases,
   getPlots,
 } from "../controllers/admin.controller";
@@ -9,6 +10,11 @@ import { authenticateToken, requireRole } from "../middleware/rbac";
 const router = Router();
 
 router.use(authenticateToken, requireRole("FARMER", "ADMIN"));
+
+/**
+ * GET /api/master-data/farms
+ */
+router.get("/farms", getFarms);
 
 /**
  * GET /api/master-data/plots

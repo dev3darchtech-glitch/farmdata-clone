@@ -5,7 +5,6 @@ export interface UserAccount {
   name: string;
   email?: string;
   username: string;
-  passwordHash: string;
   role: RoleName;
 }
 
@@ -68,6 +67,7 @@ export interface CaptureSessionRecord {
   farmerEmail?: string;
   images: string[];
   plotId?: string;
+  farmId?: string;
   cropType: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
@@ -119,8 +119,14 @@ export interface PlotRecord {
   id: string;
   code: string;
   name: string;
+  farmId: string;
   envMode: EnvMode;
   areaSquareMeters?: number;
+}
+
+export interface FarmRecord {
+  id: string;
+  name: string;
 }
 
 export interface CropRecord {

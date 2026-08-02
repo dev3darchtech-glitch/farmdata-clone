@@ -37,6 +37,7 @@ import React from "react";
 
 export type SheetKind =
   | "plot"
+  | "farm"
   | "crop"
   | "stage"
   | "station"

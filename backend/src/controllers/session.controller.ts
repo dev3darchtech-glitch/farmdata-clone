@@ -6,10 +6,9 @@ import {
 } from "../models/CaptureSession";
 import {
   buildCaptureImageDescription,
-  deleteFilesFromAdminDrive,
-  uploadImagesToAdminDrive,
-} from "../services/googleDriveService";
-import { notifyCaptureSessionCompleted } from "../services/pushNotificationService";
+  deleteFilesFromFirebaseStorage,
+  uploadImagesToFirebaseStorage,
+} from "../services/firebaseStorageService";
 import {
   GROWTH_STAGE_IDS,
   GrowthStageId,
@@ -132,7 +131,7 @@ async function persistCompletedSession(
       imageIndex,
     );
 
-  const driveFiles = await uploadImagesToAdminDrive({
+  const driveFiles = await uploadImagesToFirebaseStorage({
     farmerEmailOrId: reqUser.id,
     imageUris: images,
     plotId: cleanPlotId,
@@ -170,7 +169,7 @@ async function persistCompletedSession(
     farmerEmail: reqUser.email,
     createdByRole: reqUser.role,
     images: postImages,
-    driveFiles,
+    files: driveFiles,
     plotId: cleanPlotId,
     cropType: cropType.trim(),
     growthStage,
@@ -191,7 +190,7 @@ async function persistCompletedSession(
     return await CaptureSessionModel.create(payload);
   }
 
-  await deleteFilesFromAdminDrive(reqUser.id, existingDriveFiles);
+  await deleteFilesFromFirebaseStorage(existingDriveFiles);
 
   return await CaptureSessionModel.findOneAndUpdate(
     buildSessionQuery(existingSessionId),
@@ -290,15 +289,6 @@ export const createSession = async (req: Request, res: Response) => {
       stationMeasurementsT48,
     });
 
-    if (newSession) {
-      void notifyCaptureSessionCompleted(newSession).catch((error) =>
-        console.warn(
-          "Capture session notification failed:",
-          error instanceof Error ? error.message : String(error),
-        ),
-      );
-    }
-
     return res.status(201).json({
       session: newSession,
     });
@@ -306,7 +296,7 @@ export const createSession = async (req: Request, res: Response) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Create session failed:", message);
     return res.status(502).json({
-      error: message || "Khong the tai anh len Google Drive",
+      error: message || "Khong the tai anh len Firebase Storage",
     });
   }
 };
@@ -332,8 +322,7 @@ export const updateSession = async (req: Request, res: Response) => {
         existingSession.farmerEmail === reqUser.email);
     if (!isAuthor) {
       return res.status(403).json({
-        error:
-          "Chỉ admin tác giả của phiên chụp này mới có quyền chỉnh sửa.",
+        error: "Chỉ admin tác giả của phiên chụp này mới có quyền chỉnh sửa.",
       });
     }
 
@@ -420,7 +409,7 @@ export const updateSession = async (req: Request, res: Response) => {
         stationMeasurementsT48,
       },
       req.params.id,
-      existingSession.driveFiles,
+      existingSession.files,
     );
 
     if (!updatedSession) {

@@ -32,6 +32,14 @@ export function validateCaptureSession(
     errors.images = "Cần ít nhất một ảnh cây trồng";
   }
 
+  if (!session.farmId || session.farmId.trim() === "") {
+    errors.farmId = "Vui lòng chọn farm";
+  }
+
+  if (!session.plotId || session.plotId.trim() === "") {
+    errors.plotId = "Vui lòng chọn mã số luống";
+  }
+
   if (!session.cropType || session.cropType.trim() === "") {
     errors.cropType = "Vui lòng chọn hoặc nhập loại cây";
   }

@@ -68,6 +68,12 @@ export const SYSTEM_FIELDS_BY_VARIANT: Record<
       ],
     },
     {
+      key: "farmName",
+      label: "Tên farm",
+      required: true,
+      aliases: ["farm_name", "tên farm", "ten farm", "farmname", "tenfarm", "farm"],
+    },
+    {
       key: "isActive",
       label: "Đang hoạt động (true / false)",
       required: false,
@@ -170,6 +176,27 @@ export const SYSTEM_FIELDS_BY_VARIANT: Record<
       label: "Ghi chú / Mô tả",
       required: false,
       aliases: ["description", "mô tả", "mota", "ghi chú", "ghichu", "note"],
+    },
+    {
+      key: "isActive",
+      label: "Đang hoạt động (true / false)",
+      required: false,
+      aliases: [
+        "is_active",
+        "isactive",
+        "active",
+        "status",
+        "trạng thái",
+        "hoạt động",
+      ],
+    },
+  ],
+  farms: [
+    {
+      key: "name",
+      label: "Tên farm",
+      required: true,
+      aliases: ["name", "tên", "tên farm", "tenfarm", "farm", "farm_name"],
     },
     {
       key: "isActive",

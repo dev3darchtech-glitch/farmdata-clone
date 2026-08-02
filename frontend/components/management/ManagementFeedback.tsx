@@ -49,7 +49,17 @@ export function CsvImportModal({
   fieldMapping?: Record<string, string>;
   onFieldMappingChange?: (systemKey: string, csvHeader: string) => void;
   progress: number;
-  result: { success: number; skipped: number; errors: number };
+  result: {
+    success: number;
+    skipped: number;
+    errors: number;
+    details?: {
+      type: "skipped" | "error";
+      rowNumber: number;
+      rowData: any;
+      reason?: string;
+    }[];
+  };
   onClose: () => void;
   onStart: () => void;
   onConfirmImport?: () => void;
@@ -106,7 +116,8 @@ export function CsvImportModal({
                 ) : null}
               </Pressable>
               {parsedCsv?.headers.map((header) => {
-                const isSelected = fieldMapping[activePickerField.key] === header;
+                const isSelected =
+                  fieldMapping[activePickerField.key] === header;
                 return (
                   <Pressable
                     key={header}
@@ -124,7 +135,9 @@ export function CsvImportModal({
                     >
                       Cột: {header}
                     </Text>
-                    {isSelected ? <Check size={18} color={COLORS.green} /> : null}
+                    {isSelected ? (
+                      <Check size={18} color={COLORS.green} />
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -134,7 +147,9 @@ export function CsvImportModal({
                 style={feedbackStyles.outlineSheetButton}
                 onPress={() => setActivePickerKey(null)}
               >
-                <Text style={feedbackStyles.outlineSheetButtonText}>Quay lại</Text>
+                <Text style={feedbackStyles.outlineSheetButtonText}>
+                  Quay lại
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -266,6 +281,74 @@ export function CsvImportModal({
                   • Lỗi: {result.errors} bản ghi
                 </Text>
               </View>
+              {result.details && result.details.length > 0 ? (
+                <View style={{ width: "100%", marginTop: 8 }}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: COLORS.text,
+                      marginBottom: 6,
+                    }}
+                  >
+                    Chi tiết dòng bị bỏ qua hoặc lỗi:
+                  </Text>
+                  <ScrollView
+                    style={{
+                      maxHeight: 180,
+                      borderWidth: 1,
+                      borderColor: "#e5e7eb",
+                      borderRadius: 8,
+                      padding: 8,
+                    }}
+                  >
+                    {result.details.map((detail: any, index: number) => (
+                      <View
+                        key={index}
+                        style={{
+                          marginBottom: 6,
+                          paddingBottom: 6,
+                          borderBottomWidth:
+                            index === (result.details?.length ?? 0) - 1 ? 0 : 1,
+                          borderBottomColor: "#f3f4f6",
+                        }}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: "600",
+                            color:
+                              detail.type === "error" ? "#dc2626" : "#b45309",
+                          }}
+                        >
+                          [{detail.type === "error" ? "Lỗi" : "Bỏ qua"}] Dòng{" "}
+                          {detail.rowNumber}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "#4b5563",
+                            marginTop: 2,
+                          }}
+                        >
+                          Dữ liệu: {JSON.stringify(detail.rowData)}
+                        </Text>
+                        {detail.reason ? (
+                          <Text
+                            style={{
+                              fontSize: 11,
+                              color: "#6b7280",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            Lý do: {detail.reason}
+                          </Text>
+                        ) : null}
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
             </View>
             <View style={feedbackStyles.sheetFooterRow}>
               <Pressable
@@ -278,7 +361,6 @@ export function CsvImportModal({
           </View>
         )}
       </DrawerSheet>
-
     </>
   );
 }

@@ -1,19 +1,23 @@
 import { Router } from "express";
 import {
   createCrop,
+  createFarm,
   createPlantDisease,
   createPlot,
   createUser,
   deactivateCrop,
+  deactivateFarm,
   deactivatePlantDisease,
   deactivatePlot,
   getCrops,
+  getFarms,
   getPlantDiseases,
   getPlots,
   getUsers,
   restoreUser,
   revokeUser,
   updateCrop,
+  updateFarm,
   updatePlantDisease,
   updatePlot,
   updateUser,
@@ -109,5 +113,25 @@ router.patch("/users/:id/revoke", revokeUser);
  * PATCH /api/admin/users/:id/restore
  */
 router.patch("/users/:id/restore", restoreUser);
+
+/**
+ * GET /api/admin/farms
+ */
+router.get("/farms", getFarms);
+
+/**
+ * POST /api/admin/farms
+ */
+router.post("/farms", createFarm);
+
+/**
+ * PATCH /api/admin/farms/:id
+ */
+router.patch("/farms/:id", updateFarm);
+
+/**
+ * PATCH /api/admin/farms/:id/deactivate
+ */
+router.patch("/farms/:id/deactivate", deactivateFarm);
 
 export default router;

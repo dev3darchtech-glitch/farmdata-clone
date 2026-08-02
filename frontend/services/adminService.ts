@@ -1,5 +1,6 @@
 import {
   CropTypeInfo,
+  FarmInfo,
   ListQuery,
   PaginatedListResult,
   PlantDiseaseInfo,
@@ -9,11 +10,14 @@ import {
 import { z } from "zod";
 import {
   createCropAPI,
+  createFarmAPI,
   createPlantDiseaseAPI,
   createPlotAPI,
   createUserAPI,
   fetchCropsAPI,
   fetchCropsPageAPI,
+  fetchFarmsAPI,
+  fetchFarmsPageAPI,
   fetchPlantDiseasesAPI,
   fetchPlantDiseasesPageAPI,
   fetchPlotsAPI,
@@ -23,9 +27,11 @@ import {
   restoreUserAPI,
   revokeUserAPI,
   setCropActiveStatusAPI,
+  setFarmActiveStatusAPI,
   setPlantDiseaseActiveStatusAPI,
   setPlotActiveStatusAPI,
   updateCropAPI,
+  updateFarmAPI,
   updatePlantDiseaseAPI,
   updatePlotAPI,
   updateUserAPI,
@@ -110,6 +116,16 @@ export async function getPlots(): Promise<PlotInfo[]> {
   return await fetchPlotsAPI();
 }
 
+export async function getFarms(): Promise<FarmInfo[]> {
+  return await fetchFarmsAPI();
+}
+
+export async function getFarmsPage(
+  params: ListQuery,
+): Promise<PaginatedListResult<FarmInfo>> {
+  return await fetchFarmsPageAPI(params);
+}
+
 export async function addPlot(plot: Omit<PlotInfo, "id">): Promise<PlotInfo> {
   return await createPlotAPI(plot);
 }
@@ -126,6 +142,24 @@ export async function setPlotActiveStatus(
   isActive: boolean,
 ): Promise<PlotInfo> {
   return await setPlotActiveStatusAPI(plotId, isActive);
+}
+
+export async function addFarm(farm: Omit<FarmInfo, "id">): Promise<FarmInfo> {
+  return await createFarmAPI(farm);
+}
+
+export async function updateFarm(
+  farmId: string,
+  farm: Partial<Omit<FarmInfo, "id">>,
+): Promise<FarmInfo> {
+  return await updateFarmAPI(farmId, farm);
+}
+
+export async function setFarmActiveStatus(
+  farmId: string,
+  isActive: boolean,
+): Promise<FarmInfo> {
+  return await setFarmActiveStatusAPI(farmId, isActive);
 }
 
 export async function getUsers(): Promise<User[]> {

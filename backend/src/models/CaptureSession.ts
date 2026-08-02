@@ -30,8 +30,9 @@ export interface ICaptureSessionDocument extends Document {
   farmerEmail?: string;
   createdByRole: RoleName;
   images: string[];
-  driveFiles?: IDriveFile[];
+  files?: IDriveFile[];
   plotId?: string;
+  farmId?: string;
   cropType: string;
   growthStage: GrowthStageId;
   envMode: EnvMode;
@@ -59,7 +60,7 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
     farmerEmail: { type: String },
     createdByRole: { type: String, enum: ["FARMER", "ADMIN"], required: true },
     images: [{ type: String, required: true }],
-    driveFiles: [
+    files: [
       {
         fileId: { type: String },
         webViewLink: { type: String },
@@ -73,6 +74,7 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
       },
     ],
     plotId: { type: String },
+    farmId: { type: Schema.Types.ObjectId, ref: "Farm" },
     cropType: { type: String, required: true },
     growthStage: { type: String, enum: GROWTH_STAGE_IDS, required: true },
     envMode: { type: String, required: true },

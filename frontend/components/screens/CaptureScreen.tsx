@@ -2,6 +2,7 @@ import { COLORS, LAYOUT, TYPOGRAPHY } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getCropTypes,
+  getFarms,
   getPlantDiseases,
   getPlots,
 } from "@/services/adminService";
@@ -26,13 +27,14 @@ import {
 import {
   CropTypeInfo,
   EnvMode,
+  FarmInfo,
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
-  Post,
   PlantDiseaseGroup,
   PlantDiseaseInfo,
   PlotInfo,
+  Post,
   SymptomSeverity,
   WeatherCondition,
 } from "@/types";
@@ -75,6 +77,7 @@ const CAPTURE_DRAFT_STORAGE_PREFIX = "capture_session_draft";
 type CaptureScreenDraft = {
   images: string[];
   plotId?: string;
+  farmId?: string;
   cropType: string;
   growthStage?: GrowthStageId;
   envMode: EnvMode;
@@ -99,6 +102,7 @@ function hasMeaningfulCaptureDraft(draft: CaptureScreenDraft) {
   return Boolean(
     draft.images.length ||
     draft.plotId ||
+    draft.farmId ||
     draft.cropType ||
     draft.growthStage ||
     draft.envMode !== "outdoor" ||
@@ -168,13 +172,17 @@ export function CaptureScreen() {
   const { user, isAuthenticated } = useAuth();
   const isAdmin = normalizeRole(user?.role as string) === "admin";
   const [isEditMode, setIsEditMode] = useState(() => hasPendingEditPost());
-  const [editingSessionId, setEditingSessionId] = useState<string | undefined>();
+  const [editingSessionId, setEditingSessionId] = useState<
+    string | undefined
+  >();
   const scrollViewRef = useRef<ScrollView | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [plots, setPlots] = useState<PlotInfo[]>([]);
+  const [farms, setFarms] = useState<FarmInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
   const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
   const [plotId, setPlotId] = useState<string | undefined>();
+  const [farmId, setFarmId] = useState<string | undefined>();
   const [cropType, setCropType] = useState("");
   const [growthStage, setGrowthStage] = useState<GrowthStageId | undefined>();
   const [envMode, setEnvMode] = useState<EnvMode>("outdoor");
@@ -223,8 +231,12 @@ export function CaptureScreen() {
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const filteredPlots = useMemo(
-    () => plots.filter((plot) => plot.envMode === envMode),
-    [envMode, plots],
+    () =>
+      plots.filter(
+        (plot) =>
+          plot.envMode === envMode && (!farmId || plot.farmId === farmId),
+      ),
+    [envMode, farmId, plots],
   );
 
   const lastFetchTimeRef = useRef<number>(0);
@@ -245,6 +257,7 @@ export function CaptureScreen() {
     const emptyStation = createEmptyOutdoorWeatherData();
     setImages([]);
     setPlotId(undefined);
+    setFarmId(undefined);
     setCropType("");
     setGrowthStage(undefined);
     setEnvMode("outdoor");
@@ -279,6 +292,7 @@ export function CaptureScreen() {
         setEditingSessionId(post.sessionId || post.id);
         if (post.images?.length) setImages(post.images);
         if (post.plotId) setPlotId(post.plotId);
+        if (post.farmId) setFarmId(post.farmId);
         if (post.cropType) setCropType(post.cropType);
         if (post.growthStage) setGrowthStage(post.growthStage);
         if (post.envMode) setEnvMode(post.envMode);
@@ -336,13 +350,6 @@ export function CaptureScreen() {
           setStationUpdatedAt(weather.timestamp);
           setStationLatitude(weather.latitude ?? location.latitude);
           setStationLongitude(weather.longitude ?? location.longitude);
-          console.log(
-            "[CaptureScreen] weather state set →",
-            `T0 WCode=${weather.current?.weatherCode}`,
-            `| T12 WCode=${weather.t12?.weatherCode}`,
-            `| T24 WCode=${weather.t24?.weatherCode}`,
-            `| T48 WCode=${weather.t48?.weatherCode}`,
-          );
         } catch {}
       })
       .catch(() => {
@@ -402,6 +409,7 @@ export function CaptureScreen() {
         const draft = JSON.parse(rawDraft) as Partial<CaptureScreenDraft>;
         if (Array.isArray(draft.images)) setImages(draft.images);
         if (draft.plotId !== undefined) setPlotId(draft.plotId);
+        if (draft.farmId !== undefined) setFarmId(draft.farmId);
         if (typeof draft.cropType === "string") setCropType(draft.cropType);
         if (draft.growthStage) setGrowthStage(draft.growthStage);
         if (draft.envMode) setEnvMode(draft.envMode);
@@ -442,17 +450,21 @@ export function CaptureScreen() {
     // Do not make unauthenticated requests: the API returns 401 and the
     // client intentionally maps failed master-data requests to empty arrays.
     if (isAuthenticated && user?.id) {
-      Promise.allSettled([getPlots(), getCropTypes(), getPlantDiseases()]).then(
-        ([plotResult, cropResult, diseaseResult]) => {
-          if (!isMounted) return;
+      Promise.allSettled([
+        getPlots(),
+        getFarms(),
+        getCropTypes(),
+        getPlantDiseases(),
+      ]).then(([plotResult, farmResult, cropResult, diseaseResult]) => {
+        if (!isMounted) return;
 
-          if (plotResult.status === "fulfilled") setPlots(plotResult.value);
-          if (cropResult.status === "fulfilled") setCrops(cropResult.value);
-          if (diseaseResult.status === "fulfilled") {
-            setPlantDiseases(diseaseResult.value);
-          }
-        },
-      );
+        if (plotResult.status === "fulfilled") setPlots(plotResult.value);
+        if (farmResult.status === "fulfilled") setFarms(farmResult.value);
+        if (cropResult.status === "fulfilled") setCrops(cropResult.value);
+        if (diseaseResult.status === "fulfilled") {
+          setPlantDiseases(diseaseResult.value);
+        }
+      });
     }
 
     const isTestEnv =
@@ -557,6 +569,7 @@ export function CaptureScreen() {
     () => ({
       images,
       plotId,
+      farmId,
       cropType,
       growthStage,
       envMode,
@@ -588,6 +601,7 @@ export function CaptureScreen() {
       isEditingSymptom,
       localMeasurements,
       plotId,
+      farmId,
       severity,
       stationLatitude,
       stationLongitude,
@@ -628,6 +642,7 @@ export function CaptureScreen() {
     farmerEmail: user?.email,
     images,
     plotId,
+    farmId,
     cropType,
     growthStage,
     envMode,
@@ -663,11 +678,18 @@ export function CaptureScreen() {
   }, []);
 
   useEffect(() => {
-    if (!plotId) return;
-    if (!filteredPlots.some((plot) => plot.code === plotId)) {
+    if (!plotId || plots.length === 0) return;
+    const matchedPlot = plots.find(
+      (plot) => plot.code === plotId || plot.id === plotId,
+    );
+    if (matchedPlot) {
+      if (!farmId) {
+        setFarmId(matchedPlot.farmId);
+      }
+    } else {
       setPlotId(undefined);
     }
-  }, [filteredPlots, plotId]);
+  }, [filteredPlots, plotId, farmId, plots]);
 
   const addPhoto = async () => {
     try {
@@ -742,14 +764,11 @@ export function CaptureScreen() {
           },
         );
       } else {
-        await completeCaptureSession(
-          payload,
-          (_message, current, total) => {
-            setProgress(`Đang tải ${current}/${total} ảnh`);
-            setProgressCurrent(current);
-            setProgressTotal(total);
-          },
-        );
+        await completeCaptureSession(payload, (_message, current, total) => {
+          setProgress(`Đang tải ${current}/${total} ảnh`);
+          setProgressCurrent(current);
+          setProgressTotal(total);
+        });
       }
       setSheet("success");
       clearDraftAfterSubmitRef.current = true;
@@ -788,9 +807,11 @@ export function CaptureScreen() {
             sheet={sheet}
             setSheet={setSheet}
             plots={filteredPlots}
+            farms={farms}
             crops={crops}
             plantDiseases={plantDiseases}
             plotId={plotId}
+            farmId={farmId}
             cropType={cropType}
             growthStage={growthStage}
             diseaseGroup={diseaseGroup}
@@ -805,6 +826,10 @@ export function CaptureScreen() {
             stationLongitude={stationLongitude}
             captureLocation={captureLocation}
             onPlot={setPlotId}
+            onFarm={(val) => {
+              setFarmId(val);
+              setPlotId(undefined); // Reset plot if farm changes
+            }}
             onCrop={setCropType}
             onStage={setGrowthStage}
             onDiseaseGroup={(value) => {
@@ -858,7 +883,10 @@ export function CaptureScreen() {
         <EnvironmentSection
           captureLocation={captureLocation}
           envMode={envMode}
-          onEnvModeChange={setEnvMode}
+          onEnvModeChange={(val) => {
+            setEnvMode(val);
+            setPlotId(undefined); // Reset plot if envMode changes
+          }}
           onOpenStation={openStationDetails}
           order={2}
           stationWeather={stationWeather}
@@ -876,8 +904,17 @@ export function CaptureScreen() {
           onOpenCrop={() => setSheet("crop")}
           onOpenPlot={() => setSheet("plot")}
           onOpenStage={() => setSheet("stage")}
-          order={3}
+          onOpenFarm={() => setSheet("farm")}
           plotId={plotId}
+          plotIdError={
+            shouldShowInlineErrors ? validation.errors.plotId : undefined
+          }
+          farmId={farmId}
+          farmName={farms.find((f) => f.id === farmId)?.name}
+          farmError={
+            shouldShowInlineErrors ? validation.errors.farmId : undefined
+          }
+          order={3}
         />
 
         <LocalMeasurementSection

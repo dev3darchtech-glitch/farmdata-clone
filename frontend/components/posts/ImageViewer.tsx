@@ -290,6 +290,7 @@ export function ImageViewer({
             showsVerticalScrollIndicator={false}
           >
             <InfoSection title="Thông tin cây trồng & bệnh">
+              <InfoRow label="Farm" value={post.farmName || "N/A"} />
               <InfoRow label="Loại cây" value={post.cropType} />
               <InfoRow label="Mã luống" value={post.plotId} />
               <InfoRow label="Giai đoạn" value={stageName(post.growthStage)} />
@@ -309,59 +310,62 @@ export function ImageViewer({
             </InfoSection>
 
             {weatherSnapshots.map(({ label, measurement }) => (
-              <InfoSection key={label} title={`Dữ liệu trạm thời tiết (${label})`}>
-                  <InfoRow
-                    label="Thời điểm"
-                    value={
-                      measurement?.updatedAt
-                        ? formatVietnamDateTime(measurement.updatedAt)
-                        : "--"
-                    }
-                  />
-                  <InfoRow
-                    label="Thời tiết"
-                    value={weatherLabel(measurement?.weatherCode)}
-                  />
-                  <InfoRow
-                    label="Nhiệt độ"
-                    value={
-                      measurement?.temperature !== undefined
-                        ? `${formatMetric(measurement.temperature, 1)}°C`
-                        : "--"
-                    }
-                  />
-                  <InfoRow
-                    label="Độ ẩm"
-                    value={
-                      measurement?.humidity !== undefined
-                        ? `${measurement.humidity}%`
-                        : "--"
-                    }
-                  />
-                  <InfoRow
-                    label="Ánh sáng"
-                    value={
-                      Number.isFinite(measurement?.lightUvIndex)
-                        ? `${measurement?.lightUvIndex} W/m²`
-                        : "--"
-                    }
-                  />
-                  <InfoRow
-                    label="Gió"
-                    value={
-                      measurement?.windSpeed !== undefined
-                        ? `${measurement.windSpeed} km/h`
-                        : "--"
-                    }
-                  />
-                  <InfoRow
-                    label="CO₂"
-                    value={
-                      Number.isFinite(measurement?.co2Level)
-                        ? `${measurement?.co2Level} ppm`
-                        : "--"
-                    }
-                  />
+              <InfoSection
+                key={label}
+                title={`Dữ liệu trạm thời tiết (${label})`}
+              >
+                <InfoRow
+                  label="Thời điểm"
+                  value={
+                    measurement?.updatedAt
+                      ? formatVietnamDateTime(measurement.updatedAt)
+                      : "--"
+                  }
+                />
+                <InfoRow
+                  label="Thời tiết"
+                  value={weatherLabel(measurement?.weatherCode)}
+                />
+                <InfoRow
+                  label="Nhiệt độ"
+                  value={
+                    measurement?.temperature !== undefined
+                      ? `${formatMetric(measurement.temperature, 1)}°C`
+                      : "--"
+                  }
+                />
+                <InfoRow
+                  label="Độ ẩm"
+                  value={
+                    measurement?.humidity !== undefined
+                      ? `${measurement.humidity}%`
+                      : "--"
+                  }
+                />
+                <InfoRow
+                  label="Ánh sáng"
+                  value={
+                    Number.isFinite(measurement?.lightUvIndex)
+                      ? `${measurement?.lightUvIndex} W/m²`
+                      : "--"
+                  }
+                />
+                <InfoRow
+                  label="Gió"
+                  value={
+                    measurement?.windSpeed !== undefined
+                      ? `${measurement.windSpeed} km/h`
+                      : "--"
+                  }
+                />
+                <InfoRow
+                  label="CO₂"
+                  value={
+                    Number.isFinite(measurement?.co2Level)
+                      ? `${measurement?.co2Level} ppm`
+                      : "--"
+                  }
+                />
               </InfoSection>
             ))}
 

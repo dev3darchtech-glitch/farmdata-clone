@@ -25,7 +25,6 @@ app.get("/health", (req, res) => {
       status: isMongoReady ? "connected" : "disconnected",
     },
     status: isMongoReady ? "ok" : "degraded",
-    service: "FarmData Backend (MongoDB & Google Drive)",
     timestamp: new Date().toISOString(),
   });
 });
@@ -36,6 +35,31 @@ app.use("/api/master-data", masterDataRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/admin", adminRoutes);
+
+// Global Error Handler
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    console.error("🔥 Backend Unhandled Error:", {
+      message: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method,
+      body: req.body,
+      query: req.query,
+      timestamp: new Date().toISOString(),
+    });
+
+    return res.status(err.status || 500).json({
+      error: err.message || "Đã xảy ra lỗi hệ thống nội bộ",
+      stack: env.nodeEnv === "development" ? err.stack : undefined,
+    });
+  },
+);
 
 // 404 Handler
 app.use((req, res) => {

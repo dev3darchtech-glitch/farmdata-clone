@@ -1,4 +1,3 @@
-import googleLogo from "@/assets/images/google-logo.png";
 import authBackground from "@/assets/images/login-background.png";
 import loginEye from "@/assets/images/login-eye.png";
 import loginLock from "@/assets/images/login-lock.png";
@@ -7,16 +6,13 @@ import { COLORS, LAYOUT } from "@/constants/theme";
 import { useAuth } from "@/hooks/useAuth";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/formSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as Linking from "expo-linking";
 import { router, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { CircleAlert } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   Image,
   Keyboard,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -37,7 +33,6 @@ export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [loginSucceeded, setLoginSucceeded] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const {
     control,
     handleSubmit,
@@ -55,7 +50,7 @@ export function LoginScreen() {
     errors.email?.message || errors.password?.message;
   const globalErrorMessage = validationErrorMessage || localError || error;
   const credentialInvalid = Boolean(
-    !validationErrorMessage && !isGoogleSubmitting && (localError || error),
+    !validationErrorMessage && (localError || error),
   );
   const emailInvalid = Boolean(errors.email) || credentialInvalid;
   const passwordInvalid = Boolean(errors.password) || credentialInvalid;
@@ -85,7 +80,7 @@ export function LoginScreen() {
       Keyboard.dismiss();
       setLocalError(null);
       try {
-        await login(values.email.trim(), values.password);
+        await login(values.email.trim().toLowerCase(), values.password);
         setLoginSucceeded(true);
       } catch (err: any) {
         setLocalError(
@@ -98,56 +93,6 @@ export function LoginScreen() {
       setLocalError(null);
     },
   );
-
-  const handleGoogleLogin = async () => {
-    Keyboard.dismiss();
-    setLocalError(null);
-
-    try {
-      setIsGoogleSubmitting(true);
-      const redirectUri = Linking.createURL("auth-callback");
-      const authUrl = `${
-        process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api"
-      }/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-      if (Platform.OS === "web" && typeof window !== "undefined") {
-        window.location.href = authUrl;
-        return;
-      }
-
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        redirectUri,
-      );
-      if (result.type !== "success" || !result.url) {
-        return;
-      }
-
-      const parsed = Linking.parse(result.url);
-      const accessToken = parsed.queryParams?.accessToken;
-      const refreshToken = parsed.queryParams?.refreshToken;
-      const oauthError = parsed.queryParams?.error;
-      const oauthErrorDescription = parsed.queryParams?.errorDescription;
-
-      if (typeof oauthErrorDescription === "string" && oauthErrorDescription) {
-        throw new Error(oauthErrorDescription);
-      }
-      if (typeof oauthError === "string" && oauthError) {
-        throw new Error("Đăng nhập Google không thành công.");
-      }
-
-      if (typeof accessToken !== "string" || typeof refreshToken !== "string") {
-        throw new Error("Không nhận được token đăng nhập từ máy chủ.");
-      }
-
-      await login({ accessToken, refreshToken });
-      setLoginSucceeded(true);
-    } catch (err: any) {
-      setLocalError(err?.message || "Đăng nhập Google không thành công.");
-    } finally {
-      setIsGoogleSubmitting(false);
-    }
-  };
 
   if (loginSucceeded) {
     return (
@@ -325,29 +270,6 @@ export function LoginScreen() {
                 style={loginScreenStyles.loginButton}
                 textStyle={loginScreenStyles.loginButtonText}
               />
-              <Pressable
-                testID="btn-google-login"
-                style={[
-                  loginScreenStyles.googleButton,
-                  (isLoading || isGoogleSubmitting) &&
-                    loginScreenStyles.googleButtonDisabled,
-                ]}
-                disabled={isLoading || isGoogleSubmitting}
-                onPress={() => {
-                  void handleGoogleLogin();
-                }}
-              >
-                <Image
-                  source={googleLogo}
-                  style={loginScreenStyles.googleImage}
-                  resizeMode="contain"
-                />
-                <Text style={loginScreenStyles.googleText}>
-                  {isGoogleSubmitting
-                    ? "Đang đăng nhập với Google"
-                    : "Đăng nhập bằng Google"}
-                </Text>
-              </Pressable>
             </View>
           </View>
         </KeyboardFormScrollView>

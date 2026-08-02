@@ -1,35 +1,14 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 import { RoleName } from "../types";
 
-export interface IUserGoogleTokens {
-  accessToken?: string;
-  refreshToken?: string;
-  expiryDate?: number;
-  email?: string;
-  scopes?: string[];
-  isLinked: boolean;
-}
-
-export interface IUserPushToken {
-  token: string;
-  platform: "android" | "ios";
-  provider: "expo";
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface IUserDocument extends Document {
   name: string;
   email?: string;
   username: string;
-  passwordHash: string;
+  firebaseUid?: string;
   role: RoleName;
-  createdByAdminId?: mongoose.Types.ObjectId;
   isRevoked: boolean;
   revokedAt?: Date;
-  revokedByAdminId?: mongoose.Types.ObjectId;
-  googleTokens?: IUserGoogleTokens;
-  pushTokens?: IUserPushToken[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,33 +45,14 @@ const UserSchema = new Schema<IUserDocument>(
           : `user${Date.now()}`;
       },
     },
-    passwordHash: { type: String, required: true, select: false },
+    firebaseUid: { type: String, unique: true, sparse: true },
     role: {
       type: String,
       enum: ["FARMER", "ADMIN"],
       default: "FARMER",
     },
-    createdByAdminId: { type: Schema.Types.ObjectId, ref: "User" },
     isRevoked: { type: Boolean, default: false },
     revokedAt: { type: Date },
-    revokedByAdminId: { type: Schema.Types.ObjectId, ref: "User" },
-    googleTokens: {
-      accessToken: { type: String },
-      refreshToken: { type: String },
-      expiryDate: { type: Number },
-      email: { type: String },
-      scopes: [{ type: String }],
-      isLinked: { type: Boolean, default: false },
-    },
-    pushTokens: [
-      {
-        token: { type: String, required: true },
-        platform: { type: String, enum: ["android", "ios"], required: true },
-        provider: { type: String, enum: ["expo"], default: "expo" },
-        createdAt: { type: Date, default: Date.now },
-        updatedAt: { type: Date, default: Date.now },
-      },
-    ],
   },
   { timestamps: true },
 );

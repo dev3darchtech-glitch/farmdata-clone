@@ -23,10 +23,14 @@ export function CropInfoSection({
   onOpenCrop,
   onOpenPlot,
   onOpenStage,
+  onOpenFarm,
   plotId,
   plotIdError,
-  plotIdLabel = "Mã số luống (không bắt buộc)",
-  plotIdRequired = false,
+  plotIdLabel = "Mã số luống (bắt buộc)",
+  plotIdRequired = true,
+  farmId,
+  farmName,
+  farmError,
   order,
   title = "Thông tin cây trồng",
 }: {
@@ -39,16 +43,29 @@ export function CropInfoSection({
   onOpenCrop: () => void;
   onOpenPlot: () => void;
   onOpenStage: () => void;
+  onOpenFarm: () => void;
   plotId?: string;
   plotIdError?: string;
   plotIdLabel?: string;
   plotIdRequired?: boolean;
+  farmId?: string;
+  farmName?: string;
+  farmError?: string;
   order?: CaptureSectionOrder;
   title?: string;
 }) {
   return (
     <View style={[cropInfoStyles.section, cropInfoStyles.sectionTopPadding]}>
       <FieldLabel required>{formatSectionTitle(title, order)}</FieldLabel>
+      <InputSelection
+        label="Farm (bắt buộc)"
+        required
+        value={farmName}
+        placeholder="Chọn farm"
+        error={farmError}
+        onPress={onOpenFarm}
+        testID="farm-id-input"
+      />
       <InputSelection
         label={plotIdLabel}
         required={plotIdRequired}

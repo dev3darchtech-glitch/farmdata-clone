@@ -1,5 +1,4 @@
 import * as authService from "@/services/authService";
-import { unregisterLastPushToken } from "@/services/notificationService";
 import { AuthState, AuthTokens, User } from "@/types";
 import React, {
   createContext,
@@ -134,7 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleLogout = useCallback(async () => {
     try {
       setState((prev) => ({ ...prev, isLoading: true }));
-      await unregisterLastPushToken();
       await authService.logout();
       setState({
         user: null,
@@ -189,13 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, refreshIn);
 
     return () => clearTimeout(timeoutId);
-  }, [
-    handleRefreshToken,
-    state.isAuthenticated,
-    state.tokens?.accessToken,
-    state.tokens?.expiresIn,
-    state.tokens?.issuedAt,
-  ]);
+  }, [handleRefreshToken, state.isAuthenticated, state.tokens]);
 
   return (
     <AuthContext.Provider

@@ -1,27 +1,8 @@
 import { DataRecord, StorageSaveResult } from "@/types";
 import * as FileSystem from "expo-file-system";
-
-/**
- * Helper to build standard Google Drive API multipart request body.
- */
-export function buildGoogleDriveMultipartBody(
-  metadata: object,
-  fileContent: string,
-  boundary: string,
-): string {
-  const delimiter = `\r\n--${boundary}\r\n`;
-  const closeDelimiter = `\r\n--${boundary}--`;
-
-  return (
-    delimiter +
-    "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
-    JSON.stringify(metadata) +
-    delimiter +
-    "Content-Type: application/json\r\n\r\n" +
-    fileContent +
-    closeDelimiter
-  );
-}
+import { EncodingType, documentDirectory } from "expo-file-system";
+import { getDownloadURL, ref, uploadString } from "firebase/storage";
+import { storage } from "./firebase";
 
 /**
  * Saves DataRecord as JSON file to local device file storage using expo-file-system.
@@ -30,7 +11,7 @@ export async function saveToLocalStorage(
   record: DataRecord,
 ): Promise<StorageSaveResult> {
   try {
-    const baseDir = FileSystem.documentDirectory || "/mock/app_storage/";
+    const baseDir = documentDirectory || "/mock/app_storage/";
     const targetDir = `${baseDir}data_records/`;
 
     const dirInfo = await FileSystem.getInfoAsync(targetDir).catch(() => ({
@@ -46,7 +27,7 @@ export async function saveToLocalStorage(
     const filePath = `${targetDir}${fileName}`;
     const jsonContent = JSON.stringify(record, null, 2);
 
-    const encoding = FileSystem.EncodingType?.UTF8 ?? "utf8";
+    const encoding = EncodingType.UTF8;
     await FileSystem.writeAsStringAsync(filePath, jsonContent, {
       encoding,
     });
@@ -67,77 +48,52 @@ export async function saveToLocalStorage(
 }
 
 /**
- * Uploads DataRecord JSON file to Google Drive via multipart upload endpoint.
- * Includes automatic mock fallback when offline or unauthenticated.
+ * Uploads DataRecord JSON file to Firebase Storage.
+ * Falls back to a mock URL when offline or unauthenticated.
  */
-export async function uploadToGoogleDrive(
+export async function uploadToFirebaseStorage(
   record: DataRecord,
   accessToken?: string,
 ): Promise<StorageSaveResult> {
-  const mockDriveFileId = `mock_gdrive_${record.id}_${Date.now()}`;
+  const mockFileUrl = `mock_firebase_${record.id}_${Date.now()}`;
 
-  // Offline / unauthenticated fallback check
+  // Offline / unauthenticated fallback
   if (!accessToken || accessToken.startsWith("mock_")) {
     return {
       success: true,
-      destination: "gdrive",
-      driveFileId: mockDriveFileId,
+      destination: "firebase",
+      fileUrl: mockFileUrl,
       isFallback: true,
-      record: { ...record, driveFileId: mockDriveFileId },
+      record: { ...record, fileUrl: mockFileUrl },
     };
   }
 
-  const boundary = `foo_bar_boundary_${Date.now()}`;
-  const metadata = {
-    name: `record_${record.id}.json`,
-    mimeType: "application/json",
-  };
-  const fileContent = JSON.stringify(record, null, 2);
-  const body = buildGoogleDriveMultipartBody(metadata, fileContent, boundary);
-
   try {
-    const response = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": `multipart/related; boundary=${boundary}`,
-        },
-        body,
-      },
-    );
+    const fileContent = JSON.stringify(record, null, 2);
+    const storagePath = `records/record_${record.id}.json`;
+    const fileRef = ref(storage, storagePath);
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      return {
-        success: true, // fallback mock mode on API error
-        destination: "gdrive",
-        driveFileId: mockDriveFileId,
-        isFallback: true,
-        error: `API Upload failed (${response.status}): ${errorText}`,
-        record: { ...record, driveFileId: mockDriveFileId },
-      };
-    }
+    await uploadString(fileRef, fileContent, "raw", {
+      contentType: "application/json",
+    });
 
-    const data = await response.json();
-    const driveFileId = data.id || mockDriveFileId;
+    const downloadUrl = await getDownloadURL(fileRef);
 
     return {
       success: true,
-      destination: "gdrive",
-      driveFileId,
+      destination: "firebase",
+      fileUrl: downloadUrl,
       isFallback: false,
-      record: { ...record, driveFileId },
+      record: { ...record, fileUrl: downloadUrl },
     };
   } catch (error: any) {
     return {
-      success: true,
-      destination: "gdrive",
-      driveFileId: mockDriveFileId,
+      success: true, // fallback mock mode on API error
+      destination: "firebase",
+      fileUrl: mockFileUrl,
       isFallback: true,
-      error: error?.message || "Lỗi kết nối mạng khi tải lên Google Drive",
-      record: { ...record, driveFileId: mockDriveFileId },
+      error: error?.message || "Lỗi khi upload lên Firebase Storage",
+      record: { ...record, fileUrl: mockFileUrl },
     };
   }
 }

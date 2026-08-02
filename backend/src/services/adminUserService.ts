@@ -1,14 +1,10 @@
-import bcrypt from "bcryptjs";
-import { IUserDocument, IUserGoogleTokens, UserModel } from "../models/User";
-import { seedDefaultMasterDataForAdmin } from "./masterDataSeedService";
+import { IUserDocument, UserModel } from "../models/User";
 
 type CreateAdminUserInput = {
   name: string;
   email: string;
   username?: string;
   password?: string;
-  passwordHash?: string;
-  googleTokens?: IUserGoogleTokens;
   isRevoked?: boolean;
 };
 
@@ -44,20 +40,13 @@ export async function createAdminUser(
     throw new Error("Tên đăng nhập admin không hợp lệ.");
   }
 
-  const passwordHash =
-    input.passwordHash ||
-    bcrypt.hashSync(input.password || `${email}:${Date.now()}`, 8);
-
   const user = await UserModel.create({
     name: input.name.trim(),
     email,
     username,
-    passwordHash,
     role: "ADMIN",
-    googleTokens: input.googleTokens,
     isRevoked: input.isRevoked ?? false,
   });
 
-  await seedDefaultMasterDataForAdmin(user._id);
   return user;
 }

@@ -17,7 +17,7 @@ export async function createAdminFixture(input?: {
     name: input?.name || "Admin Test",
     email,
     username,
-    passwordHash: bcrypt.hashSync(password, 8),
+    password,
     isRevoked: false,
   });
 
@@ -40,7 +40,6 @@ export async function createFarmerFixture(input: {
     name: input.name || "Farmer Test",
     email,
     username,
-    passwordHash: bcrypt.hashSync(password, 8),
     role: "FARMER",
     createdByAdminId: input.adminId,
     isRevoked: false,

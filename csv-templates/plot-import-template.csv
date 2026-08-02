@@ -1,4 +1,6 @@
-code,name,env_mode,area_sqm,is_active
-LUONG-01,Luống cà chua 01,outdoor,120,true
-LUONG-02,Luống dưa leo 02,outdoor,100,true
-NK-01,Nhà kính rau xà lách,greenhouse,80,true
+code,name,env_mode,area_sqm,farm_name,is_active
+LUONG-01,Luống cà chua 01,outdoor,120,Trại A,true
+LUONG-02,Luống dưa leo 02,outdoor,100,Trại A,true
+NK-01,Nhà kính rau xà lách,greenhouse,80,Trại B,true
+NK-02,Nhà kính rau xà lách,greenhouse,80,Trại F,true
+

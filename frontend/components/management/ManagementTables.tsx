@@ -315,6 +315,61 @@ export function PlantDiseaseManagementTable({
   );
 }
 
+export function FarmManagementTable({
+  rows,
+  total,
+  onAction,
+}: {
+  rows: any[];
+  total: number;
+  onAction: (item: any) => void;
+}) {
+  return (
+    <View>
+      <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
+      <View style={tableStyles.cardTable}>
+        <View style={tableStyles.cropHeader}>
+          <Text style={[tableStyles.headerText, tableStyles.flexCell]}>
+            TÊN FARM
+          </Text>
+          <View style={tableStyles.moreCell} />
+        </View>
+        {rows.map((item) => {
+          const inactive = isManagementItemInactive(item);
+          return (
+            <View
+              key={item.id || item.name}
+              style={[tableStyles.cropRow, inactive && tableStyles.rowInactive]}
+            >
+              <View style={tableStyles.cropIdentity}>
+                <Text
+                  style={[
+                    tableStyles.cropName,
+                    inactive && tableStyles.textInactive,
+                    { paddingLeft: 12 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {item.name}
+                </Text>
+              </View>
+              <Pressable
+                style={tableStyles.moreCell}
+                onPress={() => onAction(item)}
+              >
+                <MoreVertical
+                  size={16}
+                  color={inactive ? "#9ca3af" : COLORS.text}
+                />
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 const sharedRowBorder = {
   borderBottomWidth: 1,
   borderBottomColor: "#f3f4f6",
