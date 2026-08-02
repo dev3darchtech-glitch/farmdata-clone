@@ -324,6 +324,7 @@ export interface CaptureSession {
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   symptomDescription: string; // Required
   severity: SymptomSeverity; // Required
   status: CaptureSessionStatus;
@@ -365,6 +366,7 @@ export interface Post {
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   status: PostStatus;
   createdAt: string;
 }

@@ -1,9 +1,9 @@
+import { submitCaptureSession } from "../services/apiClient";
 import {
   completeCaptureSession,
   validateCaptureSession,
 } from "../services/postService";
 import { CaptureSession } from "../types";
-import { submitCaptureSession } from "../services/apiClient";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn().mockResolvedValue(null),
@@ -47,6 +47,7 @@ describe("postService validation and capture session workflow", () => {
       },
       symptomDescription: "Đốm vàng trên lá",
       severity: "Vừa",
+      diseasedPart: "Lá",
     };
 
   it("validates a complete capture session successfully", () => {
@@ -71,7 +72,7 @@ describe("postService validation and capture session workflow", () => {
   it("fails validation when required fields are missing", () => {
     const invalidSession: Partial<CaptureSession> = {
       images: ["https://example.com/photo1.jpg"],
-      // Missing cropType, growthStage, envMode, localMeasurements, severity
+      // Missing cropType, growthStage, envMode, localMeasurements, severity, diseasedPart
     };
     const res = validateCaptureSession(invalidSession);
     expect(res.isValid).toBe(false);
@@ -80,6 +81,7 @@ describe("postService validation and capture session workflow", () => {
     expect(res.errors.envMode).toBeDefined();
     expect(res.errors.localMeasurements).toBeDefined();
     expect(res.errors.severity).toBeDefined();
+    expect(res.errors.diseasedPart).toBeDefined();
   });
 
   it("requires symptom description for all severity levels", () => {
@@ -106,23 +108,22 @@ describe("postService validation and capture session workflow", () => {
 
   it("completes session without automatically generating a post", async () => {
     const progressSpy = jest.fn();
-    submitCaptureSessionMock.mockImplementationOnce(async (session, onProgress) => {
-      onProgress?.("Đang tải ảnh", 1, session.images.length);
+    submitCaptureSessionMock.mockImplementationOnce(
+      async (session, onProgress) => {
+        onProgress?.("Đang tải ảnh", 1, session.images.length);
 
-      return {
-        session: {
-          ...session,
-          id: "SESS-TEST-001",
-          status: "COMPLETED",
-          createdAt: new Date().toISOString(),
-        } as CaptureSession,
-      };
-    });
-
-    const result = await completeCaptureSession(
-      validSessionDraft,
-      progressSpy,
+        return {
+          session: {
+            ...session,
+            id: "SESS-TEST-001",
+            status: "COMPLETED",
+            createdAt: new Date().toISOString(),
+          } as CaptureSession,
+        };
+      },
     );
+
+    const result = await completeCaptureSession(validSessionDraft, progressSpy);
 
     expect(submitCaptureSessionMock).toHaveBeenCalledWith(
       validSessionDraft,

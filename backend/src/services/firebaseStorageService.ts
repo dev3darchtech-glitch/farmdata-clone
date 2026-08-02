@@ -28,6 +28,7 @@ export interface CaptureImageDescriptionInput {
   diseaseGroup?: string;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   symptomDescription: string;
   severity: string;
 }
@@ -56,6 +57,9 @@ export function buildCaptureImageDescription(
       : undefined,
     metadata.diseaseType ? `Loại bệnh cây: ${metadata.diseaseType}` : undefined,
     metadata.diseaseName ? `Tên bệnh cây: ${metadata.diseaseName}` : undefined,
+    metadata.diseasedPart
+      ? `Bộ phận bị bệnh: ${metadata.diseasedPart}`
+      : undefined,
     loc?.formattedAddress ? `Vị trí: ${loc.formattedAddress}` : undefined,
     loc?.latitude !== undefined ? `Vĩ độ: ${loc.latitude}` : undefined,
     loc?.longitude !== undefined ? `Kinh độ: ${loc.longitude}` : undefined,

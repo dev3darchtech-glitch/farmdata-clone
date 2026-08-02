@@ -26,6 +26,7 @@ export function SymptomSection({
   onOpenDiseaseGroup,
   onOpenDiseaseType,
   onOpenDiseaseName,
+  onOpenDiseasedPart,
   onSymptomDescriptionChange,
   onSymptomDescriptionFocus,
   order,
@@ -33,9 +34,11 @@ export function SymptomSection({
   diseaseGroup,
   diseaseType,
   diseaseName,
+  diseasedPart,
   diseaseGroupError,
   diseaseTypeError,
   diseaseNameError,
+  diseasedPartError,
   shouldShowInlineErrors,
   shouldShowSymptomDescription,
   symptomDescription,
@@ -47,6 +50,7 @@ export function SymptomSection({
   onOpenDiseaseGroup: () => void;
   onOpenDiseaseType: () => void;
   onOpenDiseaseName: () => void;
+  onOpenDiseasedPart: () => void;
   onSymptomDescriptionChange: (value: string) => void;
   onSymptomDescriptionFocus?: () => void;
   order?: CaptureSectionOrder;
@@ -54,9 +58,11 @@ export function SymptomSection({
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   diseaseGroupError?: string;
   diseaseTypeError?: string;
   diseaseNameError?: string;
+  diseasedPartError?: string;
   shouldShowInlineErrors: boolean;
   shouldShowSymptomDescription: boolean;
   symptomDescription: string;
@@ -93,6 +99,14 @@ export function SymptomSection({
           onPress={onOpenDiseaseName}
           disabled={!diseaseGroup || !diseaseType}
           error={shouldShowInlineErrors ? diseaseNameError : undefined}
+        />
+        <InputSelection
+          label="Bộ phận bị bệnh"
+          required
+          value={diseasedPart}
+          placeholder="Chọn bộ phận bị bệnh"
+          onPress={onOpenDiseasedPart}
+          error={shouldShowInlineErrors ? diseasedPartError : undefined}
         />
         <FieldLabel required>Mức độ</FieldLabel>
         <View style={symptomStyles.severityList}>

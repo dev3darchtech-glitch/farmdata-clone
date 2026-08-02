@@ -58,6 +58,7 @@ const mapSessionToPost = (
     diseaseGroup: session.diseaseGroup,
     diseaseType: session.diseaseType,
     diseaseName: session.diseaseName,
+    diseasedPart: session.diseasedPart,
     status: "PUBLISHED",
     createdAt: session.createdAt,
     updatedAt: session.updatedAt,

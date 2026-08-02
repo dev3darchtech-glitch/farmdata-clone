@@ -93,6 +93,7 @@ type CaptureScreenDraft = {
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   symptomDescription: string;
   severity?: SymptomSeverity;
   isEditingSymptom: boolean;
@@ -110,6 +111,7 @@ function hasMeaningfulCaptureDraft(draft: CaptureScreenDraft) {
     draft.diseaseGroup ||
     draft.diseaseType ||
     draft.diseaseName ||
+    draft.diseasedPart ||
     draft.symptomDescription.trim() ||
     draft.severity,
   );
@@ -220,6 +222,7 @@ export function CaptureScreen() {
   >();
   const [diseaseType, setDiseaseType] = useState<string | undefined>();
   const [diseaseName, setDiseaseName] = useState<string | undefined>();
+  const [diseasedPart, setDiseasedPart] = useState<string | undefined>();
   const [severity, setSeverity] = useState<SymptomSeverity | undefined>();
   const [isEditingSymptom, setIsEditingSymptom] = useState(true);
   const [sheet, setSheet] = useState<SheetKind | null>(null);
@@ -273,6 +276,7 @@ export function CaptureScreen() {
     setDiseaseGroup(undefined);
     setDiseaseType(undefined);
     setDiseaseName(undefined);
+    setDiseasedPart(undefined);
     setSeverity(undefined);
     setSymptomDescription("");
     setIsEditingSymptom(true);
@@ -310,6 +314,7 @@ export function CaptureScreen() {
         if (post.diseaseGroup) setDiseaseGroup(post.diseaseGroup);
         if (post.diseaseType) setDiseaseType(post.diseaseType);
         if (post.diseaseName) setDiseaseName(post.diseaseName);
+        if (post.diseasedPart) setDiseasedPart(post.diseasedPart);
         if (post.severity) {
           setSeverity(post.severity);
           setIsEditingSymptom(false);
@@ -426,6 +431,9 @@ export function CaptureScreen() {
         }
         if (typeof draft.diseaseName === "string") {
           setDiseaseName(draft.diseaseName);
+        }
+        if (typeof draft.diseasedPart === "string") {
+          setDiseasedPart(draft.diseasedPart);
         }
         if (typeof draft.symptomDescription === "string") {
           setSymptomDescription(draft.symptomDescription);
@@ -585,6 +593,7 @@ export function CaptureScreen() {
       diseaseGroup,
       diseaseType,
       diseaseName,
+      diseasedPart,
       symptomDescription,
       severity,
       isEditingSymptom,
@@ -595,6 +604,7 @@ export function CaptureScreen() {
       diseaseGroup,
       diseaseName,
       diseaseType,
+      diseasedPart,
       envMode,
       growthStage,
       images,
@@ -655,6 +665,7 @@ export function CaptureScreen() {
     diseaseGroup,
     diseaseType,
     diseaseName,
+    diseasedPart,
     symptomDescription,
     severity,
   };
@@ -817,6 +828,7 @@ export function CaptureScreen() {
             diseaseGroup={diseaseGroup}
             diseaseType={diseaseType}
             diseaseName={diseaseName}
+            diseasedPart={diseasedPart}
             stationWeather={stationWeather}
             stationT12={stationT12}
             stationT24={stationT24}
@@ -842,6 +854,7 @@ export function CaptureScreen() {
               setDiseaseName(undefined);
             }}
             onDiseaseName={setDiseaseName}
+            onDiseasedPart={setDiseasedPart}
             localMeasurements={localMeasurements}
             onMeasurements={setLocalMeasurements}
             error={error}
@@ -937,6 +950,7 @@ export function CaptureScreen() {
           onOpenDiseaseName={() => {
             if (diseaseGroup && diseaseType) setSheet("diseaseName");
           }}
+          onOpenDiseasedPart={() => setSheet("diseasedPart")}
           onSymptomDescriptionFocus={handleSymptomDescriptionFocus}
           onSymptomDescriptionChange={setSymptomDescription}
           order={6}
@@ -944,9 +958,11 @@ export function CaptureScreen() {
           diseaseGroup={diseaseGroup}
           diseaseType={diseaseType}
           diseaseName={diseaseName}
+          diseasedPart={diseasedPart}
           diseaseGroupError={validation.errors.diseaseGroup}
           diseaseTypeError={validation.errors.diseaseType}
           diseaseNameError={validation.errors.diseaseName}
+          diseasedPartError={validation.errors.diseasedPart}
           shouldShowInlineErrors={shouldShowInlineErrors}
           shouldShowSymptomDescription={shouldShowSymptomDescription}
           symptomDescription={symptomDescription}

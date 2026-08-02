@@ -86,6 +86,7 @@ export interface CaptureSessionRecord {
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   symptomDescription: string;
   severity: SymptomSeverity;
   status: SessionStatus;
@@ -117,6 +118,7 @@ export interface PostRecord {
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   status: PostStatus;
   createdAt: string;
 }

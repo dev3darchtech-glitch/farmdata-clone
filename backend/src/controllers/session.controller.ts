@@ -85,6 +85,7 @@ async function persistCompletedSession(
     stationMeasurementsT12?: any;
     stationMeasurementsT24?: any;
     stationMeasurementsT48?: any;
+    diseasedPart?: string;
   },
   existingSessionId?: string,
   existingDriveFiles?: any[],
@@ -106,6 +107,7 @@ async function persistCompletedSession(
     stationMeasurementsT12,
     stationMeasurementsT24,
     stationMeasurementsT48,
+    diseasedPart,
   } = input;
   const cleanPlotId =
     plotId && plotId.trim() ? plotId.trim().toUpperCase() : undefined;
@@ -127,6 +129,7 @@ async function persistCompletedSession(
         ...normalizedDisease,
         symptomDescription: normalizedSymptomDescription,
         severity: normalizedSeverity,
+        diseasedPart,
       },
       imageIndex,
     );
@@ -184,6 +187,7 @@ async function persistCompletedSession(
     ...normalizedDisease,
     symptomDescription: normalizedSymptomDescription,
     severity: normalizedSeverity,
+    diseasedPart,
     status: "COMPLETED" as const,
   };
 
@@ -221,6 +225,7 @@ export const createSession = async (req: Request, res: Response) => {
       localMeasurements,
       symptomDescription,
       severity,
+      diseasedPart,
     } = req.body;
 
     if (!images || !Array.isArray(images) || images.length === 0) {
@@ -258,7 +263,13 @@ export const createSession = async (req: Request, res: Response) => {
     if (!cleanSymptomDescription) {
       return res.status(400).json({ error: "Mô tả triệu chứng là bắt buộc" });
     }
-    const normalizedSymptomDescription = cleanSymptomDescription;
+    if (
+      !diseasedPart ||
+      typeof diseasedPart !== "string" ||
+      !diseasedPart.trim()
+    ) {
+      return res.status(400).json({ error: "Bộ phận bị bệnh là bắt buộc" });
+    }
     const normalizedStationMeasurements = stationMeasurements || {
       temperature: 28.0,
       lightUvIndex: 50,
@@ -281,13 +292,14 @@ export const createSession = async (req: Request, res: Response) => {
       normalizedDisease,
       normalizedSeverity,
       normalizedStationMeasurements,
-      normalizedSymptomDescription,
+      normalizedSymptomDescription: cleanSymptomDescription,
       plotId,
       reqUser: user,
       sessionId,
       stationMeasurementsT12,
       stationMeasurementsT24,
       stationMeasurementsT48,
+      diseasedPart: diseasedPart.trim(),
     });
 
     return res.status(201).json({
@@ -341,6 +353,7 @@ export const updateSession = async (req: Request, res: Response) => {
       localMeasurements,
       symptomDescription,
       severity,
+      diseasedPart,
     } = req.body;
 
     if (!images || !Array.isArray(images) || images.length === 0) {
@@ -378,6 +391,13 @@ export const updateSession = async (req: Request, res: Response) => {
     if (!cleanSymptomDescription) {
       return res.status(400).json({ error: "Mô tả triệu chứng là bắt buộc" });
     }
+    if (
+      !diseasedPart ||
+      typeof diseasedPart !== "string" ||
+      !diseasedPart.trim()
+    ) {
+      return res.status(400).json({ error: "Bộ phận bị bệnh là bắt buộc" });
+    }
 
     const normalizedStationMeasurements = stationMeasurements || {
       temperature: 28.0,
@@ -408,6 +428,7 @@ export const updateSession = async (req: Request, res: Response) => {
         stationMeasurementsT12,
         stationMeasurementsT24,
         stationMeasurementsT48,
+        diseasedPart: diseasedPart.trim(),
       },
       req.params.id,
       existingSession.files,

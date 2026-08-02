@@ -45,6 +45,7 @@ export interface ICaptureSessionDocument extends Document {
   diseaseGroup?: string;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   symptomDescription: string;
   severity: SymptomSeverity;
   status: SessionStatus;
@@ -145,6 +146,7 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
     diseaseGroup: { type: String },
     diseaseType: { type: String },
     diseaseName: { type: String },
+    diseasedPart: { type: String },
     symptomDescription: { type: String, required: true },
     severity: { type: String, enum: SYMPTOM_SEVERITY_VALUES, required: true },
     status: {

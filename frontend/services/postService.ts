@@ -95,6 +95,10 @@ export function validateCaptureSession(
     errors.diseaseName = "Vui lòng chọn tên bệnh cây";
   }
 
+  if (!session.diseasedPart || session.diseasedPart.trim() === "") {
+    errors.diseasedPart = "Vui lòng chọn bộ phận bị bệnh";
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors,

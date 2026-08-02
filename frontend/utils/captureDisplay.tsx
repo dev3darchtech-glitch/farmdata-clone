@@ -45,6 +45,7 @@ export type SheetKind =
   | "diseaseGroup"
   | "diseaseType"
   | "diseaseName"
+  | "diseasedPart"
   | "success"
   | "error"
   | "filter"

@@ -50,6 +50,7 @@ type SelectionSheetsProps = {
   diseaseGroup?: PlantDiseaseGroup;
   diseaseType?: string;
   diseaseName?: string;
+  diseasedPart?: string;
   stationWeather: WeatherCondition;
   stationT12?: WeatherCondition;
   stationT24?: WeatherCondition;
@@ -65,6 +66,7 @@ type SelectionSheetsProps = {
   onDiseaseGroup: (value: PlantDiseaseGroup) => void;
   onDiseaseType: (value: string) => void;
   onDiseaseName: (value: string) => void;
+  onDiseasedPart: (value: string) => void;
   localMeasurements?: LocalWeatherMeasurement;
   onMeasurements: (value: LocalWeatherMeasurement) => void;
   error: string;
@@ -149,7 +151,9 @@ export function SelectionSheets(props: SelectionSheetsProps) {
         weatherCode: 0,
       };
       setMeasurement(initialWeather);
-      setWeatherType(getWeatherLabel(initialWeather.weatherCode, initialWeather.isRaining));
+      setWeatherType(
+        getWeatherLabel(initialWeather.weatherCode, initialWeather.isRaining),
+      );
       setShowWeatherDropdown(false);
       setLocalStrings({
         humidity:
@@ -293,6 +297,34 @@ export function SelectionSheets(props: SelectionSheetsProps) {
           selectedValue={props.diseaseName}
           onSelect={(value) => {
             props.onDiseaseName(value);
+            close();
+          }}
+        />
+      </BottomSheet>
+      <BottomSheet
+        visible={props.sheet === "diseasedPart"}
+        title="Chọn bộ phận bị bệnh"
+        onClose={close}
+      >
+        <DiseaseOptionList
+          emptyText="Chọn bộ phận bị bệnh"
+          options={[
+            { key: "lá", label: "Lá", value: "Lá" },
+            { key: "thân", label: "Thân", value: "Thân" },
+            { key: "cành", label: "Cành", value: "Cành" },
+            { key: "rễ", label: "Rễ", value: "Rễ" },
+            { key: "cổ rễ", label: "Cổ rễ", value: "Cổ rễ" },
+            { key: "hoa", label: "Hoa", value: "Hoa" },
+            { key: "trái", label: "Trái", value: "Trái" },
+            { key: "quả", label: "Quả", value: "Quả" },
+            { key: "hạt", label: "Hạt", value: "Hạt" },
+            { key: "đọt/chồi", label: "Đọt / Chồi", value: "Đọt / Chồi" },
+            { key: "củ", label: "Củ", value: "Củ" },
+            { key: "khác", label: "Khác", value: "Khác" },
+          ]}
+          selectedValue={props.diseasedPart}
+          onSelect={(value) => {
+            props.onDiseasedPart(value);
             close();
           }}
         />

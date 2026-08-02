@@ -298,6 +298,7 @@ export function ImageViewer({
               <InfoRow label="Nhóm bệnh" value={post.diseaseGroup} />
               <InfoRow label="Loại bệnh" value={post.diseaseType} />
               <InfoRow label="Tên bệnh" value={post.diseaseName} />
+              <InfoRow label="Bộ phận bị bệnh" value={post.diseasedPart} />
               <InfoRow label="Mức độ" value={post.severity} />
               <InfoRow
                 label="Mô tả triệu chứng"
