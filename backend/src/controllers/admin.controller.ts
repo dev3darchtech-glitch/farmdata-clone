@@ -724,9 +724,10 @@ export const updateUser = async (req: Request, res: Response) => {
         });
       }
       target.username = normalizedUsername;
+      target.email = `${normalizedUsername}@farmdata.com`;
       if (fbUid) {
         await auth.updateUser(fbUid, {
-          email: `${normalizedUsername}@farmdata.app`,
+          email: target.email,
         });
       }
     }

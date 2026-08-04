@@ -25,7 +25,7 @@ export async function createAdminFixture(input?: {
 }
 
 export async function createFarmerFixture(input: {
-  adminId: string;
+  adminId?: string;
   name?: string;
   email?: string;
   username?: string;
@@ -41,7 +41,6 @@ export async function createFarmerFixture(input: {
     email,
     username,
     role: "FARMER",
-    createdByAdminId: input.adminId,
     isRevoked: false,
   });
 

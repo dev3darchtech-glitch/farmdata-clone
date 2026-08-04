@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import request from "supertest";
 import { connectMongoDB } from "../src/db/connect";
 import { app } from "../src/index";
+import { UserModel } from "../src/models/User";
 import {
   createAdminFixture,
   createFarmerFixture,
@@ -325,6 +326,151 @@ describe("FarmData Backend API & RBAC Suite", () => {
       expect(restoreRes.status).toBe(200);
       expect(restoreRes.body.isRevoked).toBe(false);
       expect(restoreRes.body.revokedAt).toBeUndefined();
+    });
+
+    it("lets an admin-created FARMER log in and upload capture images", async () => {
+      const username = `farmerupload${Date.now()}`;
+      const password = "123456";
+      const createRes = await request(app)
+        .post("/api/admin/users")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          name: "Farmer Upload Test",
+          username,
+          password,
+          role: "FARMER",
+      });
+      expect(createRes.status).toBe(201);
+
+      const loginRes = await request(app)
+        .post("/api/auth/login")
+        .send({ email: username, password });
+      expect(loginRes.status).toBe(200);
+      expect(loginRes.body.token).toBeDefined();
+
+      const diseaseName = `Sương mai ${Date.now()}`;
+      const diseaseRes = await request(app)
+        .post("/api/admin/plant-diseases")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          group: "Truyền nhiễm",
+          type: "Nấm",
+          name: diseaseName,
+          description: "Bệnh test cho farmer upload",
+        });
+      expect(diseaseRes.status).toBe(201);
+
+      const [farmsRes, plotsRes, cropsRes, diseasesRes] = await Promise.all([
+        request(app)
+          .get("/api/master-data/farms")
+          .set("Authorization", `Bearer ${loginRes.body.token}`),
+        request(app)
+          .get("/api/master-data/plots")
+          .set("Authorization", `Bearer ${loginRes.body.token}`),
+        request(app)
+          .get("/api/master-data/crops")
+          .set("Authorization", `Bearer ${loginRes.body.token}`),
+        request(app)
+          .get("/api/master-data/plant-diseases")
+          .set("Authorization", `Bearer ${loginRes.body.token}`),
+      ]);
+      expect(farmsRes.status).toBe(200);
+      expect(plotsRes.status).toBe(200);
+      expect(cropsRes.status).toBe(200);
+      expect(diseasesRes.status).toBe(200);
+      expect(farmsRes.body.map((item: any) => item.name)).toContain(
+        "Trại Thực Nghiệm",
+      );
+      expect(plotsRes.body.map((item: any) => item.code)).toContain("L-001");
+      expect(cropsRes.body.map((item: any) => item.name)).toContain("Cà chua");
+      expect(diseasesRes.body.map((item: any) => item.name)).toContain(
+        diseaseName,
+      );
+
+      const onePixelPng =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const sessionRes = await request(app)
+        .post("/api/sessions")
+        .set("Authorization", `Bearer ${loginRes.body.token}`)
+        .send({
+          images: [onePixelPng],
+          plotId: "L-001",
+          cropType: "Cà chua",
+          growthStage: "flowering",
+          envMode: "greenhouse",
+          stationMeasurements: {
+            temperature: 29,
+            lightUvIndex: 68,
+            windSpeed: 11,
+            co2Level: 405,
+            weatherCode: 1,
+          },
+          localMeasurements: {
+            temperature: 26,
+            humidity: 70,
+          },
+          diseaseGroup: "Truyền nhiễm",
+          diseaseType: "Nấm",
+          diseaseName,
+          diseasedPart: "Lá",
+          symptomDescription: "Lá xuất hiện đốm vàng rải rác",
+          severity: "Chớm bệnh",
+        });
+
+      expect(sessionRes.status).toBe(201);
+      expect(sessionRes.body.session.farmerEmail).toBe(
+        `${username}@farmdata.com`,
+      );
+      expect(sessionRes.body.session.files).toHaveLength(1);
+      expect(sessionRes.body.session.files[0].fileId).toMatch(/^captures\//);
+      expect(sessionRes.body.session.files[0].webContentLink).toContain(
+        "firebasestorage.googleapis.com",
+      );
+    });
+
+    it("links an existing Mongo user by email when Firebase UID changed", async () => {
+      const stamp = Date.now();
+      const email = `ngocntk${stamp}@farmdata.com`;
+      const farmer = await UserModel.create({
+        name: "Ngoc Farmer",
+        email,
+        username: email.split("@")[0],
+        role: "FARMER",
+        isRevoked: false,
+      });
+
+      const firebaseUid = `firebase-uid-ngocntk${stamp}`;
+      const res = await request(app)
+        .get("/api/master-data/plots")
+        .set("Authorization", `Bearer ${firebaseUid}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.map((item: any) => item.code)).toContain("L-001");
+
+      const updatedFarmer = await UserModel.findById(farmer._id);
+      expect(updatedFarmer?.firebaseUid).toBe(firebaseUid);
+    });
+
+    it("syncs changed Firebase UID into Mongo immediately during login", async () => {
+      const username = `farmersync${Date.now()}`;
+      const email = `${username}@farmdata.com`;
+      const farmer = await UserModel.create({
+        name: "Farmer Sync Test",
+        email,
+        username,
+        role: "FARMER",
+        firebaseUid: "old-firebase-uid",
+        isRevoked: false,
+      });
+
+      const loginRes = await request(app)
+        .post("/api/auth/login")
+        .send({ email: username, password: "123456" });
+
+      expect(loginRes.status).toBe(200);
+      const updatedFarmer = await UserModel.findById(farmer._id);
+      expect(updatedFarmer?.firebaseUid).toBe(loginRes.body.token);
+      expect(updatedFarmer?.firebaseUid).not.toBe("old-firebase-uid");
     });
   });
 

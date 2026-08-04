@@ -5,6 +5,8 @@ jest.mock("firebase-admin/app", () => ({
 }));
 
 const store: Record<string, Record<string, any>> = {};
+const firebaseAuthUsersByEmail: Record<string, { uid: string; email: string }> =
+  {};
 
 const mockDoc = (collectionName: string, id: string) => {
   return {
@@ -102,16 +104,36 @@ jest.mock("firebase-admin/firestore", () => ({
 jest.mock("firebase-admin/auth", () => ({
   getAuth: jest.fn(() => ({
     verifyIdToken: jest.fn((token) => {
+      const uid = String(token);
+      const email = uid.startsWith("firebase-uid-")
+        ? `${uid.replace("firebase-uid-", "")}@farmdata.com`
+        : "test@farmdata.com";
       return Promise.resolve({
         uid: token, // Simply return the token string as UID, which matches the localId token
-        email: "test@farmdata.com",
+        email,
       });
     }),
     createUser: jest.fn((input) => {
-      const uid = input?.uid || "new-test-uid-" + Math.random().toString(36).substring(2, 9);
+      const uid =
+        input?.uid ||
+        "new-test-uid-" + Math.random().toString(36).substring(2, 9);
+      if (input?.email) {
+        firebaseAuthUsersByEmail[String(input.email).toLowerCase()] = {
+          uid,
+          email: String(input.email).toLowerCase(),
+        };
+      }
       return Promise.resolve({ uid });
     }),
     updateUser: jest.fn(() => Promise.resolve()),
+    getUser: jest.fn((uid) =>
+      Promise.resolve({
+        uid,
+        email: "test@farmdata.com",
+        displayName: "Test User",
+        customClaims: { role: "FARMER" },
+      }),
+    ),
     setCustomUserClaims: jest.fn(() => Promise.resolve()),
   })),
 }));
@@ -146,7 +168,9 @@ global.fetch = jest.fn((input: any, init: any) => {
       } as any);
     }
     const email = body.email;
-    const token = `mock-token-for-${email}`;
+    const token =
+      firebaseAuthUsersByEmail[String(email).toLowerCase()]?.uid ||
+      `mock-token-for-${email}`;
     return Promise.resolve({
       ok: true,
       json: () => Promise.resolve({

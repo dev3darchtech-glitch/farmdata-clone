@@ -22,6 +22,29 @@ declare global {
   }
 }
 
+function logAuthEvent(
+  message: string,
+  req: Request,
+  extra: Record<string, unknown> = {},
+) {
+  console.error("🔐 Auth/RBAC:", {
+    message,
+    method: req.method,
+    path: req.originalUrl,
+    hasAuthorizationHeader: Boolean(req.headers.authorization),
+    ...extra,
+  });
+}
+
+function buildUsernameFromEmail(email: string, fallbackUid: string) {
+  return (
+    email
+      .split("@")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "") || `user_${fallbackUid.slice(-6)}`
+  );
+}
+
 /**
  * Middleware to authenticate Firebase ID Bearer tokens in Authorization header.
  */
@@ -34,16 +57,51 @@ export async function authenticateToken(
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
+    logAuthEvent("Missing bearer token", req);
     return res.status(401).json({ error: "Chưa xác thực: Thiếu token" });
   }
 
   try {
     const decodedToken = await auth.verifyIdToken(token);
-    const user = await UserModel.findOne({ firebaseUid: decodedToken.uid });
+    const email = (decodedToken.email || "").trim().toLowerCase();
+    const username = email
+      ? buildUsernameFromEmail(email, decodedToken.uid)
+      : "";
+    let user = await UserModel.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user && email) {
+      user = await UserModel.findOne({
+        $or: [{ email }, { username }],
+      });
+
+      if (user) {
+        console.warn(
+          "🔐 Auth/RBAC: Linked existing Mongo user to Firebase UID",
+          {
+            method: req.method,
+            path: req.originalUrl,
+            firebaseUid: decodedToken.uid,
+            email,
+            userId: user._id.toString(),
+            username: user.username,
+          },
+        );
+        user.firebaseUid = decodedToken.uid;
+        if (!user.email) {
+          user.email = email;
+        }
+        await user.save();
+      }
+    }
 
     if (!user) {
+      console.warn("🔐 Auth/RBAC: Firebase user missing Mongo profile", {
+        method: req.method,
+        path: req.originalUrl,
+        firebaseUid: decodedToken.uid,
+        email,
+      });
       // Auto-create user profile in MongoDB if they exist in Firebase Auth but not DB
-      const email = decodedToken.email || "";
       const name = decodedToken.name || email || "User";
       // Check custom claims role, default to email-check
       const role =
@@ -53,7 +111,7 @@ export async function authenticateToken(
       const newUser = await UserModel.create({
         name,
         email,
-        username: email.split("@")[0] || `user_${decodedToken.uid.slice(-6)}`,
+        username: username || `user_${decodedToken.uid.slice(-6)}`,
         role,
         isRevoked: false,
         firebaseUid: decodedToken.uid,
@@ -70,6 +128,11 @@ export async function authenticateToken(
     }
 
     if (user.isRevoked) {
+      logAuthEvent("Revoked user attempted request", req, {
+        userId: user._id.toString(),
+        username: user.username,
+        role: user.role,
+      });
       return res.status(403).json({ error: "Tài khoản đã bị thu hồi" });
     }
 
@@ -81,7 +144,10 @@ export async function authenticateToken(
       role: user.role as RoleName,
     };
     return next();
-  } catch (fbErr) {
+  } catch (fbErr: any) {
+    logAuthEvent("Firebase token verification failed", req, {
+      error: fbErr?.message || String(fbErr),
+    });
     return res
       .status(403)
       .json({ error: "Token không hợp lệ hoặc đã hết hạn" });
@@ -94,10 +160,19 @@ export async function authenticateToken(
 export function requireRole(...allowedRoles: RoleName[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
+      logAuthEvent("Role check without authenticated user", req, {
+        allowedRoles,
+      });
       return res.status(401).json({ error: "Chưa xác thực" });
     }
 
     if (!allowedRoles.includes(req.user.role)) {
+      logAuthEvent("Role denied", req, {
+        userId: req.user.id,
+        username: req.user.username,
+        role: req.user.role,
+        allowedRoles,
+      });
       return res.status(403).json({
         error: `Không có quyền truy cập: chỉ dành cho vai trò [${allowedRoles.join(", ")}]`,
         userRole: req.user.role,

@@ -23,7 +23,6 @@ export interface User {
   role?: UserRole | string;
   isRevoked?: boolean;
   revokedAt?: string;
-  createdByAdminId?: string;
 }
 
 export interface ListQuery {
@@ -261,7 +260,6 @@ export interface CropTypeInfo {
   icon?: string;
   isActive?: boolean;
   status?: string;
-  createdByAdminId?: string;
 }
 
 /**
@@ -277,7 +275,6 @@ export interface PlotInfo {
   description?: string;
   isActive?: boolean;
   status?: string;
-  createdByAdminId?: string;
 }
 
 export interface FarmInfo {
@@ -297,7 +294,6 @@ export interface PlantDiseaseInfo {
   description?: string;
   isActive?: boolean;
   status?: string;
-  createdByAdminId?: string;
 }
 
 /**

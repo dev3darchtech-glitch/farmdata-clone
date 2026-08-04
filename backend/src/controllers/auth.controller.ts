@@ -91,7 +91,14 @@ export const login = async (req: Request, res: Response) => {
         isRevoked: false,
         firebaseUid: data.localId,
       });
-    } else if (!user.firebaseUid) {
+    } else if (user.firebaseUid !== data.localId) {
+      console.warn("🔐 Auth login: syncing changed Firebase UID to Mongo user", {
+        userId: user._id.toString(),
+        username: user.username,
+        email: user.email,
+        previousFirebaseUid: user.firebaseUid,
+        nextFirebaseUid: data.localId,
+      });
       user.firebaseUid = data.localId;
       await user.save();
     }

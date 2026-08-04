@@ -14,6 +14,7 @@ export const app = express();
 app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+// app.use("/api", apiRequestLogger);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

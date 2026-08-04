@@ -96,10 +96,6 @@ function mapUser(u: any): User {
     role: u.role,
     isRevoked: Boolean(u.isRevoked),
     revokedAt: u.revokedAt,
-    createdByAdminId:
-      typeof u.createdByAdminId === "string"
-        ? u.createdByAdminId
-        : u.createdByAdminId?._id || u.createdByAdminId?.id,
   };
 }
 
