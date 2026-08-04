@@ -137,6 +137,7 @@ async function persistCompletedSession(
   const driveFiles = await uploadImagesToFirebaseStorage({
     farmerEmailOrId: reqUser.id,
     imageUris: images,
+    username: reqUser.username,
     plotId: cleanPlotId,
     cropType: cropType.trim(),
     envMode,
@@ -327,16 +328,6 @@ export const updateSession = async (req: Request, res: Response) => {
 
     if (!existingSession) {
       return res.status(404).json({ error: "Không tìm thấy phiên chụp" });
-    }
-
-    const isAuthor =
-      existingSession.farmerId === reqUser.id ||
-      (existingSession.farmerEmail &&
-        existingSession.farmerEmail === reqUser.email);
-    if (!isAuthor) {
-      return res.status(403).json({
-        error: "Chỉ admin tác giả của phiên chụp này mới có quyền chỉnh sửa.",
-      });
     }
 
     const {

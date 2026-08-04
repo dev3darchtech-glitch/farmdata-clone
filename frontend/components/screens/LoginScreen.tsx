@@ -1,5 +1,4 @@
 import authBackground from "@/assets/images/login-background.png";
-import loginEye from "@/assets/images/login-eye.png";
 import loginLock from "@/assets/images/login-lock.png";
 import loginUser from "@/assets/images/login-user.png";
 import { COLORS, LAYOUT } from "@/constants/theme";
@@ -7,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/formSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
-import { CircleAlert } from "lucide-react-native";
+import { CircleAlert, Eye, EyeOff } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -240,11 +239,19 @@ export function LoginScreen() {
                   style={loginScreenStyles.loginTrailingIcon}
                   onPress={() => setShowPassword((value) => !value)}
                 >
-                  <Image
-                    source={loginEye}
-                    style={loginScreenStyles.loginEyeImage}
-                    resizeMode="contain"
-                  />
+                  {showPassword ? (
+                    <EyeOff
+                      size={loginScreenStyles.loginEyeImage.width}
+                      color={COLORS.muted}
+                      strokeWidth={2}
+                    />
+                  ) : (
+                    <Eye
+                      size={loginScreenStyles.loginEyeImage.width}
+                      color={COLORS.muted}
+                      strokeWidth={2}
+                    />
+                  )}
                 </Pressable>
               </View>
               {globalErrorMessage ? (

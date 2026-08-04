@@ -1,4 +1,5 @@
 import {
+  AuthTokens,
   CaptureSession,
   CropTypeInfo,
   FarmInfo,
@@ -12,11 +13,15 @@ import {
   User,
   UserRole,
 } from "@/types";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 export const BACKEND_URL =
   process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+const TOKENS_KEY = "auth_tokens";
 
 let activeJwtToken: string | null = null;
+let refreshRequest: Promise<string | null> | null = null;
 
 export interface BackendLoginResponse {
   token: string;
@@ -41,6 +46,186 @@ function getAuthHeaders(): Record<string, string> {
     headers["Authorization"] = `Bearer ${activeJwtToken}`;
   }
   return headers;
+}
+
+async function getPersistedTokens(): Promise<AuthTokens | null> {
+  const rawTokens =
+    Platform.OS === "web"
+      ? typeof localStorage !== "undefined"
+        ? localStorage.getItem(TOKENS_KEY)
+        : null
+      : await SecureStore.getItemAsync(TOKENS_KEY);
+
+  if (!rawTokens) return null;
+
+  try {
+    return JSON.parse(rawTokens) as AuthTokens;
+  } catch {
+    return null;
+  }
+}
+
+async function persistTokens(tokens: AuthTokens): Promise<void> {
+  const serialized = JSON.stringify(tokens);
+  if (Platform.OS === "web") {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(TOKENS_KEY, serialized);
+    }
+  } else {
+    await SecureStore.setItemAsync(TOKENS_KEY, serialized);
+  }
+  setAuthToken(tokens.accessToken);
+}
+
+async function clearPersistedTokens(): Promise<void> {
+  if (Platform.OS === "web") {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(TOKENS_KEY);
+    }
+  } else {
+    await SecureStore.deleteItemAsync(TOKENS_KEY);
+  }
+  setAuthToken(null);
+}
+
+function isTokenNearExpiry(tokens: AuthTokens | null, bufferSeconds = 60) {
+  if (!tokens || !tokens.accessToken) return false;
+  if (!tokens.issuedAt || typeof tokens.expiresIn !== "number") return false;
+  const expirationTimestamp =
+    tokens.issuedAt + (tokens.expiresIn - bufferSeconds) * 1000;
+  return Date.now() >= expirationTimestamp;
+}
+
+function mergeHeaders(
+  headers?: HeadersInit,
+  includeAuth = true,
+): Record<string, string> {
+  const merged = {
+    ...getAuthHeaders(),
+    ...(headers instanceof Headers ? Object.fromEntries(headers.entries()) : {}),
+    ...(Array.isArray(headers) ? Object.fromEntries(headers) : {}),
+    ...((headers && !Array.isArray(headers) && !(headers instanceof Headers)
+      ? headers
+      : {}) as Record<string, string>),
+  };
+
+  if (!includeAuth) {
+    delete merged.Authorization;
+  }
+
+  return merged;
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshRequest) {
+    return await refreshRequest;
+  }
+
+  refreshRequest = (async () => {
+    const storedTokens = await getPersistedTokens();
+    if (!storedTokens?.refreshToken) {
+      await clearPersistedTokens();
+      return null;
+    }
+
+    const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: storedTokens.refreshToken }),
+    }).catch(() => null);
+
+    if (!response?.ok) {
+      await clearPersistedTokens();
+      return null;
+    }
+
+    const data = await response.json().catch(() => null);
+    const accessToken = data?.token || data?.access_token;
+    if (!accessToken) {
+      await clearPersistedTokens();
+      return null;
+    }
+
+    const nextTokens: AuthTokens = {
+      ...storedTokens,
+      accessToken,
+      refreshToken:
+        data?.refreshToken || data?.refresh_token || storedTokens.refreshToken,
+      expiresIn: Number(data?.expiresIn || data?.expires_in || 86400),
+      issuedAt: Date.now(),
+      tokenType: data?.tokenType || data?.token_type || "Bearer",
+      idToken: data?.idToken || data?.id_token || storedTokens.idToken,
+    };
+
+    await persistTokens(nextTokens);
+    return nextTokens.accessToken;
+  })();
+
+  try {
+    return await refreshRequest;
+  } finally {
+    refreshRequest = null;
+  }
+}
+
+async function ensureValidAccessToken() {
+  const storedTokens = await getPersistedTokens();
+  if (!storedTokens?.accessToken) {
+    return;
+  }
+
+  if (!activeJwtToken) {
+    setAuthToken(storedTokens.accessToken);
+  }
+
+  if (isTokenNearExpiry(storedTokens)) {
+    await refreshAccessToken();
+  }
+}
+
+async function shouldRetryWithRefreshedToken(response: Response) {
+  if (response.status !== 401 && response.status !== 403) {
+    return false;
+  }
+
+  const payload = await response
+    .clone()
+    .json()
+    .catch(() => null);
+  const errorMessage = String(payload?.error || "").toLowerCase();
+  return (
+    errorMessage.includes("hết hạn") ||
+    errorMessage.includes("id-token-expired") ||
+    errorMessage.includes("token verification failed") ||
+    errorMessage.includes("token không hợp lệ")
+  );
+}
+
+async function backendFetch(
+  input: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  await ensureValidAccessToken();
+
+  const execute = () =>
+    fetch(input, {
+      ...init,
+      headers: mergeHeaders(init.headers),
+    });
+
+  let response = await execute();
+
+  if (!activeJwtToken || !(await shouldRetryWithRefreshedToken(response))) {
+    return response;
+  }
+
+  const refreshedToken = await refreshAccessToken();
+  if (!refreshedToken) {
+    return response;
+  }
+
+  response = await execute();
+  return response;
 }
 
 function mapPlot(p: any): PlotInfo {
@@ -129,7 +314,7 @@ export async function loginBackend(
 }
 
 export async function fetchCurrentUserProfile(): Promise<User> {
-  const res = await fetch(`${BACKEND_URL}/auth/me`, {
+  const res = await backendFetch(`${BACKEND_URL}/auth/me`, {
     headers: getAuthHeaders(),
   }).catch(() => {
     throw new Error("Không thể kết nối đến máy chủ. Vui lòng thử lại.");
@@ -157,7 +342,7 @@ export async function submitCaptureSession(
   }
 
   try {
-    const res = await fetch(`${BACKEND_URL}/sessions`, {
+    const res = await backendFetch(`${BACKEND_URL}/sessions`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(sessionData),
@@ -189,7 +374,7 @@ export async function updateCaptureSessionAPI(
   }
 
   try {
-    const res = await fetch(
+    const res = await backendFetch(
       `${BACKEND_URL}/sessions/${encodeURIComponent(sessionId)}`,
       {
         method: "PATCH",
@@ -278,7 +463,7 @@ export async function fetchPostFeed(
       url.searchParams.set("offset", String(filters.offset));
     }
 
-    const res = await fetch(url.toString(), {
+    const res = await backendFetch(url.toString(), {
       headers: getAuthHeaders(),
     });
 
@@ -320,7 +505,7 @@ export async function fetchPostFeed(
 export async function fetchPostById(postId: string): Promise<Post | null> {
   if (!postId) return null;
 
-  const res = await fetch(
+  const res = await backendFetch(
     `${BACKEND_URL}/posts/${encodeURIComponent(postId)}`,
     {
       headers: getAuthHeaders(),
@@ -344,7 +529,7 @@ export async function fetchPostById(postId: string): Promise<Post | null> {
 export async function deletePostAPI(postId: string): Promise<void> {
   if (!postId) return;
 
-  const res = await fetch(
+  const res = await backendFetch(
     `${BACKEND_URL}/posts/${encodeURIComponent(postId)}`,
     {
       method: "DELETE",
@@ -372,7 +557,7 @@ export async function createManualPostAPI(postData: {
   symptomDescription: string;
   weatherCode: number;
 }): Promise<Post> {
-  const res = await fetch(`${BACKEND_URL}/posts`, {
+  const res = await backendFetch(`${BACKEND_URL}/posts`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(postData),
@@ -392,7 +577,7 @@ export async function createPlotAPI(
   plot: Omit<PlotInfo, "id">,
 ): Promise<PlotInfo> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/plots`, {
+    const res = await backendFetch(`${BACKEND_URL}/admin/plots`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(plot),
@@ -415,7 +600,7 @@ export async function updatePlotAPI(
   plotId: string,
   plot: Partial<Omit<PlotInfo, "id">>,
 ): Promise<PlotInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/plots/${plotId}`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plots/${plotId}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(plot),
@@ -433,7 +618,7 @@ export async function setPlotActiveStatusAPI(
   plotId: string,
   isActive: boolean,
 ): Promise<PlotInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/plots/${plotId}/deactivate`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plots/${plotId}/deactivate`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify({ isActive }),
@@ -451,7 +636,7 @@ export async function createFarmAPI(
   farm: Omit<FarmInfo, "id">,
 ): Promise<FarmInfo> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/farms`, {
+    const res = await backendFetch(`${BACKEND_URL}/admin/farms`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(farm),
@@ -474,7 +659,7 @@ export async function updateFarmAPI(
   farmId: string,
   farm: Partial<Omit<FarmInfo, "id">>,
 ): Promise<FarmInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/farms/${farmId}`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/farms/${farmId}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(farm),
@@ -492,7 +677,7 @@ export async function setFarmActiveStatusAPI(
   farmId: string,
   isActive: boolean,
 ): Promise<FarmInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/farms/${farmId}/deactivate`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/farms/${farmId}/deactivate`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify({ isActive }),
@@ -529,7 +714,7 @@ async function fetchPaginatedCollection<T>({
     params.set("q", query.trim());
   }
 
-  const res = await fetch(`${BACKEND_URL}${path}?${params.toString()}`, {
+  const res = await backendFetch(`${BACKEND_URL}${path}?${params.toString()}`, {
     headers: getAuthHeaders(),
   });
   const data = await res.json().catch(() => ({}));
@@ -646,7 +831,7 @@ export async function createCropAPI(
   crop: Omit<CropTypeInfo, "id">,
 ): Promise<CropTypeInfo> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/crops`, {
+    const res = await backendFetch(`${BACKEND_URL}/admin/crops`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(crop),
@@ -669,7 +854,7 @@ export async function updateCropAPI(
   cropId: string,
   crop: Partial<Omit<CropTypeInfo, "id">>,
 ): Promise<CropTypeInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/crops/${cropId}`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/crops/${cropId}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(crop),
@@ -687,7 +872,7 @@ export async function setCropActiveStatusAPI(
   cropId: string,
   isActive: boolean,
 ): Promise<CropTypeInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/crops/${cropId}/deactivate`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/crops/${cropId}/deactivate`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify({ isActive }),
@@ -745,7 +930,7 @@ export async function fetchUsersPageAPI({
 export async function createPlantDiseaseAPI(
   disease: Omit<PlantDiseaseInfo, "id">,
 ): Promise<PlantDiseaseInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/plant-diseases`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-diseases`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(disease),
@@ -763,7 +948,7 @@ export async function updatePlantDiseaseAPI(
   diseaseId: string,
   disease: Partial<Omit<PlantDiseaseInfo, "id">>,
 ): Promise<PlantDiseaseInfo> {
-  const res = await fetch(`${BACKEND_URL}/admin/plant-diseases/${diseaseId}`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-diseases/${diseaseId}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(disease),
@@ -781,7 +966,7 @@ export async function setPlantDiseaseActiveStatusAPI(
   diseaseId: string,
   isActive: boolean,
 ): Promise<PlantDiseaseInfo> {
-  const res = await fetch(
+  const res = await backendFetch(
     `${BACKEND_URL}/admin/plant-diseases/${diseaseId}/deactivate`,
     {
       method: "PATCH",
@@ -819,7 +1004,7 @@ export async function createUserAPI(userData: {
   role: string;
 }): Promise<User> {
   try {
-    const res = await fetch(`${BACKEND_URL}/admin/users`, {
+    const res = await backendFetch(`${BACKEND_URL}/admin/users`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(userData),
@@ -849,7 +1034,7 @@ export async function updateUserAPI(
     password?: string;
   },
 ): Promise<User> {
-  const res = await fetch(`${BACKEND_URL}/admin/users/${userId}`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/users/${userId}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(userData),
@@ -867,7 +1052,7 @@ export async function updateUserAPI(
  * Revoke a farmer account. Revoked users can no longer log in or use existing JWTs.
  */
 export async function revokeUserAPI(userId: string): Promise<User> {
-  const res = await fetch(`${BACKEND_URL}/admin/users/${userId}/revoke`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/users/${userId}/revoke`, {
     method: "PATCH",
     headers: getAuthHeaders(),
   });
@@ -884,7 +1069,7 @@ export async function revokeUserAPI(userId: string): Promise<User> {
  * Restore a revoked farmer account.
  */
 export async function restoreUserAPI(userId: string): Promise<User> {
-  const res = await fetch(`${BACKEND_URL}/admin/users/${userId}/restore`, {
+  const res = await backendFetch(`${BACKEND_URL}/admin/users/${userId}/restore`, {
     method: "PATCH",
     headers: getAuthHeaders(),
   });

@@ -541,7 +541,7 @@ describe("FarmData Backend API & RBAC Suite", () => {
       expect(res.body.stationMeasurements.weatherCode).toBe(63);
     });
 
-    it("creates a CaptureSession without auto-posting, then only ADMIN can publish it", async () => {
+    it("shows farmer-created capture sessions in the posts feed and detail API", async () => {
       const sessionPayload = {
         images: ["https://example.com/plant.jpg"],
         plotId: "L-001",
@@ -561,29 +561,26 @@ describe("FarmData Backend API & RBAC Suite", () => {
       expect(res.body.session.status).toBe("COMPLETED");
       expect(res.body.post).toBeUndefined();
 
-      const farmerPostRes = await request(app)
-        .post("/api/posts")
-        .set("Authorization", `Bearer ${farmerToken}`)
-        .send({ sessionId: res.body.session.sessionId });
-
-      expect(farmerPostRes.status).toBe(403);
-
-      const adminPostRes = await request(app)
-        .post("/api/posts")
-        .set("Authorization", `Bearer ${adminToken}`)
-        .send({ sessionId: res.body.session.sessionId });
-
-      expect(adminPostRes.status).toBe(201);
-      expect(adminPostRes.body.status).toBe("PUBLISHED");
-      expect(adminPostRes.body.sessionId).toBe(res.body.session.sessionId);
-      expect(adminPostRes.body.cropType).toBe("Cà chua");
-
       const postDetailRes = await request(app)
-        .get(`/api/posts/${adminPostRes.body.postId}`)
+        .get(`/api/posts/${res.body.session.sessionId}`)
         .set("Authorization", `Bearer ${farmerToken}`);
 
       expect(postDetailRes.status).toBe(200);
-      expect(postDetailRes.body.postId).toBe(adminPostRes.body.postId);
+      expect(postDetailRes.body.postId).toBe(res.body.session.sessionId);
+      expect(postDetailRes.body.user.role).toBe("FARMER");
+
+      const farmerFeedRes = await request(app)
+        .get("/api/posts")
+        .query({ mine: "true" })
+        .set("Authorization", `Bearer ${farmerToken}`);
+
+      expect(farmerFeedRes.status).toBe(200);
+      expect(Array.isArray(farmerFeedRes.body.items)).toBe(true);
+      expect(
+        farmerFeedRes.body.items.some(
+          (post: any) => post.postId === res.body.session.sessionId,
+        ),
+      ).toBe(true);
     });
   });
 

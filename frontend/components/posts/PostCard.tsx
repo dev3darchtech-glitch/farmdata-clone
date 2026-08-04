@@ -63,7 +63,12 @@ export function PostCard({
   };
 
   return (
-    <View style={postCardStyles.postCard} testID={`post-card-${post.id}`}>
+    <Pressable
+      style={postCardStyles.postCard}
+      testID={`post-card-${post.id}`}
+      onPress={() => onImage(0)}
+      android_ripple={{ color: "rgba(22, 163, 74, 0.08)" }}
+    >
       <View
         style={[
           postCardStyles.postImageGrid,
@@ -74,7 +79,10 @@ export function PostCard({
           visibleImages.map((image, index) => (
             <Pressable
               key={`${image}-${index}`}
-              onPress={() => onImage(index)}
+              onPress={(event) => {
+                event.stopPropagation();
+                onImage(index);
+              }}
               style={[
                 postCardStyles.postImageCell,
                 imageCount === 1 && postCardStyles.postImageCellSingle,
@@ -95,14 +103,18 @@ export function PostCard({
             </Pressable>
           ))
         ) : (
-          <View
+          <Pressable
             style={[
               postCardStyles.postThumbPlaceholder,
               postCardStyles.postImageCellSingle,
             ]}
+            onPress={(event) => {
+              event.stopPropagation();
+              onImage(0);
+            }}
           >
             <ImageIcon size={20} color={COLORS.muted} />
-          </View>
+          </Pressable>
         )}
       </View>
       <View style={postCardStyles.postInfo}>
@@ -118,7 +130,10 @@ export function PostCard({
           {canEdit ? (
             <Pressable
               style={postCardStyles.editCardButton}
-              onPress={onEdit}
+              onPress={(event) => {
+                event.stopPropagation();
+                onEdit?.();
+              }}
               hitSlop={8}
             >
               <Pencil size={15} color={COLORS.green} />
@@ -127,7 +142,10 @@ export function PostCard({
           {canDelete ? (
             <Pressable
               style={postCardStyles.deleteCardButton}
-              onPress={handleConfirmDelete}
+              onPress={(event) => {
+                event.stopPropagation();
+                handleConfirmDelete();
+              }}
               hitSlop={8}
             >
               <Trash2 size={16} color="#ef4444" />
@@ -165,7 +183,7 @@ export function PostCard({
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

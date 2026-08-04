@@ -232,28 +232,26 @@ export function ManagementDrawer({
             </Text>
           </Pressable>
 
-          {role === "admin" ? (
-            <Pressable
+          <Pressable
+            style={[
+              drawerStyles.drawerItem,
+              ownPostsActive && drawerStyles.drawerItemActive,
+            ]}
+            onPress={navigateToOwnPosts}
+          >
+            <FileText
+              size={20}
+              color={ownPostsActive ? COLORS.green : COLORS.body}
+            />
+            <Text
               style={[
-                drawerStyles.drawerItem,
-                ownPostsActive && drawerStyles.drawerItemActive,
+                drawerStyles.drawerText,
+                ownPostsActive && drawerStyles.drawerTextActive,
               ]}
-              onPress={navigateToOwnPosts}
             >
-              <FileText
-                size={20}
-                color={ownPostsActive ? COLORS.green : COLORS.body}
-              />
-              <Text
-                style={[
-                  drawerStyles.drawerText,
-                  ownPostsActive && drawerStyles.drawerTextActive,
-                ]}
-              >
-                Bài đăng của bạn
-              </Text>
-            </Pressable>
-          ) : null}
+              Bài đăng của bạn
+            </Text>
+          </Pressable>
 
           {role === "admin" ? (
             <>

@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import mongoose, { FilterQuery } from "mongoose";
 import { CaptureSessionModel } from "../models/CaptureSession";
 import { PlotModel } from "../models/Plot";
-import { UserModel } from "../models/User";
 import { SYMPTOM_SEVERITY_VALUES } from "../types";
 
 const mapSessionToPost = (
@@ -28,7 +27,7 @@ const mapSessionToPost = (
       id: session.farmerId,
       name: session.farmerName,
       email: session.farmerEmail,
-      role: "ADMIN",
+      role: session.createdByRole || "FARMER",
     },
     cropType: session.cropType,
     plotId: session.plotId,
@@ -67,7 +66,7 @@ const mapSessionToPost = (
 
 /**
  * GET /api/posts
- * Fetch post feed (completed sessions created by Admins).
+ * Fetch post feed from completed capture sessions.
  */
 export const getPosts = async (req: Request, res: Response) => {
   try {
@@ -94,22 +93,16 @@ export const getPosts = async (req: Request, res: Response) => {
         ? (page - 1) * limit
         : Math.max(Number(offsetStr) || 0, 0);
 
-    // Get all admin IDs
-    const admins = await UserModel.find({ role: "ADMIN" }).select("_id");
-    const adminIds = admins.map((a) => a._id.toString());
-
     const filter: FilterQuery<any> = {
       status: "COMPLETED",
-      farmerId: { $in: adminIds },
     };
 
     if (mine === "true") {
-      if (req.user?.role !== "ADMIN") {
-        return res
-          .status(403)
-          .json({ error: "Không có quyền xem bài đăng này." });
+      const reqUser = req.user;
+      if (!reqUser?.id) {
+        return res.status(401).json({ error: "Chưa xác thực người dùng." });
       }
-      filter.farmerId = req.user.id;
+      filter.farmerId = reqUser.id;
     }
 
     if (crop && typeof crop === "string" && !["ALL", "all"].includes(crop)) {
@@ -261,12 +254,6 @@ export const getPostById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Không tìm thấy bài đăng" });
     }
 
-    // Verify creator is Admin
-    const creator = await UserModel.findById(session.farmerId);
-    if (!creator || creator.role !== "ADMIN") {
-      return res.status(404).json({ error: "Không tìm thấy bài đăng" });
-    }
-
     // Load plot-farm relationships to map legacy sessions
     const plotsList = await PlotModel.find().populate("farmId");
     const plotFarmMap = new Map<string, { farmId: string; farmName: string }>();
@@ -306,7 +293,7 @@ export const createPost = async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/posts/:id
- * Delete post. Only the admin author who created the post can delete it.
+ * Delete post. Any admin can delete any post.
  */
 export const deletePost = async (req: Request, res: Response) => {
   try {
@@ -318,18 +305,6 @@ export const deletePost = async (req: Request, res: Response) => {
     const session = await CaptureSessionModel.findOne(postQuery);
     if (!session) {
       return res.status(404).json({ error: "Không tìm thấy bài đăng" });
-    }
-
-    // Strict rule: Only the admin author who created this post can delete it
-    const reqUser = req.user!;
-    const isAuthor =
-      session.farmerId === reqUser.id ||
-      (session.farmerEmail && session.farmerEmail === reqUser.email);
-
-    if (!isAuthor) {
-      return res.status(403).json({
-        error: "Chỉ admin tác giả đăng bài viết này mới có quyền xóa bài đăng.",
-      });
     }
 
     await CaptureSessionModel.deleteOne({ _id: session._id });
