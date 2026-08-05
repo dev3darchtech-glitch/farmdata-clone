@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "nodemon",
-    "test": "jest --watchAll=false"
+    "test": "jest --watchAll=false",
+    "sync:firebase-uids": "ts-node src/scripts/syncFirebaseUidsToMongo.ts",
+    "sync:firebase-uids:write": "ts-node src/scripts/syncFirebaseUidsToMongo.ts --write"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

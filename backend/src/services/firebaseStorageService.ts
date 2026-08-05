@@ -422,6 +422,7 @@ async function applyPostImageWatermark(
 async function addMarkOverlay(
   imageBuffer: Buffer,
   metadata: {
+    username?: string;
     adminEmail?: string;
     plotId?: string;
     cropType?: string;
@@ -450,7 +451,8 @@ async function addMarkOverlay(
 
     const dateStr = formatVietnamDateTime(new Date()).slice(0, 16);
 
-    const email = metadata.adminEmail || "admin@farmdata.com";
+    const uploaderIdentity =
+      metadata.username || metadata.adminEmail || "admin@farmdata.com";
     const plot = metadata.plotId || "N/A";
     const crop = metadata.cropType || "N/A";
     const disease = metadata.diseaseName || "N/A";
@@ -502,7 +504,7 @@ async function addMarkOverlay(
       envStr,
       weatherStr,
       gpsStr,
-      `${email}`,
+      `${uploaderIdentity}`,
       `${dateStr}`,
     ].map(toAsciiWatermarkText);
 
@@ -648,6 +650,7 @@ export interface StorageUploadOptions {
   description?: string | ((imageIndex: number) => string);
   destination?: "capture" | "post";
   watermark?: PostImageWatermarkInput;
+  username?: string;
   adminEmail?: string;
   captureLocation?: {
     latitude?: number;
@@ -748,6 +751,7 @@ export async function uploadImagesToFirebaseStorage(
           : await addMarkOverlay(
               normalizedImage.buffer,
               {
+                username: options.username,
                 adminEmail: options.adminEmail,
                 plotId,
                 cropType,

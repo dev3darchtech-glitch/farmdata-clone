@@ -68,9 +68,9 @@ function getSortIcon(mode: string) {
 
 export function PostsScreen() {
   const { user } = useAuth();
-  const role = normalizeRole(user?.role as string);
   const { mine } = useLocalSearchParams<{ mine?: string }>();
-  const ownPostsOnly = role === "admin" && mine === "true";
+  const role = normalizeRole(user?.role as string);
+  const ownPostsOnly = mine === "true";
   const [posts, setPosts] = useState<Post[]>([]);
   const [sidebarVariant, setSidebarVariant] =
     useState<ManagementVariant>("plots");
@@ -199,16 +199,9 @@ export function PostsScreen() {
     return Array.from(set) as string[];
   }, [posts]);
 
-  const isPostAuthorAdmin = useCallback(
-    (targetPost?: Post | null) => {
-      if (!targetPost || !user || role !== "admin") return false;
-      return Boolean(
-        targetPost.user?.id === user.id ||
-        (targetPost.user?.email && targetPost.user.email === user.email) ||
-        (targetPost.user?.name && targetPost.user.name === user.name),
-      );
-    },
-    [role, user],
+  const canManagePost = useCallback(
+    (targetPost?: Post | null) => Boolean(targetPost) && role === "admin",
+    [role],
   );
 
   const handleEditPost = useCallback((post: Post) => {
@@ -245,11 +238,11 @@ export function PostsScreen() {
             post={viewerPost}
             initialIndex={viewerIndex}
             onClose={() => setViewerPost(null)}
-            canEdit={isPostAuthorAdmin(viewerPost)}
+            canEdit={canManagePost(viewerPost)}
             onEdit={() => {
               if (viewerPost) handleEditPost(viewerPost);
             }}
-            canDelete={isPostAuthorAdmin(viewerPost)}
+            canDelete={canManagePost(viewerPost)}
             onDelete={() => {
               if (viewerPost) {
                 handleDeletePost(viewerPost.id);
@@ -379,8 +372,8 @@ export function PostsScreen() {
           <PostCard
             post={post}
             admin={role === "admin"}
-            canDelete={isPostAuthorAdmin(post)}
-            canEdit={isPostAuthorAdmin(post)}
+            canDelete={canManagePost(post)}
+            canEdit={canManagePost(post)}
             onImage={(imageIndex = 0) => {
               setViewerPost(post);
               setViewerIndex(imageIndex);

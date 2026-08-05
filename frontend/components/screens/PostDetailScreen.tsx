@@ -87,13 +87,8 @@ export function PostDetailScreen() {
   }
 
   const isAdmin = role === "admin";
-  const isOwner =
-    user &&
-    (post.user?.id === user.id ||
-      (post.user?.email && post.user.email === (user as any).email) ||
-      (post.user?.name && post.user.name === user.name));
-  const canEdit = isAdmin && Boolean(isOwner);
-  const canDelete = isAdmin && Boolean(isOwner);
+  const canEdit = isAdmin;
+  const canDelete = isAdmin;
   const diseaseDisplayName =
     post.diseaseName?.trim() || post.diseaseType?.trim() || "Bệnh cây";
   const imageCount = post.images.length;
