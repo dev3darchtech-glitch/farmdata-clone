@@ -14,7 +14,7 @@ import {
 } from "@/types";
 
 export const BACKEND_URL =
-  process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+  process.env.EXPO_PUBLIC_API_URL || "https://farm-data.3darchtech.com/api";
 
 let activeJwtToken: string | null = null;
 

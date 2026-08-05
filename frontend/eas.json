@@ -11,12 +11,12 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://farmdata-622307400032.asia-southeast1.run.app/api",
-        "EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER": "com.farmdata.capturedata",
-        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.farmdata.capturedata",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "622307400032-3a6b2c66gkqdd589i7u3g00vv1l98bvr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_URL": "https://farm-data.3darchtech.com/api",
+        "EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER": "com.threedarchtech.farmdata",
+        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.threedarchtech.farmdata",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1039625943735-u0u45tdib4k4hgkl362n05f28a2n28t9.apps.googleusercontent.com",
         "EXPO_PUBLIC_OAUTH_TOKEN_ENDPOINT": "https://oauth2.googleapis.com/token",
-        "EXPO_PUBLIC_EAS_PROJECT_ID": "5afc1153-301b-4028-bcc6-07679bdab415"
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "debfcdc8-6b0c-414d-8f2b-066d544c9a92"
       }
     },
     "preview": {
@@ -25,12 +25,12 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://farmdata-622307400032.asia-southeast1.run.app/api",
-        "EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER": "com.farmdata.capturedata",
-        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.farmdata.capturedata",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "622307400032-3a6b2c66gkqdd589i7u3g00vv1l98bvr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_URL": "https://farm-data.3darchtech.com/api",
+        "EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER": "com.threedarchtech.farmdata",
+        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.threedarchtech.farmdata",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1039625943735-u0u45tdib4k4hgkl362n05f28a2n28t9.apps.googleusercontent.com",
         "EXPO_PUBLIC_OAUTH_TOKEN_ENDPOINT": "https://oauth2.googleapis.com/token",
-        "EXPO_PUBLIC_EAS_PROJECT_ID": "5afc1153-301b-4028-bcc6-07679bdab415"
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "debfcdc8-6b0c-414d-8f2b-066d544c9a92"
       }
     },
     "production": {
@@ -39,12 +39,12 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://farmdata-622307400032.asia-southeast1.run.app/api",
-        "EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER": "com.farmdata.capturedata",
-        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.farmdata.capturedata",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "622307400032-3a6b2c66gkqdd589i7u3g00vv1l98bvr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_API_URL": "https://farm-data.3darchtech.com/api",
+        "EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER": "com.threedarchtech.farmdata",
+        "EXPO_PUBLIC_ANDROID_PACKAGE": "com.threedarchtech.farmdata",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "1039625943735-u0u45tdib4k4hgkl362n05f28a2n28t9.apps.googleusercontent.com",
         "EXPO_PUBLIC_OAUTH_TOKEN_ENDPOINT": "https://oauth2.googleapis.com/token",
-        "EXPO_PUBLIC_EAS_PROJECT_ID": "5afc1153-301b-4028-bcc6-07679bdab415"
+        "EXPO_PUBLIC_EAS_PROJECT_ID": "debfcdc8-6b0c-414d-8f2b-066d544c9a92"
       }
     }
   },

@@ -2,15 +2,16 @@ import "dotenv/config";
 import type { ExpoConfig } from "expo/config";
 
 const iosBundleIdentifier =
-  process.env.EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER || "com.farmdata.capturedata";
+  process.env.EXPO_PUBLIC_IOS_BUNDLE_IDENTIFIER ||
+  "com.threedarchtech.farmdata";
 const androidPackage =
-  process.env.EXPO_PUBLIC_ANDROID_PACKAGE || "com.farmdata.capturedata";
+  process.env.EXPO_PUBLIC_ANDROID_PACKAGE || "com.threedarchtech.farmdata";
 const cameraPermission =
   "Cho phép FarmData truy cập máy ảnh để chụp ảnh cây trồng.";
 const easProjectId =
   process.env.EXPO_PUBLIC_EAS_PROJECT_ID ||
   process.env.EAS_PROJECT_ID ||
-  "5afc1153-301b-4028-bcc6-07679bdab415";
+  "debfcdc8-6b0c-414d-8f2b-066d544c9a92";
 
 const config: ExpoConfig = {
   name: "FarmData",

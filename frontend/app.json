@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "capture-data",
-    "slug": "capture-data",
+    "name": "FarmData",
+    "slug": "farmdata",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -46,7 +46,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "5afc1153-301b-4028-bcc6-07679bdab415"
+        "projectId": "debfcdc8-6b0c-414d-8f2b-066d544c9a92"
       }
     }
   }
