@@ -126,7 +126,7 @@ export function ImageViewer({
     : [];
 
   const saveCurrentImage = async () => {
-    if (!uri) return;
+    if (!uri || !post) return;
     try {
       const fileName = getImageDownloadName(post, index, uri);
 
@@ -160,6 +160,7 @@ export function ImageViewer({
   };
 
   const copyPostUrl = async () => {
+    if (!post) return;
     try {
       await Clipboard.setStringAsync(buildPostUrl(post));
       Alert.alert("Đã copy URL", "URL bài đã được copy vào clipboard.");
