@@ -12,7 +12,6 @@ import {
   GrowthStageId,
   LocalWeatherMeasurement,
   LocationData,
-  PLANT_DISEASE_GROUPS,
   PlantDiseaseGroup,
   PlantDiseaseInfo,
   PlotInfo,
@@ -122,10 +121,7 @@ export function SelectionSheets(props: SelectionSheetsProps) {
     (disease) => disease.isActive !== false,
   );
   const diseaseGroupOptions = Array.from(
-    new Set([
-      ...PLANT_DISEASE_GROUPS,
-      ...activePlantDiseases.map((disease) => disease.group),
-    ]),
+    new Set(activePlantDiseases.map((disease) => disease.group)),
   );
   const diseaseTypeOptions = Array.from(
     new Set(
