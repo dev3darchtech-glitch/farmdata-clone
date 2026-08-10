@@ -16,8 +16,8 @@ export function createEmptyWeatherCondition(): WeatherCondition {
   return {
     temperature: NaN,
     lightUvIndex: NaN,
-    windSpeed: NaN,
-    co2Level: NaN,
+    windSpeed: undefined,
+    co2Level: undefined,
     humidity: undefined,
     weatherCode: undefined,
     updatedAt: undefined,
@@ -88,20 +88,22 @@ export function validateWeatherCondition(
   }
 
   if (
-    typeof condition.windSpeed !== "number" ||
-    Number.isNaN(condition.windSpeed) ||
-    condition.windSpeed < PHYSICAL_BOUNDS.WIND_SPEED.MIN ||
-    condition.windSpeed > PHYSICAL_BOUNDS.WIND_SPEED.MAX
+    condition.windSpeed !== undefined &&
+    (typeof condition.windSpeed !== "number" ||
+      Number.isNaN(condition.windSpeed) ||
+      condition.windSpeed < PHYSICAL_BOUNDS.WIND_SPEED.MIN ||
+      condition.windSpeed > PHYSICAL_BOUNDS.WIND_SPEED.MAX)
   ) {
     errors[`${prefix}.windSpeed`] =
       `Tốc độ gió phải nằm trong khoảng ${PHYSICAL_BOUNDS.WIND_SPEED.MIN} đến ${PHYSICAL_BOUNDS.WIND_SPEED.MAX} km/h`;
   }
 
   if (
-    typeof condition.co2Level !== "number" ||
-    Number.isNaN(condition.co2Level) ||
-    condition.co2Level < PHYSICAL_BOUNDS.CO2_LEVEL.MIN ||
-    condition.co2Level > PHYSICAL_BOUNDS.CO2_LEVEL.MAX
+    condition.co2Level !== undefined &&
+    (typeof condition.co2Level !== "number" ||
+      Number.isNaN(condition.co2Level) ||
+      condition.co2Level < PHYSICAL_BOUNDS.CO2_LEVEL.MIN ||
+      condition.co2Level > PHYSICAL_BOUNDS.CO2_LEVEL.MAX)
   ) {
     errors[`${prefix}.co2Level`] =
       `Nồng độ CO2 phải từ ${PHYSICAL_BOUNDS.CO2_LEVEL.MIN} đến ${PHYSICAL_BOUNDS.CO2_LEVEL.MAX} ppm`;
@@ -149,8 +151,6 @@ export function validateGreenhouseParams(
   const metrics: (keyof WeatherCondition)[] = [
     "temperature",
     "lightUvIndex",
-    "windSpeed",
-    "co2Level",
   ];
 
   const missingErrors: Record<string, string> = {};
@@ -300,8 +300,8 @@ function buildWeatherSnapshot(params: {
     windSpeed:
       typeof seriesWinds[resolvedIndex] === "number"
         ? seriesWinds[resolvedIndex]
-        : NaN,
-    co2Level: NaN,
+        : undefined,
+    co2Level: undefined,
     humidity:
       typeof seriesHumidity[resolvedIndex] === "number"
         ? seriesHumidity[resolvedIndex]
@@ -495,7 +495,7 @@ export async function fetchOutdoorWeather(
     const currentSnapshot: WeatherCondition = {
       temperature: typeof curTemp === "number" ? curTemp : NaN,
       lightUvIndex: typeof curLightValue === "number" ? curLightValue : NaN,
-      windSpeed: typeof curWind === "number" ? curWind : NaN,
+      windSpeed: typeof curWind === "number" ? curWind : undefined,
       co2Level:
         typeof airQualityCurrentCo2 === "number" &&
         !Number.isNaN(airQualityCurrentCo2)
@@ -505,8 +505,8 @@ export async function fetchOutdoorWeather(
                 airQualitySeriesTimes,
                 airQualitySeriesCo2,
                 currentSeriesTime,
-              ) ?? NaN)
-            : NaN,
+              ) ?? undefined)
+            : undefined,
       humidity:
         typeof curHumidityValue === "number" ? curHumidityValue : undefined,
       weatherCode:
@@ -548,7 +548,7 @@ export async function fetchOutdoorWeather(
         airQualitySeriesTimes,
         airQualitySeriesCo2,
         t12TargetTime,
-      ) ?? NaN;
+      ) ?? undefined;
     const t24Snapshot = buildWeatherSnapshot({
       index: t24Index,
       seriesHumidity,
@@ -568,7 +568,7 @@ export async function fetchOutdoorWeather(
         airQualitySeriesTimes,
         airQualitySeriesCo2,
         t24TargetTime,
-      ) ?? NaN;
+      ) ?? undefined;
     const t48Snapshot = buildWeatherSnapshot({
       index: t48Index,
       seriesHumidity,
@@ -588,7 +588,7 @@ export async function fetchOutdoorWeather(
         airQualitySeriesTimes,
         airQualitySeriesCo2,
         t48TargetTime,
-      ) ?? NaN;
+      ) ?? undefined;
 
     const outdoorData: EnvironmentalData = {
       mode: "outdoor",

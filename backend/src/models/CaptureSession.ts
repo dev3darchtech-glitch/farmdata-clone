@@ -94,8 +94,8 @@ const CaptureSessionSchema = new Schema<ICaptureSessionDocument>(
     stationMeasurements: {
       temperature: { type: Number, required: true },
       lightUvIndex: { type: Number, required: true },
-      windSpeed: { type: Number, required: true },
-      co2Level: { type: Number, required: true },
+      windSpeed: { type: Number },
+      co2Level: { type: Number },
       humidity: { type: Number },
       weatherCode: { type: Number },
       updatedAt: { type: String },

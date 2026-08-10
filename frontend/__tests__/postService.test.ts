@@ -62,6 +62,19 @@ describe("postService validation and capture session workflow", () => {
     expect(res.isValid).toBe(true);
   });
 
+  it("allows optional local measurement fields to be omitted", () => {
+    const sessionWithoutOptionalMeasurements = {
+      ...validSessionDraft,
+      localMeasurements: { temperature: 27 },
+      stationMeasurements: { temperature: 28, lightUvIndex: 60 },
+    };
+
+    const res = validateCaptureSession(sessionWithoutOptionalMeasurements);
+
+    expect(res.isValid).toBe(true);
+    expect(res.errors.localHumidity).toBeUndefined();
+  });
+
   it("fails validation when images array is empty", () => {
     const invalidSession = { ...validSessionDraft, images: [] };
     const res = validateCaptureSession(invalidSession);

@@ -39,7 +39,11 @@ export const captureSessionFormSchema = z
     }),
     hasLocalMeasurement: z.boolean().default(false),
     localTemp: z.string().optional(),
+    localHumidity: z.string().optional(),
+    localWindSpeed: z.string().optional(),
     localCo2: z.string().optional(),
+    localSoilDo: z.string().optional(),
+    localSoilHumidity: z.string().optional(),
     symptomDescription: z.string().optional(),
     severity: z.enum(SYMPTOM_SEVERITY_VALUES, {
       message: "Vui lòng chọn mức độ triệu chứng",
