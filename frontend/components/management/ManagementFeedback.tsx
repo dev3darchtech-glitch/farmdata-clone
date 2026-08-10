@@ -12,6 +12,7 @@ import {
   Lock,
   LockOpen,
   Pencil,
+  Trash2,
   TriangleAlert,
   X,
 } from "lucide-react-native";
@@ -25,6 +26,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet } from "../shared/BottomSheet";
 
 import { SYSTEM_FIELDS_BY_VARIANT, type ParsedCsv } from "@/utils/csvHelper";
@@ -377,6 +379,7 @@ export function ManagementActionMenu({
   onRevoke,
   onRestore,
   onResetPassword,
+  onDelete,
 }: {
   visible: boolean;
   variant: ManagementVariant;
@@ -389,6 +392,7 @@ export function ManagementActionMenu({
   onRevoke?: () => void;
   onRestore?: () => void;
   onResetPassword: () => void;
+  onDelete?: () => void;
 }) {
   if (!visible) return null;
 
@@ -429,7 +433,7 @@ export function ManagementActionMenu({
           <Pressable
             style={[
               feedbackStyles.actionMenuRow,
-              feedbackStyles.actionMenuRowLast,
+              !onDelete && feedbackStyles.actionMenuRowLast,
             ]}
             onPress={inactive ? onActivate : onDeactivate}
           >
@@ -473,7 +477,7 @@ export function ManagementActionMenu({
             <Pressable
               style={[
                 feedbackStyles.actionMenuRow,
-                feedbackStyles.actionMenuRowLast,
+                !onDelete && feedbackStyles.actionMenuRowLast,
               ]}
               onPress={onResetPassword}
             >
@@ -483,6 +487,20 @@ export function ManagementActionMenu({
               </Text>
             </Pressable>
           </>
+        ) : null}
+        {onDelete ? (
+          <Pressable
+            style={[
+              feedbackStyles.actionMenuRow,
+              feedbackStyles.actionMenuRowLast,
+            ]}
+            onPress={onDelete}
+          >
+            <Trash2 size={20} color="#dc2626" />
+            <Text style={feedbackStyles.actionMenuDangerText}>
+              Xóa vĩnh viễn
+            </Text>
+          </Pressable>
         ) : null}
       </View>
     </BottomSheet>
@@ -549,6 +567,68 @@ export function ConfirmStatusDialog({
   );
 }
 
+export function ConfirmDeleteDialog({
+  visible,
+  itemLabel,
+  variant,
+  onCancel,
+  onConfirm,
+}: {
+  visible: boolean;
+  itemLabel: string;
+  variant: ManagementVariant;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!visible) return null;
+  const itemKind =
+    variant === "plots"
+      ? "mã luống"
+      : variant === "diseases"
+        ? "bệnh cây"
+        : variant === "farms"
+          ? "farm"
+          : variant === "crops"
+            ? "loại cây"
+            : "tài khoản nông dân";
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
+      <View style={feedbackStyles.scrim}>
+        <View style={feedbackStyles.confirmCard}>
+          <View style={feedbackStyles.confirmBody}>
+            <View style={feedbackStyles.confirmIconArea}>
+              <TriangleAlert size={64} color="#dc2626" />
+            </View>
+            <Text style={feedbackStyles.confirmTitle}>Xóa vĩnh viễn?</Text>
+            <Text style={feedbackStyles.confirmDescription}>
+              Bạn có chắc chắn muốn xóa vĩnh viễn {itemKind} &quot;{itemLabel}&quot;? Hành
+              động này không thể hoàn tác.
+            </Text>
+          </View>
+          <View style={feedbackStyles.confirmFooter}>
+            <Pressable
+              style={feedbackStyles.confirmCancelButton}
+              onPress={onCancel}
+            >
+              <Text style={feedbackStyles.confirmCancelText}>Hủy</Text>
+            </Pressable>
+            <Pressable
+              style={[
+                feedbackStyles.confirmSubmitButton,
+                { backgroundColor: "#dc2626", width: 110 },
+              ]}
+              onPress={onConfirm}
+            >
+              <Text style={feedbackStyles.confirmSubmitText}>Xác nhận xóa</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export function ManagementSnackbar({
   toast,
   onClose,
@@ -556,12 +636,14 @@ export function ManagementSnackbar({
   toast: ToastState;
   onClose: () => void;
 }) {
+  const insets = useSafeAreaInsets();
   if (!toast) return null;
 
   return (
     <Pressable
       style={[
         feedbackStyles.toast,
+        { top: Math.max(12, insets.top + 8) },
         toast.type === "success"
           ? feedbackStyles.toastSuccess
           : toast.type === "warning"
@@ -959,7 +1041,6 @@ const feedbackStyles = StyleSheet.create({
     position: "absolute",
     left: LAYOUT.screenX,
     right: LAYOUT.screenX,
-    bottom: 150,
     minHeight: 56,
     borderRadius: 8,
     paddingHorizontal: 16,

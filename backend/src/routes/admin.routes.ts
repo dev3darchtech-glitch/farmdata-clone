@@ -21,6 +21,15 @@ import {
   updatePlantDisease,
   updatePlot,
   updateUser,
+  deleteCrop,
+  deleteFarm,
+  deletePlantDisease,
+  deletePlot,
+  deleteUser,
+  renamePlantDiseaseGroup,
+  deletePlantDiseaseGroup,
+  renamePlantDiseaseType,
+  deletePlantDiseaseType,
 } from "../controllers/admin.controller";
 import { authenticateToken, requireRole } from "../middleware/rbac";
 
@@ -133,5 +142,20 @@ router.patch("/farms/:id", updateFarm);
  * PATCH /api/admin/farms/:id/deactivate
  */
 router.patch("/farms/:id/deactivate", deactivateFarm);
+
+/**
+ * DELETE endpoints
+ */
+router.delete("/plots/:id", deletePlot);
+router.delete("/farms/:id", deleteFarm);
+router.delete("/crops/:id", deleteCrop);
+router.delete("/plant-diseases/:id", deletePlantDisease);
+router.delete("/users/:id", deleteUser);
+
+// Group/Type management
+router.put("/plant-disease-groups/rename", renamePlantDiseaseGroup);
+router.delete("/plant-disease-groups", deletePlantDiseaseGroup);
+router.put("/plant-disease-types/rename", renamePlantDiseaseType);
+router.delete("/plant-disease-types", deletePlantDiseaseType);
 
 export default router;

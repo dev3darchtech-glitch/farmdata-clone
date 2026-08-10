@@ -48,7 +48,7 @@ function normalizeDiseaseFields(
   }
 
   if (
-    !PLANT_DISEASE_GROUPS.includes(diseaseGroup as PlantDiseaseGroup) ||
+    !diseaseGroup ||
     !diseaseType ||
     !diseaseName
   ) {

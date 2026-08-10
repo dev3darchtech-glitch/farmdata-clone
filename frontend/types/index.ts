@@ -176,7 +176,7 @@ export const PLANT_DISEASE_GROUPS = [
   "Truyền nhiễm",
   "Không truyền nhiễm",
 ] as const;
-export type PlantDiseaseGroup = (typeof PLANT_DISEASE_GROUPS)[number];
+export type PlantDiseaseGroup = string;
 
 /**
  * Symptom assessment data structure for M4.
