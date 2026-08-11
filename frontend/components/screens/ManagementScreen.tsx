@@ -5,12 +5,22 @@ import {
   addPlantDisease,
   addPlot,
   addUser,
+  deleteCropType,
+  deleteFarm,
+  deletePlantDisease,
+  deletePlantDiseaseGroup,
+  deletePlantDiseaseType,
+  deletePlot,
+  deleteUser,
   getCropTypesPage,
   getFarms,
   getFarmsPage,
+  getPlantDiseases,
   getPlantDiseasesPage,
   getPlotsPage,
   getUsersPage,
+  renamePlantDiseaseGroup,
+  renamePlantDiseaseType,
   restoreUser,
   revokeUser,
   setCropTypeActiveStatus,
@@ -50,7 +60,16 @@ import {
   isManagementItemInactive,
 } from "@/utils/management";
 import { useLocalSearchParams } from "expo-router";
-import { Plus, Search, Upload } from "lucide-react-native";
+import {
+  Check,
+  Edit2,
+  Plus,
+  Search,
+  Sliders,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
@@ -59,6 +78,7 @@ import {
   StyleSheet,
   Text,
   TouchableWithoutFeedback,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,6 +88,7 @@ import {
   DEFAULT_DISEASE_TYPES,
 } from "@/types/constants";
 import {
+  ConfirmDeleteDialog,
   ConfirmStatusDialog,
   CsvImportModal,
   ManagementActionMenu,
@@ -88,14 +109,6 @@ import { InputSelection } from "../shared/InputSelection";
 import { InputText } from "../shared/InputText";
 import { KeyboardFormScrollView } from "../shared/KeyboardFormScrollView";
 import { PrimaryButton } from "../shared/PrimaryButton";
-
-const PLANT_DISEASE_GROUP_OPTIONS: PlantDiseaseGroup[] = [
-  "Truyền nhiễm",
-  "Không truyền nhiễm",
-];
-const PLOT_PAGE_SIZE = 6;
-const PLANT_DISEASE_PAGE_SIZE = 5;
-const DEFAULT_PAGE_SIZE = 7;
 
 function parseImportBoolean(value?: string): boolean {
   const normalized = value?.trim().toLowerCase();
@@ -153,6 +166,23 @@ export function ManagementScreen() {
   const [farms, setFarms] = useState<FarmInfo[]>([]);
   const [crops, setCrops] = useState<CropTypeInfo[]>([]);
   const [plantDiseases, setPlantDiseases] = useState<PlantDiseaseInfo[]>([]);
+  const [allDiseases, setAllDiseases] = useState<PlantDiseaseInfo[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [manageGroupsOpen, setManageGroupsOpen] = useState(false);
+  const [editingGroupKey, setEditingGroupKey] = useState<string | null>(null);
+  const [editingGroupValue, setEditingGroupValue] = useState("");
+  const [editingTypeKey, setEditingTypeKey] = useState<string | null>(null);
+  const [editingTypeValue, setEditingTypeValue] = useState("");
+  const [confirmDeleteGroup, setConfirmDeleteGroup] = useState<string | null>(
+    null,
+  );
+  const [confirmDeleteType, setConfirmDeleteType] = useState<{
+    group: string;
+    type: string;
+  } | null>(null);
+  const [deleteSource, setDeleteSource] = useState<"main" | "picker" | null>(
+    null,
+  );
   const [users, setUsers] = useState<User[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -199,7 +229,12 @@ export function ManagementScreen() {
     success: number;
     skipped: number;
     errors: number;
-    details?: { type: "skipped" | "error"; rowNumber: number; rowData: any; reason?: string }[];
+    details?: {
+      type: "skipped" | "error";
+      rowNumber: number;
+      rowData: any;
+      reason?: string;
+    }[];
   }>({
     success: 0,
     skipped: 0,
@@ -207,13 +242,16 @@ export function ManagementScreen() {
     details: [],
   });
   const [confirmItem, setConfirmItem] = useState<any | null>(null);
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<any | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize =
-    variant === "plots"
-      ? PLOT_PAGE_SIZE
-      : variant === "diseases"
-        ? PLANT_DISEASE_PAGE_SIZE
-        : DEFAULT_PAGE_SIZE;
+  const { height: windowHeight } = useWindowDimensions();
+  const pageSize = useMemo(() => {
+    const insetsHeight = insets.top + insets.bottom;
+    const overhead = variant === "diseases" ? 342 : 292;
+    const remaining = windowHeight - overhead - insetsHeight;
+    const fit = Math.floor(remaining / 42);
+    return Math.max(4, Math.min(12, fit));
+  }, [windowHeight, variant, insets.top, insets.bottom]);
 
   const loadVariantData = useCallback(
     async (
@@ -269,6 +307,13 @@ export function ManagementScreen() {
         setPlantDiseases(data.items);
         setTotalItems(data.total);
         setTotalPages(data.totalPages);
+
+        try {
+          const all = await getPlantDiseases();
+          setAllDiseases(all);
+        } catch {
+          // ignore
+        }
         return;
       }
 
@@ -359,12 +404,21 @@ export function ManagementScreen() {
     );
   }, [crops]);
   const availableDiseaseTypes = useMemo(() => {
-    const existingTypes = plantDiseases
+    const existingTypes = allDiseases
       .map((item) => item.type?.trim())
       .filter((type): type is string => Boolean(type));
 
     return Array.from(new Set([...existingTypes, ...DEFAULT_DISEASE_TYPES]));
-  }, [plantDiseases]);
+  }, [allDiseases]);
+  const availableDiseaseGroups = useMemo(() => {
+    const existingGroups = allDiseases
+      .map((item) => item.group?.trim())
+      .filter((group): group is string => Boolean(group));
+
+    return Array.from(
+      new Set(["Truyền nhiễm", "Không truyền nhiễm", ...existingGroups]),
+    );
+  }, [allDiseases]);
   const safePage = Math.min(page, totalPages);
   useEffect(() => {
     if (page > totalPages) {
@@ -426,6 +480,8 @@ export function ManagementScreen() {
   };
 
   const addItem = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
       if (variant === "plots") {
         if (!plotForm.code.trim() || !plotForm.name.trim() || !plotForm.farmId)
@@ -523,6 +579,66 @@ export function ManagementScreen() {
         error instanceof Error ? error.message : "Không thể cập nhật dữ liệu.",
         "error",
       );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRenameGroup = async (oldName: string) => {
+    if (!editingGroupValue.trim() || editingGroupValue.trim() === oldName) {
+      setEditingGroupKey(null);
+      return;
+    }
+    try {
+      await renamePlantDiseaseGroup(oldName, editingGroupValue.trim());
+      notify(`Đã đổi tên nhóm thành '${editingGroupValue.trim()}'`);
+      setEditingGroupKey(null);
+      if (selectedDiseaseGroup === oldName) {
+        setSelectedDiseaseGroup(editingGroupValue.trim());
+      }
+      await refresh();
+    } catch (err: any) {
+      notify(err?.message || "Đổi tên nhóm thất bại", "error");
+    }
+  };
+
+  const handleDeleteGroup = async (name: string) => {
+    try {
+      await deletePlantDiseaseGroup(name);
+      notify(`Đã xóa nhóm '${name}'`);
+      setConfirmDeleteGroup(null);
+      if (selectedDiseaseGroup === name) {
+        setSelectedDiseaseGroup("Truyền nhiễm");
+      }
+      await refresh();
+    } catch (err: any) {
+      notify(err?.message || "Xóa nhóm thất bại", "error");
+    }
+  };
+
+  const handleRenameType = async (group: string, oldName: string) => {
+    if (!editingTypeValue.trim() || editingTypeValue.trim() === oldName) {
+      setEditingTypeKey(null);
+      return;
+    }
+    try {
+      await renamePlantDiseaseType(group, oldName, editingTypeValue.trim());
+      notify(`Đã đổi tên loại thành '${editingTypeValue.trim()}'`);
+      setEditingTypeKey(null);
+      await refresh();
+    } catch (err: any) {
+      notify(err?.message || "Đổi tên loại thất bại", "error");
+    }
+  };
+
+  const handleDeleteType = async (group: string, name: string) => {
+    try {
+      await deletePlantDiseaseType(group, name);
+      notify(`Đã xóa loại '${name}' thuộc nhóm '${group}'`);
+      setConfirmDeleteType(null);
+      await refresh();
+    } catch (err: any) {
+      notify(err?.message || "Xóa loại thất bại", "error");
     }
   };
 
@@ -687,6 +803,40 @@ export function ManagementScreen() {
     }
   };
 
+  const requestDeleteSelectedItem = () => {
+    if (!actionItem) {
+      setActionItem(null);
+      return;
+    }
+    setConfirmDeleteItem(actionItem);
+    setActionItem(null);
+  };
+
+  const deleteSelectedItem = async () => {
+    if (!confirmDeleteItem) return;
+    try {
+      if (variant === "plots") {
+        await deletePlot(confirmDeleteItem.id);
+      } else if (variant === "farms") {
+        await deleteFarm(confirmDeleteItem.id);
+      } else if (variant === "crops") {
+        await deleteCropType(confirmDeleteItem.id);
+      } else if (variant === "diseases") {
+        await deletePlantDisease(confirmDeleteItem.id);
+      } else if (variant === "accounts") {
+        await deleteUser(confirmDeleteItem.id);
+      }
+      await refresh();
+      notify("Xóa dữ liệu thành công.", "success");
+      setConfirmDeleteItem(null);
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : "Không thể xóa dữ liệu.",
+        "error",
+      );
+    }
+  };
+
   const [parsedCsv, setParsedCsv] = useState<ParsedCsv | null>(null);
   const [fieldMapping, setFieldMapping] = useState<Record<string, string>>({});
 
@@ -733,7 +883,12 @@ export function ManagementScreen() {
     let success = 0;
     let skipped = 0;
     let errors = 0;
-    const details: { type: "skipped" | "error"; rowNumber: number; rowData: any; reason?: string }[] = [];
+    const details: {
+      type: "skipped" | "error";
+      rowNumber: number;
+      rowData: any;
+      reason?: string;
+    }[] = [];
     const total = parsedCsv.rows.length;
 
     const allFarms = await getFarms();
@@ -753,13 +908,25 @@ export function ManagementScreen() {
 
           if (!code || !name || !targetFarmName) {
             skipped++;
-            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu trường bắt buộc (mã, tên hoặc tên farm)" });
+            details.push({
+              type: "skipped",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: "Thiếu trường bắt buộc (mã, tên hoặc tên farm)",
+            });
           } else if (
             !envMode ||
             (rawArea && !Number.isFinite(areaSquareMeters))
           ) {
             errors++;
-            details.push({ type: "error", rowNumber: rowNum, rowData: row, reason: !envMode ? "Môi trường không hợp lệ" : "Diện tích không phải là số" });
+            details.push({
+              type: "error",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: !envMode
+                ? "Môi trường không hợp lệ"
+                : "Diện tích không phải là số",
+            });
           } else {
             let matchedFarm = allFarms.find(
               (f) =>
@@ -794,7 +961,12 @@ export function ManagementScreen() {
 
           if (!name) {
             skipped++;
-            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên farm" });
+            details.push({
+              type: "skipped",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: "Thiếu tên farm",
+            });
           } else {
             await addFarm({ name, isActive });
             success++;
@@ -807,7 +979,12 @@ export function ManagementScreen() {
 
           if (!name) {
             skipped++;
-            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên loại cây" });
+            details.push({
+              type: "skipped",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: "Thiếu tên loại cây",
+            });
           } else {
             await addCropType({ name, category, icon, isActive });
             success++;
@@ -821,10 +998,20 @@ export function ManagementScreen() {
 
           if (!name || !type) {
             skipped++;
-            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên bệnh hoặc loại bệnh" });
+            details.push({
+              type: "skipped",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: "Thiếu tên bệnh hoặc loại bệnh",
+            });
           } else if (!group) {
             errors++;
-            details.push({ type: "error", rowNumber: rowNum, rowData: row, reason: "Nhóm bệnh không hợp lệ" });
+            details.push({
+              type: "error",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: "Nhóm bệnh không hợp lệ",
+            });
           } else {
             await addPlantDisease({
               name,
@@ -842,7 +1029,12 @@ export function ManagementScreen() {
 
           if (!name || !username || !password) {
             skipped++;
-            details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Thiếu tên, username hoặc mật khẩu" });
+            details.push({
+              type: "skipped",
+              rowNumber: rowNum,
+              rowData: row,
+              reason: "Thiếu tên, username hoặc mật khẩu",
+            });
           } else {
             await addUser({ name, username, role: "FARMER", password });
             success++;
@@ -851,10 +1043,21 @@ export function ManagementScreen() {
       } catch (error) {
         if (isDuplicateImportError(error)) {
           skipped++;
-          details.push({ type: "skipped", rowNumber: rowNum, rowData: row, reason: "Dữ liệu đã tồn tại (trùng lặp)" });
+          details.push({
+            type: "skipped",
+            rowNumber: rowNum,
+            rowData: row,
+            reason: "Dữ liệu đã tồn tại (trùng lặp)",
+          });
         } else {
           errors++;
-          details.push({ type: "error", rowNumber: rowNum, rowData: row, reason: error instanceof Error ? error.message : "Lỗi hệ thống khi lưu" });
+          details.push({
+            type: "error",
+            rowNumber: rowNum,
+            rowData: row,
+            reason:
+              error instanceof Error ? error.message : "Lỗi hệ thống khi lưu",
+          });
         }
       }
 
@@ -903,6 +1106,7 @@ export function ManagementScreen() {
             onRevoke={variant === "accounts" ? revokeSelectedUser : undefined}
             onRestore={variant === "accounts" ? restoreSelectedUser : undefined}
             onResetPassword={openResetPasswordSelectedUser}
+            onDelete={requestDeleteSelectedItem}
           />
           {variant === "plots" ? (
             <PlotFormSheet
@@ -981,7 +1185,22 @@ export function ManagementScreen() {
                       managementScreenStyles.managementEditDrawerContent
                     }
                   >
-                    {PLANT_DISEASE_GROUP_OPTIONS.map((group) => {
+                    <InputText
+                      containerStyle={managementScreenStyles.drawerFieldStack}
+                      label="Điền mới nhóm bệnh cây"
+                      value={diseaseForm.group}
+                      onChangeText={(group) =>
+                        setDiseaseForm((current) => ({
+                          ...current,
+                          group,
+                        }))
+                      }
+                      placeholder="vd: Truyền nhiễm, Không truyền nhiễm..."
+                    />
+                    <Text style={managementScreenStyles.pickerSectionHeader}>
+                      Hoặc chọn nhóm bệnh cây có sẵn:
+                    </Text>
+                    {availableDiseaseGroups.map((group) => {
                       const selected = diseaseForm.group === group;
                       return (
                         <Pressable
@@ -1011,6 +1230,10 @@ export function ManagementScreen() {
                         </Pressable>
                       );
                     })}
+                    <PrimaryButton
+                      label="Xác nhận"
+                      onPress={() => setDiseaseGroupPickerOpen(false)}
+                    />
                   </KeyboardFormScrollView>
                 ) : diseaseTypePickerOpen ? (
                   <KeyboardFormScrollView
@@ -1208,6 +1431,7 @@ export function ManagementScreen() {
                         <PrimaryButton
                           label="Lưu"
                           style={{ height: 36, minHeight: 36, borderRadius: 8 }}
+                          loading={saving}
                           onPress={addItem}
                           disabled={
                             variant === "accounts"
@@ -1252,6 +1476,301 @@ export function ManagementScreen() {
             variant={variant}
             onCancel={() => setConfirmItem(null)}
             onConfirm={updateSelectedItemStatus}
+          />
+          <ConfirmDeleteDialog
+            visible={Boolean(confirmDeleteItem)}
+            itemLabel={getManagementItemLabel(confirmDeleteItem, variant)}
+            variant={variant}
+            onCancel={() => setConfirmDeleteItem(null)}
+            onConfirm={deleteSelectedItem}
+          />
+          <BottomSheet
+            visible={manageGroupsOpen}
+            title="Quản lý nhóm & loại bệnh"
+            onClose={() => {
+              setManageGroupsOpen(false);
+              setEditingGroupKey(null);
+              setEditingTypeKey(null);
+            }}
+            full
+          >
+            <KeyboardFormScrollView
+              contentContainerStyle={{ paddingBottom: 60 }}
+            >
+              {availableDiseaseGroups.map((group) => {
+                const groupTypes = Array.from(
+                  new Set(
+                    allDiseases
+                      .filter((d) => d.group === group)
+                      .map((d) => d.type)
+                      .filter(Boolean),
+                  ),
+                );
+
+                const isEditingGroup = editingGroupKey === group;
+
+                return (
+                  <View
+                    key={group}
+                    style={managementScreenStyles.manageGroupSection}
+                  >
+                    <View style={managementScreenStyles.manageGroupHeaderRow}>
+                      {isEditingGroup ? (
+                        <View
+                          style={{
+                            flex: 1,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <InputText
+                            containerStyle={{ flex: 1 }}
+                            value={editingGroupValue}
+                            onChangeText={setEditingGroupValue}
+                            placeholder="Tên nhóm mới"
+                            variant="plain"
+                          />
+                          <Pressable
+                            style={managementScreenStyles.rowActionButton}
+                            onPress={() => handleRenameGroup(group)}
+                          >
+                            <Check size={16} color={COLORS.green} />
+                          </Pressable>
+                          <Pressable
+                            style={managementScreenStyles.rowActionButton}
+                            onPress={() => setEditingGroupKey(null)}
+                          >
+                            <X size={16} color={COLORS.muted} />
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <View
+                          style={{
+                            flex: 1,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Text
+                            style={managementScreenStyles.manageGroupNameText}
+                          >
+                            {group}
+                          </Text>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              gap: 12,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Pressable
+                              style={managementScreenStyles.rowActionButton}
+                              onPress={() => {
+                                setEditingGroupKey(group);
+                                setEditingGroupValue(group);
+                              }}
+                            >
+                              <Edit2 size={20} color={COLORS.green} />
+                            </Pressable>
+                            <Pressable
+                              style={managementScreenStyles.rowActionButton}
+                              onPress={() => {
+                                setManageGroupsOpen(false);
+                                setTimeout(() => {
+                                  setConfirmDeleteGroup(group);
+                                  setDeleteSource("main");
+                                }, 300);
+                              }}
+                            >
+                              <Trash2 size={20} color={COLORS.danger} />
+                            </Pressable>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={managementScreenStyles.manageTypesContainer}>
+                      {groupTypes.map((type) => {
+                        const typeKey = `${group}:${type}`;
+                        const isEditingType = editingTypeKey === typeKey;
+
+                        return (
+                          <View
+                            key={type}
+                            style={managementScreenStyles.manageTypeRow}
+                          >
+                            {isEditingType ? (
+                              <View
+                                style={{
+                                  flex: 1,
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
+                                <InputText
+                                  containerStyle={{ flex: 1 }}
+                                  value={editingTypeValue}
+                                  onChangeText={setEditingTypeValue}
+                                  placeholder="Tên loại mới"
+                                  variant="plain"
+                                />
+                                <Pressable
+                                  style={managementScreenStyles.rowActionButton}
+                                  onPress={() => handleRenameType(group, type)}
+                                >
+                                  <Check size={16} color={COLORS.green} />
+                                </Pressable>
+                                <Pressable
+                                  style={managementScreenStyles.rowActionButton}
+                                  onPress={() => setEditingTypeKey(null)}
+                                >
+                                  <X size={16} color={COLORS.muted} />
+                                </Pressable>
+                              </View>
+                            ) : (
+                              <View
+                                style={{
+                                  flex: 1,
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                  justifyContent: "space-between",
+                                }}
+                              >
+                                <Text
+                                  style={
+                                    managementScreenStyles.manageTypeNameText
+                                  }
+                                >
+                                  {type}
+                                </Text>
+                                <View
+                                  style={{
+                                    flexDirection: "row",
+                                    gap: 12,
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Pressable
+                                    style={
+                                      managementScreenStyles.rowActionButton
+                                    }
+                                    onPress={() => {
+                                      setEditingTypeKey(typeKey);
+                                      setEditingTypeValue(type);
+                                    }}
+                                  >
+                                    <Edit2 size={18} color={COLORS.green} />
+                                  </Pressable>
+                                  <Pressable
+                                    style={
+                                      managementScreenStyles.rowActionButton
+                                    }
+                                    onPress={() => {
+                                      setManageGroupsOpen(false);
+                                      setTimeout(() => {
+                                        setConfirmDeleteType({ group, type });
+                                        setDeleteSource("main");
+                                      }, 300);
+                                    }}
+                                  >
+                                    <Trash2 size={18} color={COLORS.danger} />
+                                  </Pressable>
+                                </View>
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                      {groupTypes.length === 0 && (
+                        <Text
+                          style={{
+                            color: COLORS.muted,
+                            fontSize: 12,
+                            fontStyle: "italic",
+                            paddingLeft: 12,
+                            paddingVertical: 4,
+                          }}
+                        >
+                          Chưa có loại bệnh trong nhóm này
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </KeyboardFormScrollView>
+          </BottomSheet>
+          <ConfirmDeleteDialog
+            visible={Boolean(confirmDeleteGroup)}
+            itemLabel={`Nhóm bệnh '${confirmDeleteGroup}' (sẽ xóa tất cả bệnh cây thuộc nhóm này)`}
+            variant="diseases"
+            onCancel={() => {
+              const source = deleteSource;
+              setConfirmDeleteGroup(null);
+              setDeleteSource(null);
+              setTimeout(() => {
+                if (source === "main") {
+                  setManageGroupsOpen(true);
+                } else if (source === "picker") {
+                  setAddOpen(true);
+                  setDiseaseGroupPickerOpen(true);
+                }
+              }, 300);
+            }}
+            onConfirm={async () => {
+              if (confirmDeleteGroup) {
+                const source = deleteSource;
+                await handleDeleteGroup(confirmDeleteGroup);
+                setDeleteSource(null);
+                setTimeout(() => {
+                  if (source === "main") {
+                    setManageGroupsOpen(true);
+                  } else if (source === "picker") {
+                    setAddOpen(true);
+                    setDiseaseGroupPickerOpen(true);
+                  }
+                }, 300);
+              }
+            }}
+          />
+          <ConfirmDeleteDialog
+            visible={Boolean(confirmDeleteType)}
+            itemLabel={`Loại bệnh '${confirmDeleteType?.type}' trong nhóm '${confirmDeleteType?.group}'`}
+            variant="diseases"
+            onCancel={() => {
+              const source = deleteSource;
+              setConfirmDeleteType(null);
+              setDeleteSource(null);
+              setTimeout(() => {
+                if (source === "main") {
+                  setManageGroupsOpen(true);
+                } else if (source === "picker") {
+                  setAddOpen(true);
+                  setDiseaseTypePickerOpen(true);
+                }
+              }, 300);
+            }}
+            onConfirm={async () => {
+              if (confirmDeleteType) {
+                const source = deleteSource;
+                await handleDeleteType(
+                  confirmDeleteType.group,
+                  confirmDeleteType.type,
+                );
+                setDeleteSource(null);
+                setTimeout(() => {
+                  if (source === "main") {
+                    setManageGroupsOpen(true);
+                  } else if (source === "picker") {
+                    setAddOpen(true);
+                    setDiseaseTypePickerOpen(true);
+                  }
+                }, 300);
+              }
+            }}
           />
           <ManagementSnackbar
             toast={snackbar}
@@ -1329,39 +1848,62 @@ export function ManagementScreen() {
         style={managementScreenStyles.managementList}
         contentContainerStyle={[
           managementScreenStyles.managementListContent,
-          { paddingBottom: 130 + insets.bottom },
+          { paddingBottom: 24 },
         ]}
         keyboardShouldPersistTaps="handled"
       >
         {variant === "diseases" ? (
-          <View style={managementScreenStyles.diseaseGroupSegmentContainer}>
-            {(["Truyền nhiễm", "Không truyền nhiễm"] as const).map((group) => {
-              const active = selectedDiseaseGroup === group;
-              return (
-                <Pressable
-                  key={group}
-                  style={[
-                    managementScreenStyles.diseaseGroupSegmentButton,
-                    active &&
-                      managementScreenStyles.diseaseGroupSegmentButtonActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedDiseaseGroup(group);
-                    setPage(1);
-                  }}
-                >
-                  <Text
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 12,
+            }}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ flex: 1 }}
+              contentContainerStyle={[
+                managementScreenStyles.diseaseGroupSegmentContainer,
+                { marginBottom: 0 },
+              ]}
+            >
+              {availableDiseaseGroups.map((group) => {
+                const active = selectedDiseaseGroup === group;
+                return (
+                  <Pressable
+                    key={group}
                     style={[
-                      managementScreenStyles.diseaseGroupSegmentText,
+                      managementScreenStyles.diseaseGroupSegmentButton,
                       active &&
-                        managementScreenStyles.diseaseGroupSegmentTextActive,
+                        managementScreenStyles.diseaseGroupSegmentButtonActive,
                     ]}
+                    onPress={() => {
+                      setSelectedDiseaseGroup(group);
+                      setPage(1);
+                    }}
                   >
-                    {group}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        managementScreenStyles.diseaseGroupSegmentText,
+                        active &&
+                          managementScreenStyles.diseaseGroupSegmentTextActive,
+                      ]}
+                    >
+                      {group}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable
+              style={managementScreenStyles.manageGroupTypeButton}
+              onPress={() => setManageGroupsOpen(true)}
+            >
+              <Sliders size={18} color={COLORS.green} />
+            </Pressable>
           </View>
         ) : null}
         {variant === "plots" ? (
@@ -1476,9 +2018,9 @@ const managementScreenStyles = StyleSheet.create({
     flex: 1,
   },
   managementListContent: {
+    flexGrow: 1,
     paddingHorizontal: LAYOUT.screenX,
     paddingTop: 12,
-    paddingBottom: 170,
   },
   managementHiddenTabs: {
     position: "absolute",
@@ -1557,11 +2099,11 @@ const managementScreenStyles = StyleSheet.create({
     marginBottom: 12,
   },
   diseaseGroupSegmentButton: {
-    flex: 1,
     height: 36,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 14,
   },
   diseaseGroupSegmentButtonActive: {
     backgroundColor: "#fff",
@@ -1679,5 +2221,64 @@ const managementScreenStyles = StyleSheet.create({
     color: COLORS.green,
     fontSize: 13,
     fontWeight: "600",
+  },
+  manageGroupTypeButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  manageGroupSection: {
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    backgroundColor: "#f9fafb",
+    overflow: "hidden",
+  },
+  manageGroupHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#f3f4f6",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  manageGroupNameText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  manageTypesContainer: {
+    padding: 8,
+    gap: 6,
+  },
+  manageTypeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+  },
+  manageTypeNameText: {
+    color: COLORS.body,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  rowActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -13,7 +13,7 @@ export interface IPlantDiseaseDocument extends Document {
 
 const PlantDiseaseSchema = new Schema<IPlantDiseaseDocument>(
   {
-    group: { type: String, enum: PLANT_DISEASE_GROUPS, required: true },
+    group: { type: String, required: true, trim: true },
     type: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },

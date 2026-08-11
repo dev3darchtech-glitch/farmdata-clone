@@ -16,7 +16,7 @@ export function PlotManagementTable({
   onAction: (item: PlotInfo) => void;
 }) {
   return (
-    <View>
+    <View style={tableStyles.container}>
       <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.plotHeader}>
@@ -108,7 +108,7 @@ export function CropManagementTable({
   onAction: (item: CropTypeInfo) => void;
 }) {
   return (
-    <View>
+    <View style={tableStyles.container}>
       <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.cropHeader}>
@@ -176,7 +176,7 @@ export function AccountManagementTable({
   onAction: (item: User) => void;
 }) {
   return (
-    <View>
+    <View style={tableStyles.container}>
       <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.accountHeader}>
@@ -256,7 +256,7 @@ export function PlantDiseaseManagementTable({
   onAction: (item: PlantDiseaseInfo) => void;
 }) {
   return (
-    <View>
+    <View style={tableStyles.container}>
       <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.diseaseHeader}>
@@ -325,7 +325,7 @@ export function FarmManagementTable({
   onAction: (item: any) => void;
 }) {
   return (
-    <View>
+    <View style={tableStyles.container}>
       <Text style={tableStyles.summary}>TỔNG SỐ: {total}</Text>
       <View style={tableStyles.cardTable}>
         <View style={tableStyles.cropHeader}>
@@ -386,7 +386,12 @@ const tableStyles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  container: {
+    flex: 1,
+  },
   cardTable: {
+    flex: 1,
+    minHeight: 320,
     width: "100%",
     borderRadius: 10,
     borderWidth: 1,

@@ -2,7 +2,6 @@ import { COLORS } from "@/constants/theme";
 import { getVisibleManagementPages } from "@/utils/management";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export function ManagementPagination({
   page,
@@ -15,8 +14,6 @@ export function ManagementPagination({
   totalItems: number;
   onPageChange: (page: number) => void;
 }) {
-  const insets = useSafeAreaInsets();
-
   if (totalPages <= 1 || totalItems <= 0) {
     return null;
   }
@@ -24,12 +21,7 @@ export function ManagementPagination({
   const pages = getVisibleManagementPages(page, totalPages);
 
   return (
-    <View
-      style={[
-        paginationStyles.container,
-        { bottom: 54 + insets.bottom },
-      ]}
-    >
+    <View style={paginationStyles.container}>
       <Pressable
         style={[
           paginationStyles.button,
@@ -97,9 +89,6 @@ export function ManagementPagination({
 
 const paginationStyles = StyleSheet.create({
   container: {
-    position: "absolute",
-    left: 0,
-    right: 0,
     height: 46,
     paddingHorizontal: 12,
     paddingVertical: 6,

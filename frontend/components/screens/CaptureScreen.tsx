@@ -326,6 +326,22 @@ export function CaptureScreen() {
         hasHydratedDraftRef.current = true;
       }
 
+      if (isAuthenticated && user?.id) {
+        Promise.allSettled([
+          getPlots(),
+          getFarms(),
+          getCropTypes(),
+          getPlantDiseases(),
+        ]).then(([plotResult, farmResult, cropResult, diseaseResult]) => {
+          if (plotResult.status === "fulfilled") setPlots(plotResult.value);
+          if (farmResult.status === "fulfilled") setFarms(farmResult.value);
+          if (cropResult.status === "fulfilled") setCrops(cropResult.value);
+          if (diseaseResult.status === "fulfilled") {
+            setPlantDiseases(diseaseResult.value);
+          }
+        });
+      }
+
       return () => {
         // Leaving edit mode: reset form
         if (isEditModeRef.current) {
@@ -333,7 +349,7 @@ export function CaptureScreen() {
           setIsEditMode(false);
         }
       };
-    }, [resetForm]),
+    }, [resetForm, isAuthenticated, user?.id]),
   );
 
   const applyWeatherForLocation = useCallback((location: LocationData) => {
@@ -454,26 +470,6 @@ export function CaptureScreen() {
           }
         }
       });
-
-    // Do not make unauthenticated requests: the API returns 401 and the
-    // client intentionally maps failed master-data requests to empty arrays.
-    if (isAuthenticated && user?.id) {
-      Promise.allSettled([
-        getPlots(),
-        getFarms(),
-        getCropTypes(),
-        getPlantDiseases(),
-      ]).then(([plotResult, farmResult, cropResult, diseaseResult]) => {
-        if (!isMounted) return;
-
-        if (plotResult.status === "fulfilled") setPlots(plotResult.value);
-        if (farmResult.status === "fulfilled") setFarms(farmResult.value);
-        if (cropResult.status === "fulfilled") setCrops(cropResult.value);
-        if (diseaseResult.status === "fulfilled") {
-          setPlantDiseases(diseaseResult.value);
-        }
-      });
-    }
 
     const isTestEnv =
       typeof process !== "undefined" &&

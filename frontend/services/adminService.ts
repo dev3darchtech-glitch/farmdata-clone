@@ -35,6 +35,15 @@ import {
   updatePlantDiseaseAPI,
   updatePlotAPI,
   updateUserAPI,
+  deletePlotAPI,
+  deleteFarmAPI,
+  deleteCropAPI,
+  deletePlantDiseaseAPI,
+  deleteUserAPI,
+  renamePlantDiseaseGroupAPI,
+  deletePlantDiseaseGroupAPI,
+  renamePlantDiseaseTypeAPI,
+  deletePlantDiseaseTypeAPI,
 } from "./apiClient";
 
 export const csvRowSchema = z.object({
@@ -199,6 +208,52 @@ export async function updateUser(
   user: { name?: string; username?: string; password?: string },
 ): Promise<User> {
   return await updateUserAPI(userId, user);
+}
+
+export async function deletePlot(plotId: string): Promise<void> {
+  await deletePlotAPI(plotId);
+}
+
+export async function deleteFarm(farmId: string): Promise<void> {
+  await deleteFarmAPI(farmId);
+}
+
+export async function deleteCropType(cropId: string): Promise<void> {
+  await deleteCropAPI(cropId);
+}
+
+export async function deletePlantDisease(diseaseId: string): Promise<void> {
+  await deletePlantDiseaseAPI(diseaseId);
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+  await deleteUserAPI(userId);
+}
+
+export async function renamePlantDiseaseGroup(
+  oldName: string,
+  newName: string
+): Promise<void> {
+  await renamePlantDiseaseGroupAPI(oldName, newName);
+}
+
+export async function deletePlantDiseaseGroup(name: string): Promise<void> {
+  await deletePlantDiseaseGroupAPI(name);
+}
+
+export async function renamePlantDiseaseType(
+  group: string,
+  oldName: string,
+  newName: string
+): Promise<void> {
+  await renamePlantDiseaseTypeAPI(group, oldName, newName);
+}
+
+export async function deletePlantDiseaseType(
+  group: string,
+  name: string
+): Promise<void> {
+  await deletePlantDiseaseTypeAPI(group, name);
 }
 
 export async function importCSV(

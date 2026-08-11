@@ -22,10 +22,7 @@ function readRequestedActiveStatus(req: Request, res: Response) {
 }
 
 function isPlantDiseaseGroup(value: unknown): value is PlantDiseaseGroup {
-  return (
-    typeof value === "string" &&
-    PLANT_DISEASE_GROUPS.includes(value as PlantDiseaseGroup)
-  );
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function normalizeRequiredText(value: unknown) {
@@ -931,4 +928,160 @@ export const deactivateFarm = async (req: Request, res: Response) => {
   target.isActive = requestedIsActive;
   await target.save();
   return res.json(target);
+};
+
+/**
+ * DELETE /api/admin/plots/:id
+ */
+export const deletePlot = async (req: Request, res: Response) => {
+  const target = await PlotModel.findByIdAndDelete(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy luống" });
+  }
+  return res.json({ success: true, message: "Xóa luống thành công" });
+};
+
+/**
+ * DELETE /api/admin/farms/:id
+ */
+export const deleteFarm = async (req: Request, res: Response) => {
+  const target = await FarmModel.findByIdAndDelete(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy farm" });
+  }
+  return res.json({ success: true, message: "Xóa farm thành công" });
+};
+
+/**
+ * DELETE /api/admin/crops/:id
+ */
+export const deleteCrop = async (req: Request, res: Response) => {
+  const target = await CropModel.findByIdAndDelete(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy loại cây" });
+  }
+  return res.json({ success: true, message: "Xóa loại cây thành công" });
+};
+
+/**
+ * DELETE /api/admin/plant-diseases/:id
+ */
+export const deletePlantDisease = async (req: Request, res: Response) => {
+  const target = await PlantDiseaseModel.findByIdAndDelete(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy bệnh cây" });
+  }
+  return res.json({ success: true, message: "Xóa bệnh cây thành công" });
+};
+
+/**
+ * DELETE /api/admin/users/:id
+ */
+export const deleteUser = async (req: Request, res: Response) => {
+  const target = await UserModel.findById(req.params.id);
+  if (!target) {
+    return res.status(404).json({ error: "Không tìm thấy người dùng" });
+  }
+  if (target.role !== "FARMER") {
+    return res.status(403).json({ error: "Admin chỉ có thể xóa tài khoản nông dân" });
+  }
+  if (target._id.toString() === req.user!.id) {
+    return res.status(400).json({ error: "Không thể xóa tài khoản của chính mình" });
+  }
+
+  try {
+    const fbUid = target.firebaseUid;
+    if (fbUid) {
+      await auth.deleteUser(fbUid).catch((err) => {
+        console.warn("Could not delete user from Firebase Auth:", err.message);
+      });
+    }
+    await UserModel.findByIdAndDelete(target._id);
+    return res.json({ success: true, message: "Xóa tài khoản thành công" });
+  } catch (err: any) {
+    console.error("Error deleting user:", err);
+    return res.status(500).json({ error: `Xóa tài khoản thất bại: ${err.message}` });
+  }
+};
+
+export const renamePlantDiseaseGroup = async (req: Request, res: Response) => {
+  const oldName = normalizeRequiredText(req.body?.oldName);
+  const newName = normalizeRequiredText(req.body?.newName);
+
+  if (!oldName || !newName) {
+    return res.status(400).json({ error: "Tên nhóm cũ và mới là bắt buộc" });
+  }
+
+  try {
+    const result = await PlantDiseaseModel.updateMany(
+      { group: oldName },
+      { group: newName }
+    );
+    return res.json({
+      success: true,
+      message: `Đã đổi tên nhóm từ '${oldName}' sang '${newName}' cho ${result.modifiedCount} bệnh cây.`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: `Đổi tên nhóm thất bại: ${err.message}` });
+  }
+};
+
+export const deletePlantDiseaseGroup = async (req: Request, res: Response) => {
+  const name = normalizeRequiredText(req.query?.name);
+
+  if (!name) {
+    return res.status(400).json({ error: "Tên nhóm là bắt buộc" });
+  }
+
+  try {
+    const result = await PlantDiseaseModel.deleteMany({ group: name });
+    return res.json({
+      success: true,
+      message: `Đã xóa nhóm '${name}' và ${result.deletedCount} bệnh cây thuộc nhóm này.`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: `Xóa nhóm thất bại: ${err.message}` });
+  }
+};
+
+export const renamePlantDiseaseType = async (req: Request, res: Response) => {
+  const group = normalizeRequiredText(req.body?.group);
+  const oldName = normalizeRequiredText(req.body?.oldName);
+  const newName = normalizeRequiredText(req.body?.newName);
+
+  if (!group || !oldName || !newName) {
+    return res.status(400).json({ error: "Nhóm, tên loại cũ và mới là bắt buộc" });
+  }
+
+  try {
+    const result = await PlantDiseaseModel.updateMany(
+      { group, type: oldName },
+      { type: newName }
+    );
+    return res.json({
+      success: true,
+      message: `Đã đổi tên loại từ '${oldName}' sang '${newName}' trong nhóm '${group}' cho ${result.modifiedCount} bệnh cây.`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: `Đổi tên loại thất bại: ${err.message}` });
+  }
+};
+
+export const deletePlantDiseaseType = async (req: Request, res: Response) => {
+  const group = normalizeRequiredText(req.query?.group);
+  const name = normalizeRequiredText(req.query?.name);
+
+  if (!group || !name) {
+    return res.status(400).json({ error: "Nhóm và tên loại là bắt buộc" });
+  }
+
+  try {
+    const result = await PlantDiseaseModel.deleteMany({ group, type: name });
+    return res.json({
+      success: true,
+      message: `Đã xóa loại '${name}' thuộc nhóm '${group}' và ${result.deletedCount} bệnh cây.`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: `Xóa loại thất bại: ${err.message}` });
+  }
 };

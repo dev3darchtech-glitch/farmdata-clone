@@ -1100,3 +1100,116 @@ export async function restoreUserAPI(userId: string): Promise<User> {
 
   return mapUser(data);
 }
+
+export async function deletePlotAPI(plotId: string): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plots/${plotId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa luống.");
+  }
+}
+
+export async function deleteFarmAPI(farmId: string): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/farms/${farmId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa farm.");
+  }
+}
+
+export async function deleteCropAPI(cropId: string): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/crops/${cropId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa loại cây.");
+  }
+}
+
+export async function deletePlantDiseaseAPI(diseaseId: string): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-diseases/${diseaseId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa bệnh cây.");
+  }
+}
+
+export async function deleteUserAPI(userId: string): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa tài khoản.");
+  }
+}
+
+export async function renamePlantDiseaseGroupAPI(
+  oldName: string,
+  newName: string
+): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-disease-groups/rename`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ oldName, newName }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể đổi tên nhóm.");
+  }
+}
+
+export async function deletePlantDiseaseGroupAPI(name: string): Promise<void> {
+  const params = new URLSearchParams({ name });
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-disease-groups?${params}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa nhóm.");
+  }
+}
+
+export async function renamePlantDiseaseTypeAPI(
+  group: string,
+  oldName: string,
+  newName: string
+): Promise<void> {
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-disease-types/rename`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ group, oldName, newName }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể đổi tên loại.");
+  }
+}
+
+export async function deletePlantDiseaseTypeAPI(
+  group: string,
+  name: string
+): Promise<void> {
+  const params = new URLSearchParams({ group, name });
+  const res = await backendFetch(`${BACKEND_URL}/admin/plant-disease-types?${params}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Không thể xóa loại.");
+  }
+}

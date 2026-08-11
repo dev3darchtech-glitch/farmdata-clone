@@ -111,8 +111,8 @@ export type EnvMode = "outdoor" | "greenhouse";
 export interface WeatherCondition {
   temperature: number; // °C (-10 .. 60)
   lightUvIndex: number; // Light level / solar radiation legacy field
-  windSpeed: number; // km/h (0 .. 150)
-  co2Level: number; // ppm (200 .. 5000)
+  windSpeed?: number; // km/h (0 .. 150)
+  co2Level?: number; // ppm (200 .. 5000)
   humidity?: number; // % relative humidity (0 .. 100)
   weatherCode?: number; // Open-Meteo weather code
   updatedAt?: string; // Time of this measurement
@@ -176,7 +176,7 @@ export const PLANT_DISEASE_GROUPS = [
   "Truyền nhiễm",
   "Không truyền nhiễm",
 ] as const;
-export type PlantDiseaseGroup = (typeof PLANT_DISEASE_GROUPS)[number];
+export type PlantDiseaseGroup = string;
 
 /**
  * Symptom assessment data structure for M4.

@@ -61,10 +61,11 @@ export function validateCaptureSession(
       errors.localTemperature = "Nhiệt độ tại nơi phải từ 0°C đến 50°C";
     }
     if (
-      typeof local.humidity !== "number" ||
-      Number.isNaN(local.humidity) ||
-      local.humidity < 0 ||
-      local.humidity > 100
+      local.humidity !== undefined &&
+      (typeof local.humidity !== "number" ||
+        Number.isNaN(local.humidity) ||
+        local.humidity < 0 ||
+        local.humidity > 100)
     ) {
       errors.localHumidity = "Vui lòng nhập độ ẩm tại nơi";
     }

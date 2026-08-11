@@ -339,7 +339,7 @@ describe("FarmData Backend API & RBAC Suite", () => {
           username,
           password,
           role: "FARMER",
-      });
+        });
       expect(createRes.status).toBe(201);
 
       const loginRes = await request(app)
@@ -359,6 +359,17 @@ describe("FarmData Backend API & RBAC Suite", () => {
           description: "Bệnh test cho farmer upload",
         });
       expect(diseaseRes.status).toBe(201);
+
+      const otherGroupDiseaseRes = await request(app)
+        .post("/api/admin/plant-diseases")
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({
+          group: "Không truyền nhiễm",
+          type: "Nấm",
+          name: diseaseName,
+          description: "Bệnh test group khác",
+        });
+      expect(otherGroupDiseaseRes.status).toBe(201);
 
       const [farmsRes, plotsRes, cropsRes, diseasesRes] = await Promise.all([
         request(app)

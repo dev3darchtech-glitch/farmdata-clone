@@ -81,7 +81,7 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
   });
 
   describe("createDefaultGreenhouseData", () => {
-    it("creates greenhouse default state with NaN for all 12 metric fields", () => {
+    it("creates greenhouse default state with empty optional wind and CO2 fields", () => {
       const data = createDefaultGreenhouseData();
       expect(data.mode).toBe("greenhouse");
       expect(data.isOverridden).toBe(false);
@@ -93,17 +93,17 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
         "t24",
         "t48",
       ];
-      const metrics: (keyof WeatherCondition)[] = [
+      const requiredMetrics: (keyof WeatherCondition)[] = [
         "temperature",
         "lightUvIndex",
-        "windSpeed",
-        "co2Level",
       ];
 
       timeframes.forEach((tf) => {
-        metrics.forEach((m) => {
+        requiredMetrics.forEach((m) => {
           expect(Number.isNaN(data[tf][m])).toBe(true);
         });
+        expect(data[tf].windSpeed).toBeUndefined();
+        expect(data[tf].co2Level).toBeUndefined();
       });
     });
   });
@@ -119,6 +119,15 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
     it("validates a correct weather condition within physical bounds", () => {
       const errors = validateWeatherCondition(validCondition, "current");
       expect(Object.keys(errors)).toHaveLength(0);
+    });
+
+    it("allows optional wind speed and CO2 to be omitted", () => {
+      const errors = validateWeatherCondition(
+        { temperature: 25, lightUvIndex: 500 },
+        "current",
+      );
+
+      expect(errors).toEqual({});
     });
 
     it("detects temperature out of bounds (< -10°C or > 60°C)", () => {
@@ -196,8 +205,8 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       const defaultGreenhouse = createDefaultGreenhouseData();
       const result = validateGreenhouseParams(defaultGreenhouse);
       expect(result.isValid).toBe(false);
-      // All 12 fields must have error messages
-      expect(Object.keys(result.errors).length).toBeGreaterThanOrEqual(12);
+      // Temperature and light remain required for all three timeframes.
+      expect(Object.keys(result.errors).length).toBeGreaterThanOrEqual(6);
     });
 
     it("rejects greenhouse data if mode is not greenhouse", () => {
@@ -540,7 +549,7 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       expect(result.mode).toBe("outdoor");
       expect(result.isFallback).toBe(true);
-      expect(Number.isNaN(result.current.windSpeed)).toBe(true);
+      expect(result.current.windSpeed).toBeUndefined();
     });
 
     it("returns empty station data when timeout occurs", async () => {
@@ -555,7 +564,7 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
       const result = await fetchOutdoorWeather(lat, lon);
 
       expect(result.isFallback).toBe(true);
-      expect(Number.isNaN(result.current.co2Level)).toBe(true);
+      expect(result.current.co2Level).toBeUndefined();
     });
 
     it("keeps CO2 empty when the air-quality API does not return data", async () => {
@@ -598,10 +607,10 @@ describe("Environmental Parameters & Weather Service Tests (M3)", () => {
 
       const result = await fetchOutdoorWeather(lat, lon);
 
-      expect(Number.isNaN(result.current.co2Level)).toBe(true);
-      expect(Number.isNaN(result.t12?.co2Level)).toBe(true);
-      expect(Number.isNaN(result.t24.co2Level)).toBe(true);
-      expect(Number.isNaN(result.t48.co2Level)).toBe(true);
+      expect(result.current.co2Level).toBeUndefined();
+      expect(result.t12?.co2Level).toBeUndefined();
+      expect(result.t24.co2Level).toBeUndefined();
+      expect(result.t48.co2Level).toBeUndefined();
     });
 
     it("falls back immediately for invalid coordinates without making fetch call", async () => {
